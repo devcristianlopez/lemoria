@@ -8,12 +8,12 @@ graph TB
 
   subgraph OC[OpenCode]
     SKILL[Skill: lemoria] --> OA[Orchestrator Agent]
-    OA -->|@backend-agent| BA[Backend Agent]
-    OA -->|@db-agent| DA[DB Agent]
-    OA -->|@testing-agent| TA[Testing Agent]
-    OA -->|@github-agent| GA[GitHub Agent]
-    OA -->|@review-agent| RA[Review Agent]
-    OA -->|@documentation-agent| DOA[Documentation Agent]
+    OA -->|backend-agent| BA[Backend Agent]
+    OA -->|db-agent| DA[DB Agent]
+    OA -->|testing-agent| TA[Testing Agent]
+    OA -->|github-agent| GA[GitHub Agent]
+    OA -->|review-agent| RA[Review Agent]
+    OA -->|documentation-agent| DOA[Documentation Agent]
   end
 
   subgraph LEMORIA[Lemoria System]
