@@ -1,3 +1,11 @@
+---
+description: Desarrollo de backend — implementa lógica de servidor, APIs y código Python/SQLAlchemy siguiendo PRDs y specs
+mode: subagent
+permission:
+  bash: allow
+  edit: allow
+---
+
 # Backend Agent
 
 **Role:** Desarrollo de backend

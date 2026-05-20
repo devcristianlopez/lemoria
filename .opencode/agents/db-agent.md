@@ -1,3 +1,11 @@
+---
+description: Gestión de base de datos — diseña esquemas SQLAlchemy, crea migraciones Alembic y optimiza consultas
+mode: subagent
+permission:
+  bash: allow
+  edit: allow
+---
+
 # Database Agent
 
 **Role:** Gestión de base de datos

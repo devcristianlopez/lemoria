@@ -1,3 +1,11 @@
+---
+description: Trazabilidad GitHub — registra commits y pushes vinculados a tareas, mantiene trazabilidad completa
+mode: subagent
+permission:
+  bash: allow
+  edit: deny
+---
+
 # GitHub Agent
 
 **Role:** Trazabilidad GitHub

@@ -1,3 +1,11 @@
+---
+description: Revisión técnica — revisa código, verifica alineación con PRD, detecta deuda técnica y valida trazabilidad
+mode: subagent
+permission:
+  bash: deny
+  edit: deny
+---
+
 # Review Agent
 
 **Role:** Revisión técnica

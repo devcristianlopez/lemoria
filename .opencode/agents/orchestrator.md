@@ -1,3 +1,11 @@
+---
+description: Agente mayor/orquestador — analiza contexto, revisa PRDs, decide flujo y delega tareas a subagentes
+mode: subagent
+permission:
+  bash: allow
+  edit: deny
+---
+
 # Orchestrator Agent
 
 **Role:** Agente mayor/orquestador

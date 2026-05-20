@@ -1,3 +1,11 @@
+---
+description: Documentación técnica — mantiene docs actualizados, sincroniza memoria con Obsidian vault y genera notas técnicas
+mode: subagent
+permission:
+  bash: allow
+  edit: allow
+---
+
 # Documentation Agent
 
 **Role:** Documentación técnica

@@ -1,3 +1,11 @@
+---
+description: Aseguramiento de calidad — escribe y ejecuta tests unitarios y de integración, reporta cobertura y fallos
+mode: subagent
+permission:
+  bash: allow
+  edit: allow
+---
+
 # Testing Agent
 
 **Role:** Aseguramiento de calidad

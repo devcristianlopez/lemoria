@@ -1,53 +1,64 @@
 {
-  "$schema": "https://opencode.ai/schema/opencode.json",
+  "$schema": "https://opencode.ai/config.json",
   "name": "lemoria",
   "description": "Sistema Operativo de Memoria y Orquestación para Desarrollo con IA",
   "version": "0.1.0",
-  "agents": {
-    "orchestrator": {
-      "role": "Agente mayor/orquestador",
-      "description": "Analiza contexto, revisa PRDs, delega tareas, coordina agentes",
-      "file": "agents/orchestrator.md"
+  "commands": {
+    "lemoria-init": {
+      "description": "Initialize Lemoria database and vault",
+      "prompt": "Run lemoria init to initialize PostgreSQL tables and create the Obsidian vault directory"
     },
-    "backend-agent": {
-      "role": "Desarrollo de backend",
-      "description": "Implementa lógica de servidor y APIs en Python",
-      "file": "agents/backend-agent.md"
+    "lemoria-project": {
+      "description": "Create or list Lemoria projects",
+      "prompt": "Use lemoria project create <name> to create a new project, or lemoria project list to show all projects"
     },
-    "db-agent": {
-      "role": "Gestión de base de datos",
-      "description": "Diseña esquemas, migraciones, optimiza consultas",
-      "file": "agents/db-agent.md"
+    "lemoria-flow": {
+      "description": "Start an SDD flow from an idea",
+      "prompt": "Run lemoria flow start <project-id> '<idea description>' to begin a Spec-Driven Development flow"
     },
-    "testing-agent": {
-      "role": "Aseguramiento de calidad",
-      "description": "Escribe y ejecuta tests, reporta cobertura",
-      "file": "agents/testing-agent.md"
-    },
-    "github-agent": {
-      "role": "Trazabilidad GitHub",
-      "description": "Registra commits, vincula con tareas, mantiene trazabilidad",
-      "file": "agents/github-agent.md"
-    },
-    "review-agent": {
-      "role": "Revisión técnica",
-      "description": "Revisa código, verifica alineación con PRD, detecta deuda técnica",
-      "file": "agents/review-agent.md"
-    },
-    "documentation-agent": {
-      "role": "Documentación técnica",
-      "description": "Mantiene documentación, sincroniza con Obsidian vault",
-      "file": "agents/documentation-agent.md"
+    "lemoria-agent": {
+      "description": "Register or list Lemoria agents",
+      "prompt": "Use lemoria agent register <name> <role> to register an agent, or lemoria agent list to show all agents"
     }
   },
-  "config": {
-    "db": {
-      "host": "localhost",
-      "port": 5432,
-      "name": "lemoria",
-      "user": "lemoria",
-      "password": "lemoria"
+  "agents": {
+    "orchestrator": {
+      "description": "Agente mayor/orquestador: analiza contexto, revisa PRDs, delega tareas, coordina agentes",
+      "mode": "subagent",
+      "file": ".opencode/agents/orchestrator.md"
     },
-    "vault_path": "vault/obsidian"
+    "backend-agent": {
+      "description": "Desarrollo de backend: implementa APIs y lógica Python/SQLAlchemy",
+      "mode": "subagent",
+      "file": ".opencode/agents/backend-agent.md"
+    },
+    "db-agent": {
+      "description": "Gestión de base de datos: esquemas, migraciones, optimización",
+      "mode": "subagent",
+      "file": ".opencode/agents/db-agent.md"
+    },
+    "testing-agent": {
+      "description": "Aseguramiento de calidad: tests unitarios e integración",
+      "mode": "subagent",
+      "file": ".opencode/agents/testing-agent.md"
+    },
+    "github-agent": {
+      "description": "Trazabilidad GitHub: commits, pushes, PRs vinculados a tareas",
+      "mode": "subagent",
+      "file": ".opencode/agents/github-agent.md"
+    },
+    "review-agent": {
+      "description": "Revisión técnica: alineación con PRD, deuda técnica, trazabilidad",
+      "mode": "subagent",
+      "file": ".opencode/agents/review-agent.md"
+    },
+    "documentation-agent": {
+      "description": "Documentación técnica: sincroniza memoria con Obsidian vault",
+      "mode": "subagent",
+      "file": ".opencode/agents/documentation-agent.md"
+    }
+  },
+  "skills": {
+    "paths": [".opencode/skills"]
   }
 }

@@ -2,15 +2,14 @@
 
 **Sistema Operativo de Memoria y Orquestación para Desarrollo con IA**
 
-Plataforma local-first para desarrollo asistido por IA con memoria persistente, coordinación multiagente, trazabilidad técnica y desarrollo guiado por especificaciones (SDD).
+Plataforma local-first para desarrollo asistido por IA con memoria persistente, coordinación multiagente y trazabilidad técnica.
 
 ## Stack
 
 - **Backend:** Python / SQLAlchemy
 - **Base de Datos:** PostgreSQL (Docker)
-- **Agentes:** OpenCode Agents
+- **Agentes:** OpenCode (subagentes en `.opencode/agents/`)
 - **Vault:** Obsidian (opcional)
-- **Versionado:** Git + GitHub
 
 ## Instalación
 
@@ -19,36 +18,34 @@ git clone https://github.com/cristianl0pez-dev/lemoria.git
 cd lemoria
 chmod +x install.sh
 ./install.sh
+opencode
 ```
 
-Ver [INSTALL.md](INSTALL.md) para instalación paso a paso.
+Ver [INSTALL.md](INSTALL.md) para instalación detallada.
 
 ## Uso
 
-`lemoria` se instala como comando global:
-
 ```bash
-# Crear proyecto
 lemoria project create "mi-proyecto"
-
-# Iniciar flujo SDD
-lemoria flow start <project-id> "descripción de la idea"
-
-# Ver agentes
+lemoria flow start <id> "idea"
 lemoria agent list
 ```
 
-## Estructura
+## Agentes OpenCode
 
-```
-lemoria/
-├── agents/         # Definiciones de agentes OpenCode
-├── database/       # Modelos SQLAlchemy
-├── docs/           # Documentación del sistema
-├── lemoria/        # Código fuente Python
-├── vault/          # Sincronización Obsidian
-├── docker-compose.yml
-├── opencode.jsonc
-├── INSTALL.md
-└── install.sh
-```
+| Agente | Rol |
+|--------|-----|
+| orchestrator | Orquestador (analiza contexto, delega) |
+| backend-agent | Implementación backend |
+| db-agent | Gestión de base de datos |
+| testing-agent | Tests y calidad |
+| github-agent | Trazabilidad GitHub |
+| review-agent | Revisión técnica |
+| documentation-agent | Documentación y Obsidian |
+
+## Documentación
+
+- [PRD](docs/PRD.md) — Product Requirements Document
+- [ARCHITECTURE](docs/ARCHITECTURE.md) — Arquitectura del sistema
+- [ROADMAP](docs/ROADMAP.md) — Roadmap del proyecto
+- [SDD](docs/SDD.md) — Spec Driven Development
