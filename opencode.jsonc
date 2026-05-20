@@ -1,0 +1,53 @@
+{
+  "$schema": "https://opencode.ai/schema/opencode.json",
+  "name": "lemoria",
+  "description": "Sistema Operativo de Memoria y Orquestación para Desarrollo con IA",
+  "version": "0.1.0",
+  "agents": {
+    "orchestrator": {
+      "role": "Agente mayor/orquestador",
+      "description": "Analiza contexto, revisa PRDs, delega tareas, coordina agentes",
+      "file": "agents/orchestrator.md"
+    },
+    "backend-agent": {
+      "role": "Desarrollo de backend",
+      "description": "Implementa lógica de servidor y APIs en Python",
+      "file": "agents/backend-agent.md"
+    },
+    "db-agent": {
+      "role": "Gestión de base de datos",
+      "description": "Diseña esquemas, migraciones, optimiza consultas",
+      "file": "agents/db-agent.md"
+    },
+    "testing-agent": {
+      "role": "Aseguramiento de calidad",
+      "description": "Escribe y ejecuta tests, reporta cobertura",
+      "file": "agents/testing-agent.md"
+    },
+    "github-agent": {
+      "role": "Trazabilidad GitHub",
+      "description": "Registra commits, vincula con tareas, mantiene trazabilidad",
+      "file": "agents/github-agent.md"
+    },
+    "review-agent": {
+      "role": "Revisión técnica",
+      "description": "Revisa código, verifica alineación con PRD, detecta deuda técnica",
+      "file": "agents/review-agent.md"
+    },
+    "documentation-agent": {
+      "role": "Documentación técnica",
+      "description": "Mantiene documentación, sincroniza con Obsidian vault",
+      "file": "agents/documentation-agent.md"
+    }
+  },
+  "config": {
+    "db": {
+      "host": "localhost",
+      "port": 5432,
+      "name": "lemoria",
+      "user": "lemoria",
+      "password": "lemoria"
+    },
+    "vault_path": "vault/obsidian"
+  }
+}
