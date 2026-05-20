@@ -2,111 +2,91 @@
 
 ## Requisitos
 
-- **Python** >= 3.11
-- **Docker** + **Docker Compose** (para PostgreSQL)
-- **pip** y **venv**
-- **Git**
-- **OpenCode** (CLI)
-- **Obsidian** (opcional, para visualización del vault)
+- **Python** >= 3.11 + pip
+- **Docker** + **Docker Compose**
+- **OpenCode** (opcional, para usar agentes)
+- **Obsidian** (opcional, para visualizar vault)
 
-## Instalación rápida
+## Instalación rápida (recomendada)
 
 ```bash
+git clone https://github.com/cristianl0pez-dev/lemoria.git
+cd lemoria
 chmod +x install.sh
 ./install.sh
 ```
 
-Esto ejecutará todo automáticamente: PostgreSQL, dependencias, init y configuración.
+Esto instala `lemoria` como **comando global** disponible desde cualquier terminal.
 
 ## Instalación paso a paso
 
-### 1. Clonar el repositorio
+### 1. Clonar
 
 ```bash
 git clone https://github.com/cristianl0pez-dev/lemoria.git
 cd lemoria
 ```
 
-### 2. Configurar variables de entorno
+### 2. Configurar entorno
 
 ```bash
 cp .env.example .env
 ```
 
-Edita `.env` si necesitas cambiar credenciales o rutas.
-
 ### 3. Iniciar PostgreSQL
 
 ```bash
 docker compose up -d
+# Esperar a que esté healthy:
+docker compose exec db pg_isready -U lemoria
 ```
 
-Espera a que esté saludable:
+### 4. Instalar Lemoria globalmente
 
 ```bash
-docker compose ps
-# Debería mostrar "healthy" en el STATUS
+pip install --user -e ".[dev]"
 ```
 
-### 4. Instalar dependencias Python
+Asegúrate de que `~/.local/bin` esté en tu `PATH`. Si no:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.bashrc  # o ~/.zshrc
 ```
 
-### 5. Inicializar Lemoria
+### 5. Inicializar
 
 ```bash
-python -m lemoria init
+lemoria init
 ```
 
-Esto crea las tablas en PostgreSQL y el directorio `vault/obsidian/`.
-
-### 6. Verificar instalación
+### 6. Verificar
 
 ```bash
-python -m lemoria project list
-# Debería mostrar lista vacía (sin proyectos aún)
+lemoria project list
+# → (lista vacía, sin proyectos aún)
 ```
 
-### 7. Abrir Obsidian (opcional)
+## Uso
 
-Abre Obsidian y selecciona "Abrir carpeta como vault" → `vault/obsidian/`.
-
-## Comandos básicos
+El comando `lemoria` ahora funciona globalmente:
 
 ```bash
-# Crear un proyecto
-python -m lemoria project create "mi-proyecto" -d "Descripción"
-
-# Iniciar una conversación
-python -m lemoria conv create <project-id> -t "Título"
-
-# Agregar mensaje
-python -m lemoria conv add <conv-id> user "contenido del mensaje"
+# Crear proyecto
+lemoria project create "mi-proyecto" -d "Descripción"
 
 # Iniciar flujo SDD
-python -m lemoria flow start <project-id> "descripción de la idea"
+lemoria flow start <project-id> "descripción de la idea"
 
-# Listar agentes registrados
-python -m lemoria agent list
+# Conversaciones
+lemoria conv create <project-id> -t "Título"
+lemoria conv add <conv-id> user "mensaje"
+
+# Agentes
+lemoria agent list
 ```
 
-## Arquitectura de servicios
+## Notas
 
-```
-Sistema local
-├── Docker: PostgreSQL (puerto 5432)
-├── Python: CLI Lemoria
-├── OpenCode: Agentes multi-rol
-└── Obsidian: Vault en vault/obsidian/
-```
-
-## Notas importantes
-
-- PostgreSQL debe estar corriendo **siempre** para que Lemoria funcione
+- PostgreSQL debe estar **siempre corriendo** para que Lemoria funcione
 - El vault de Obsidian se sincroniza desde PostgreSQL (BD es fuente de verdad)
-- Los agentes se definen en `agents/` y se cargan vía `opencode.jsonc`
-- Usa `.env` para credenciales locales (no se sube a git)
+- `opencode.jsonc` ya tiene los 7 agentes configurados en `agents/`

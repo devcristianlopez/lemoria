@@ -25,17 +25,17 @@ Ver [INSTALL.md](INSTALL.md) para instalación paso a paso.
 
 ## Uso
 
-```bash
-source .venv/bin/activate
+`lemoria` se instala como comando global:
 
+```bash
 # Crear proyecto
-python -m lemoria project create "mi-proyecto"
+lemoria project create "mi-proyecto"
 
 # Iniciar flujo SDD
-python -m lemoria flow start <project-id> "descripción de la idea"
+lemoria flow start <project-id> "descripción de la idea"
 
 # Ver agentes
-python -m lemoria agent list
+lemoria agent list
 ```
 
 ## Estructura

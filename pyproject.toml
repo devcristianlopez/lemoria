@@ -23,6 +23,9 @@ dev = [
     "ruff>=0.3",
 ]
 
+[project.scripts]
+lemoria = "lemoria.cli:cli"
+
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
