@@ -80,7 +80,7 @@ erDiagram
   Task }o--|| Agent : "assigned to"
 
   Commit ||--o{ FileRecord : modifies
-  Commit ||--o|| Push : "pushed as"
+  Commit ||--|| Push : "pushed as"
 
   ErrorRecord ||--o| Solution : "has solution"
 
