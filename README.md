@@ -2,53 +2,53 @@
 
 **Sistema Operativo de Memoria y Orquestación para Desarrollo con IA**
 
-Lemoria es una plataforma local-first diseñada para asistir el desarrollo de software mediante memoria persistente, coordinación multiagente, trazabilidad técnica y desarrollo guiado por especificaciones (SDD).
+Plataforma local-first para desarrollo asistido por IA con memoria persistente, coordinación multiagente, trazabilidad técnica y desarrollo guiado por especificaciones (SDD).
 
 ## Stack
 
-- **Backend:** Python
-- **Base de Datos:** PostgreSQL
-- **ORM:** SQLAlchemy
+- **Backend:** Python / SQLAlchemy
+- **Base de Datos:** PostgreSQL (Docker)
 - **Agentes:** OpenCode Agents
-- **Vault:** Obsidian
+- **Vault:** Obsidian (opcional)
 - **Versionado:** Git + GitHub
 
-## Inicio rápido
+## Instalación
 
 ```bash
-# Iniciar PostgreSQL
-docker compose up -d
+git clone https://github.com/cristianl0pez-dev/lemoria.git
+cd lemoria
+chmod +x install.sh
+./install.sh
+```
 
-# Instalar dependencias
-pip install -e ".[dev]"
+Ver [INSTALL.md](INSTALL.md) para instalación paso a paso.
 
-# Inicializar Lemoria
-python -m lemoria init
+## Uso
 
-# Crear un proyecto
-python -m lemoria project create "mi-proyecto" --description "..."
+```bash
+source .venv/bin/activate
+
+# Crear proyecto
+python -m lemoria project create "mi-proyecto"
 
 # Iniciar flujo SDD
-python -m lemoria flow start <project-id> "idea description"
+python -m lemoria flow start <project-id> "descripción de la idea"
+
+# Ver agentes
+python -m lemoria agent list
 ```
 
 ## Estructura
 
 ```
 lemoria/
-├── apps/           # Módulos de aplicación
 ├── agents/         # Definiciones de agentes OpenCode
-├── database/       # Modelos y migraciones
+├── database/       # Modelos SQLAlchemy
 ├── docs/           # Documentación del sistema
-├── vault/          # Sincronización Obsidian
 ├── lemoria/        # Código fuente Python
-├── docker/         # Configuración Docker
-└── tests/          # Tests
+├── vault/          # Sincronización Obsidian
+├── docker-compose.yml
+├── opencode.jsonc
+├── INSTALL.md
+└── install.sh
 ```
-
-## Documentación
-
-- [PRD](docs/PRD.md) — Product Requirements Document
-- [ARCHITECTURE](docs/ARCHITECTURE.md) — Arquitectura del sistema
-- [ROADMAP](docs/ROADMAP.md) — Roadmap del proyecto
-- [SDD](docs/SDD.md) — Spec Driven Development
