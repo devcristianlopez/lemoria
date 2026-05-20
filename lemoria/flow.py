@@ -49,3 +49,12 @@ class FlowEngine:
         if prd:
             prd.status = "completed"
             self.session.commit()
+
+    def list_prds(self, project_id: str) -> list[PRD]:
+        return self.session.query(PRD).filter(PRD.project_id == project_id).order_by(PRD.created_at.desc()).all()
+
+    def list_tasks(self, project_id: str, status: str | None = None) -> list[Task]:
+        query = self.session.query(Task).filter(Task.project_id == project_id)
+        if status:
+            query = query.filter(Task.status == status)
+        return query.order_by(Task.created_at).all()
