@@ -18,6 +18,14 @@ command -v docker compose >/dev/null 2>&1 || { echo "ERROR: docker compose no en
 
 echo "  python3 : $(python3 --version)"
 echo "  docker  : $(docker --version)"
+
+GH_AVAILABLE=false
+if command -v gh >/dev/null 2>&1; then
+    GH_AVAILABLE=true
+    echo "  gh      : $(gh --version 2>&1 | head -1)"
+else
+    echo "  gh      : no instalado (opcional)"
+fi
 echo "  OK"
 
 # ----- Elegir modo de instalación -----
@@ -140,9 +148,14 @@ echo "  Los agentes están disponibles solo en este proyecto."
 echo "  Abre OpenCode desde esta carpeta: opencode ."
 fi
 echo ""
-echo "  Para abrir Obsidian vault:"
-echo "    obsidian $LEMORIA_DIR/vault/obsidian/"
+if [ "$GH_AVAILABLE" = false ]; then
+echo "  gh (GitHub CLI) no detectado. El github-agent usará git manual."
+echo "  Para crear PRs y gestionar repos: https://cli.github.com/"
 echo ""
-echo "  Para detener PostgreSQL:"
-echo "    docker compose down"
+fi
+echo "  Para abrir Obsidian vault:"
+    echo "    obsidian $LEMORIA_DIR/vault/obsidian/"
+    echo ""
+    echo "  Para detener PostgreSQL:"
+    echo "    docker compose down"
 echo ""

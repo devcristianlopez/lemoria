@@ -102,3 +102,4 @@ lemoria agent list
 - PostgreSQL debe estar **siempre corriendo** (docker compose tiene `restart: unless-stopped`)
 - En modo global, los agentes se auto-descubren desde `~/.config/opencode/agents/`
 - El vault `vault/obsidian/` se puede abrir con Obsidian
+- **GitHub CLI (`gh`)** es opcional. Sin él, el github-agent usa git manual sin PRs automáticos. Instálalo desde [cli.github.com](https://cli.github.com/)
