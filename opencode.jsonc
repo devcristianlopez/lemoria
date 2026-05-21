@@ -1,62 +1,22 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "name": "lemoria",
-  "description": "Sistema Operativo de Memoria y Orquestación para Desarrollo con IA",
-  "version": "0.1.0",
   "default_agent": "orchestrator",
-  "commands": {
+  "command": {
     "new-feature": {
       "description": "Inicia el flujo SDD completo para una nueva feature",
-      "prompt": "Run the full Lemoria SDD workflow: create project if needed, start conversation, create PRD, create tasks, delegate to subagents, and track everything in the database. Use lemoria CLI commands."
+      "template": "Run the full Lemoria SDD workflow: create project if needed, start conversation, create PRD, create tasks, delegate to subagents, and track everything in the database. Use lemoria CLI commands."
     },
     "lemoria-project": {
       "description": "Create or list Lemoria projects",
-      "prompt": "Use lemoria project create <name> to create a new project, or lemoria project list to show all projects"
+      "template": "Use lemoria project create <name> to create a new project, or lemoria project list to show all projects"
     },
     "lemoria-flow": {
       "description": "Start an SDD flow from an idea",
-      "prompt": "Run lemoria flow start <project-id> '<idea description>' to begin a Spec-Driven Development flow"
+      "template": "Run lemoria flow start <project-id> '<idea description>' to begin a Spec-Driven Development flow"
     },
     "lemoria-agent": {
       "description": "Register or list Lemoria agents",
-      "prompt": "Use lemoria agent register <name> <role> to register an agent, or lemoria agent list to show all agents"
-    }
-  },
-  "agents": {
-    "orchestrator": {
-      "description": "Orquestador de Lemoria — analiza solicitudes, aplica SDD, delega a subagentes y mantiene trazabilidad completa. Use this for ANY feature request, development task, or technical question.",
-      "mode": "primary",
-      "file": ".opencode/agents/orchestrator.md"
-    },
-    "backend-agent": {
-      "description": "Desarrollo de backend: implementa APIs y lógica Python/SQLAlchemy siguiendo PRDs y specs",
-      "mode": "subagent",
-      "file": ".opencode/agents/backend-agent.md"
-    },
-    "db-agent": {
-      "description": "Gestión de base de datos: esquemas, migraciones, optimización de consultas",
-      "mode": "subagent",
-      "file": ".opencode/agents/db-agent.md"
-    },
-    "testing-agent": {
-      "description": "Aseguramiento de calidad: tests unitarios e integración, cobertura y reportes",
-      "mode": "subagent",
-      "file": ".opencode/agents/testing-agent.md"
-    },
-    "github-agent": {
-      "description": "Trazabilidad GitHub: commits, pushes, PRs vinculados a tareas y PRDs",
-      "mode": "subagent",
-      "file": ".opencode/agents/github-agent.md"
-    },
-    "review-agent": {
-      "description": "Revisión técnica: alineación con PRD, deuda técnica, trazabilidad",
-      "mode": "subagent",
-      "file": ".opencode/agents/review-agent.md"
-    },
-    "documentation-agent": {
-      "description": "Documentación técnica: sincroniza memoria con Obsidian vault, genera notas",
-      "mode": "subagent",
-      "file": ".opencode/agents/documentation-agent.md"
+      "template": "Use lemoria agent register <name> <role> to register an agent, or lemoria agent list to show all agents"
     }
   },
   "skills": {
