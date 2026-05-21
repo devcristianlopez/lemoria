@@ -20,6 +20,20 @@ echo "  python3 : $(python3 --version)"
 echo "  docker  : $(docker --version)"
 echo "  OK"
 
+# ----- Elegir modo de instalación -----
+echo ""
+echo "¿Cómo quieres instalar los agentes de Lemoria?"
+echo ""
+echo "  1) Global  — Los agentes disponibles en CUALQUIER proyecto que abras con OpenCode"
+echo "               (se copian a ~/.config/opencode/agents/)"
+echo ""
+echo "  2) Proyecto — Los agentes solo funcionan dentro de esta carpeta"
+echo "               (modo portable, .opencode/ local)"
+echo ""
+read -rp "Selecciona [1/2] (default: 1): " INSTALL_MODE
+INSTALL_MODE="${INSTALL_MODE:-1}"
+echo ""
+
 # ----- .env -----
 echo "[2/7] Configurando .env..."
 if [ ! -f .env ]; then
@@ -43,7 +57,6 @@ echo "[4/7] Instalando Lemoria como comando global..."
 python3 -m pip install --user -q -e "$LEMORIA_DIR[dev]" 2>/dev/null || python3 -m pip install -q -e "$LEMORIA_DIR[dev]"
 echo "  Dependencias instaladas"
 
-# Asegurar que ~/.local/bin esté en PATH para el usuario
 LOCAL_BIN="$HOME/.local/bin"
 if [[ ":$PATH:" != *":$LOCAL_BIN:"* ]]; then
     SHELL_CONFIG=""
@@ -66,16 +79,46 @@ lemoria init
 echo "  Base de datos inicializada"
 echo "  Vault listo en vault/obsidian/"
 
-# ----- opencode.jsonc -----
-echo "[6/7] Configurando OpenCode..."
-if command -v opencode >/dev/null 2>&1; then
-    echo "  OpenCode detectado"
-    echo "  Agentes disponibles en agents/"
+# ----- Configurar OpenCode -----
+OPENCODE_GLOBAL_DIR="$HOME/.config/opencode"
+
+if [ "$INSTALL_MODE" = "1" ]; then
+    echo "[6/7] Instalando agentes en modo GLOBAL..."
+
+    mkdir -p "$OPENCODE_GLOBAL_DIR/agents"
+    mkdir -p "$OPENCODE_GLOBAL_DIR/skills/lemoria"
+
+    cp .opencode/agents/*.md "$OPENCODE_GLOBAL_DIR/agents/"
+    cp .opencode/skills/lemoria/SKILL.md "$OPENCODE_GLOBAL_DIR/skills/lemoria/"
+    echo "  Agentes copiados a $OPENCODE_GLOBAL_DIR/agents/"
+
+    if [ ! -f "$OPENCODE_GLOBAL_DIR/opencode.json" ]; then
+        cat > "$OPENCODE_GLOBAL_DIR/opencode.json" <<- 'EOF'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "orchestrator",
+  "skills": {
+    "paths": ["~/.config/opencode/skills"]
+  }
+}
+EOF
+        echo "  Config global creada: $OPENCODE_GLOBAL_DIR/opencode.json"
+    else
+        echo "  Config global ya existe: $OPENCODE_GLOBAL_DIR/opencode.json (no se modifica)"
+        echo "  Asegúrate de que incluya:"
+        echo '    "default_agent": "orchestrator"'
+        echo '    "skills": { "paths": ["~/.config/opencode/skills"] }'
+    fi
+    echo ""
+    echo "  ✓ Agentes disponibles en cualquier proyecto al abrir OpenCode"
 else
-    echo "  OpenCode no detectado, instalación opcional"
+    echo "[6/7] Instalación en modo PROYECTO..."
+    echo "  Agentes locales en .opencode/agents/"
+    echo "  Abre OpenCode desde esta carpeta para usarlos"
 fi
 
 # ----- Resumen -----
+echo ""
 echo "[7/7] Instalación completada"
 echo ""
 echo "============================================"
@@ -87,6 +130,15 @@ echo ""
 echo "    lemoria project create \"mi-proyecto\""
 echo "    lemoria agent list"
 echo "    lemoria --help"
+echo ""
+if [ "$INSTALL_MODE" = "1" ]; then
+echo "  Los agentes están disponibles GLOBALMENTE."
+echo "  Abre OpenCode en cualquier proyecto y usa:"
+echo "    @orchestrator, @backend-agent, @testing-agent, ..."
+else
+echo "  Los agentes están disponibles solo en este proyecto."
+echo "  Abre OpenCode desde esta carpeta: opencode ."
+fi
 echo ""
 echo "  Para abrir Obsidian vault:"
 echo "    obsidian $LEMORIA_DIR/vault/obsidian/"

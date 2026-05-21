@@ -16,7 +16,10 @@ chmod +x install.sh
 ./install.sh
 ```
 
-Tras la instalación, `lemoria` es un comando global. Abre **OpenCode** desde el directorio del proyecto y ya puedes crear proyectos.
+El script te preguntará:
+
+- **Global** — agentes disponibles en **cualquier proyecto** que abras con OpenCode
+- **Proyecto** — agentes solo en esta carpeta (modo portable)
 
 ## Instalación paso a paso
 
@@ -52,44 +55,50 @@ export PATH="$PATH:$HOME/.local/bin"
 lemoria init
 ```
 
-### 6. Abrir OpenCode
+### 6. Elegir modo de instalación
+
+#### Opción A: Global (recomendada)
+
+Los agentes se copian a `~/.config/opencode/agents/` y la skill a `~/.config/opencode/skills/lemoria/`.
 
 ```bash
-opencode
+mkdir -p ~/.config/opencode/{agents,skills/lemoria}
+cp .opencode/agents/* ~/.config/opencode/agents/
+cp .opencode/skills/lemoria/SKILL.md ~/.config/opencode/skills/lemoria/
 ```
 
-Desde OpenCode puedes:
-- Usar los comandos `@lemoria-init`, `@lemoria-project`, `@lemoria-flow`, `@lemoria-agent`
-- Invocar los agentes: orchestrator, backend-agent, db-agent, testing-agent, github-agent, review-agent, documentation-agent
-- Ejecutar `lemoria` directamente en la terminal
+Crea `~/.config/opencode/opencode.json`:
 
-## Estructura OpenCode
-
-```
-lemoria/
-├── .opencode/
-│   ├── agents/          # Agentes OpenCode (auto-descubiertos)
-│   └── skills/
-│       └── lemoria/     # Skill de Lemoria
-├── opencode.jsonc       # Config principal
-└── ...
+```json
+{
+  "default_agent": "orchestrator",
+  "skills": {
+    "paths": ["~/.config/opencode/skills"]
+  }
+}
 ```
 
-## Uso desde OpenCode
+Ahora abre **cualquier proyecto** con `opencode` y los agentes estarán disponibles.
+
+#### Opción B: Solo proyecto
+
+Los agentes quedan en `.opencode/agents/` local. Debes abrir OpenCode desde esta carpeta:
+
+```bash
+opencode .
+```
+
+## Uso
 
 ```bash
 # Crear proyecto
-lemoria project create "mi-proyecto" -d "Descripción"
-
-# Iniciar flujo SDD
+lemoria project create "mi-proyecto"
 lemoria flow start <project-id> "descripción de la idea"
-
-# Listar agentes
 lemoria agent list
 ```
 
 ## Notas
 
 - PostgreSQL debe estar **siempre corriendo** (docker compose tiene `restart: unless-stopped`)
-- Los agentes están en `.opencode/agents/` con modo `subagent`
+- En modo global, los agentes se auto-descubren desde `~/.config/opencode/agents/`
 - El vault `vault/obsidian/` se puede abrir con Obsidian
