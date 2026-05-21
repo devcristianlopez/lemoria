@@ -26,6 +26,9 @@ dev = [
 [project.scripts]
 lemoria = "lemoria.cli:cli"
 
+[tool.setuptools.packages.find]
+include = ["lemoria*", "database*"]
+
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
