@@ -70,20 +70,39 @@ install_with_pip() {
 
 install_with_venv() {
     local VENV_DIR="$HOME/.local/share/lemoria/venv"
-    python3 -m venv "$VENV_DIR" 2>/dev/null || python3 -m venv --without-pip "$VENV_DIR"
-    "$VENV_DIR/bin/pip" install -q -e "$LEMORIA_DIR[dev]" 2>/dev/null || \
-        "$VENV_DIR/bin/pip3" install -q -e "$LEMORIA_DIR[dev]"
+    echo "  Creando venv en $VENV_DIR ..."
+    python3 -m venv "$VENV_DIR" || {
+        echo "ERROR: no se pudo crear el venv. Instalá python3-venv:"
+        echo "  sudo apt install python3-venv python3-full"
+        return 1
+    }
+    echo "  Instalando dependencias en el venv..."
+    "$VENV_DIR/bin/pip" install -q -e "$LEMORIA_DIR[dev]" || {
+        echo "ERROR: falló la instalación en el venv."
+        return 1
+    }
     mkdir -p "$HOME/.local/bin"
     ln -sf "$VENV_DIR/bin/lemoria" "$HOME/.local/bin/lemoria"
-    echo "  Instalado en venv propio: $VENV_DIR"
+    echo "  ✓ Lemoria instalado en venv propio"
+    echo "  ✓ Comando disponible en ~/.local/bin/lemoria"
 }
 
 if install_with_pip; then
     echo "  Dependencias instaladas (pip)"
 else
-    echo "  pip system-wide no disponible (PEP 668), usando venv propio..."
-    install_with_venv
-    echo "  Dependencias instaladas (venv)"
+    echo "  pip system-wide no disponible (entorno externamente gestionado / PEP 668)"
+    echo "  Usando venv propio como alternativa..."
+    if install_with_venv; then
+        echo "  Instalación en venv completada"
+    else
+        echo ""
+        echo "  ERROR: No se pudo instalar Lemoria."
+        echo "  Soluciones:"
+        echo "    1) Instalá python3-venv: sudo apt install python3-venv python3-full"
+        echo "    2) O usá pipx: sudo apt install pipx && pipx install lemoria"
+        echo "    3) O forzá la instalación: pip install --break-system-packages -e ."
+        exit 1
+    fi
 fi
 
 LOCAL_BIN="$HOME/.local/bin"
