@@ -62,8 +62,29 @@ echo "  PostgreSQL listo"
 
 # ----- Instalar Lemoria como comando global -----
 echo "[4/7] Instalando Lemoria como comando global..."
-python3 -m pip install --user -q -e "$LEMORIA_DIR[dev]" 2>/dev/null || python3 -m pip install -q -e "$LEMORIA_DIR[dev]"
-echo "  Dependencias instaladas"
+
+install_with_pip() {
+    python3 -m pip install --user -q -e "$LEMORIA_DIR[dev]" 2>/dev/null || \
+    python3 -m pip install -q -e "$LEMORIA_DIR[dev]" 2>/dev/null
+}
+
+install_with_venv() {
+    local VENV_DIR="$HOME/.local/share/lemoria/venv"
+    python3 -m venv "$VENV_DIR" 2>/dev/null || python3 -m venv --without-pip "$VENV_DIR"
+    "$VENV_DIR/bin/pip" install -q -e "$LEMORIA_DIR[dev]" 2>/dev/null || \
+        "$VENV_DIR/bin/pip3" install -q -e "$LEMORIA_DIR[dev]"
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$VENV_DIR/bin/lemoria" "$HOME/.local/bin/lemoria"
+    echo "  Instalado en venv propio: $VENV_DIR"
+}
+
+if install_with_pip; then
+    echo "  Dependencias instaladas (pip)"
+else
+    echo "  pip system-wide no disponible (PEP 668), usando venv propio..."
+    install_with_venv
+    echo "  Dependencias instaladas (venv)"
+fi
 
 LOCAL_BIN="$HOME/.local/bin"
 if [[ ":$PATH:" != *":$LOCAL_BIN:"* ]]; then
