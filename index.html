@@ -100,18 +100,25 @@
     }
     nav .container {
       display: flex; align-items: center; justify-content: space-between;
-      height: 56px;
+      min-height: 56px;
+      padding-top: 4px;
+      padding-bottom: 4px;
     }
     .nav-logo {
-      font-weight: 700; font-size: 1.1rem;
-      color: var(--yellow);
-      letter-spacing: -.02em;
-      display: flex; align-items: center; gap: 10px;
+      display: flex; align-items: center;
+      text-decoration: none;
     }
-    .nav-logo::before {
-      content: '>';
-      color: var(--green);
-      font-weight: 800;
+    .nav-logo pre {
+      font-family: inherit;
+      font-size: 11px;
+      line-height: 1.05;
+      margin: 0;
+      padding: 4px 0;
+      display: inline-block;
+      background: linear-gradient(135deg, var(--blue) 0%, var(--green) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
     .nav-links { display: flex; gap: 4px; list-style: none; align-items: center; }
     .nav-links a {
@@ -149,7 +156,7 @@
 
     @media (max-width: 768px) {
       .nav-links {
-        display: none; position: absolute; top: 56px; left: 0; right: 0;
+        display: none; position: absolute; top: 100%; left: 0; right: 0;
         flex-direction: column;
         background: rgba(13,17,23,.98);
         border-bottom: 1px solid var(--surface1);
@@ -172,10 +179,23 @@
       margin-bottom: 16px;
     }
     .hero-prompt span { color: var(--subtext0); }
+    .ascii-hero {
+      font-family: inherit;
+      font-size: clamp(.8rem, 2.5vw, 1.1rem);
+      line-height: 1.1;
+      margin: 0 0 20px 0;
+      display: inline-block;
+      text-align: left;
+      background: linear-gradient(135deg, var(--blue) 0%, var(--green) 60%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      white-space: pre;
+    }
     .hero h1 {
-      font-size: clamp(1.8rem, 5vw, 3rem);
-      font-weight: 700;
-      line-height: 1.25;
+      font-size: clamp(1.4rem, 3.5vw, 2rem);
+      font-weight: 600;
+      line-height: 1.3;
       margin-bottom: 16px;
     }
     .hero h1 .highlight { color: var(--yellow); }
@@ -359,7 +379,7 @@
     }
     .agent-card .name-row .tag {
       font-size: .75rem;
-      color: var(--lavender);
+      color: var(--purple);
       background: var(--surface0);
       padding: 1px 8px;
       border-radius: 4px;
@@ -523,7 +543,12 @@
   <!-- Nav -->
   <nav id="nav">
     <div class="container">
-      <a href="#" class="nav-logo">Lemoria</a>
+      <a href="#" class="nav-logo">
+        <pre> _    ___ __  __  ___  ___ ___   _   
+| |  | __|  \/  |/ _ \| _ \_ _| /_\  
+| |__| _|| |\/| | (_) |   /| | / _ \ 
+|____|___|_|  |_|\___/|_|_\___/_/ \_\</pre>
+      </a>
       <ul class="nav-links" id="navLinks">
         <li><a href="#features">Features</a></li>
         <li><a href="#agents">Agentes</a></li>
@@ -541,9 +566,13 @@
   <section class="hero" id="hero">
     <div class="container">
       <div class="hero-prompt"><span>cristian@lemoria</span>:<span style="color:var(--cyan);">~</span><span style="color:var(--subtext0);">$</span> cat README.md | head -5</div>
+      <pre class="ascii-hero"> _     _____ __  __  ___  ____  ___    _    
+| |   | ____|  \/  |/ _ \|  _ \|_ _|  / \   
+| |   |  _| | |\/| | | | | |_) || |  / _ \  
+| |___| |___| |  | | |_| |  _ < | | / ___ \ 
+|_____|_____|_|  |_|\___/|_| \_\___/_/   \_\</pre>
       <h1>
-        <span class="highlight">Lemoria</span> — Memory OS<br>
-        para tu <span class="accent">desarrollo con IA</span><span class="cursor"></span>
+        Memory OS para tu <span class="accent">desarrollo con IA</span><span class="cursor"></span>
       </h1>
       <p class="hero-desc">
         Orquesta proyectos de software con trazabilidad total usando <strong>Spec Driven Development</strong>,
