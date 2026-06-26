@@ -71,7 +71,52 @@ lemoria conv create <project-id> -t "Feature: <title>"
 lemoria conv add <conversation-id> user "<exact user text>"
 ```
 
-### Step 4 — Start SDD flow (create PRD)
+### Step 4 — Initial project discovery
+
+**Before writing any code or creating a PRD**, ask the user the relevant questions below when the request is vague or missing critical details.
+
+Use your judgment: if the user already specified something, do NOT ask it again. Adapt the template to the project type (web app, CLI tool, library, API, etc.).
+
+#### Essential questions (always ask if missing)
+
+| Area | Questions |
+|------|-----------|
+| **Tech stack** | ¿Qué lenguaje/framework prefieres? ¿Backend y frontend por separado? ¿Versiones específicas? |
+| **Database** | ¿Qué base de datos usamos? (PostgreSQL, MySQL, SQLite, etc.) ¿Necesitas ORM? |
+| **Authentication** | ¿Requiere auth? ¿Qué tipo? (JWT, OAuth, sesiones, API keys) ¿Roles de usuario? |
+| **Deployment** | ¿Dónde se va a deployar? ¿Docker? ¿Cloud específico? ¿Dominio propio? |
+| **Testing** | ¿Qué nivel de testing esperas? (unit, integration, e2e) ¿Cobertura mínima? |
+| **API style** | ¿REST, GraphQL, gRPC, o websockets? ¿Versionado? ¿Documentación? (OpenAPI, etc.) |
+
+#### Project-type-specific questions
+
+| If it's a... | Ask about |
+|--------------|-----------|
+| **Web app** | Component library (shadcn, MUI, Chakra)? SSR/SSG/SPA? Routing? Responsive? i18n? |
+| **API / backend** | Rate limiting? Caching? Background jobs? File uploads? Webhooks? |
+| **CLI tool** | Argument parser? Config file format? Output format (JSON, table)? |
+| **Library / package** | Public/private? Build tool? Package manager? Semver? Docs generator? |
+| **Mobile / desktop** | Target OS? Build toolchain? App store? Offline support? |
+| **Data / ML** | Pipeline orchestration? Data format? Model serving? Experiment tracking? |
+
+#### Process questions
+
+```
+- ¿Hay un diseño, mockup o referencia visual?
+- ¿Hay requerimientos no funcionales? (performance, escalabilidad, seguridad)
+- ¿Necesitas migración de datos desde otro sistema?
+- ¿Hay features que NO deben incluirse en este ciclo?
+```
+
+After collecting answers, log them:
+```bash
+lemoria context set <project-id> tech_stack "Python 3.12, FastAPI, PostgreSQL"
+lemoria decision log <project-id> -t "Tech stack" -d "Python 3.12 + FastAPI + PostgreSQL" -r "Django, Flask, Node.js"
+```
+
+You can batch questions — ask 3-5 at a time instead of one by one — to avoid a long back-and-forth.
+
+### Step 5 — Start SDD flow (create PRD)
 ```bash
 lemoria flow start <project-id> "<feature description>"
 ```
@@ -80,7 +125,7 @@ Record the flow step:
 lemoria flow step <prd-id> prd --status completed
 ```
 
-### Step 5 — Decompose into INVEST tasks
+### Step 6 — Decompose into INVEST tasks
 ```bash
 lemoria task create <project-id> <prd-id> --title "<task>" --description "<detail>"
 ```
@@ -90,7 +135,7 @@ Record step:
 lemoria flow step <prd-id> tasks --status completed
 ```
 
-### Step 6 — Implement
+### Step 7 — Implement
 Assign each implementation task to the matching subagent:
 - `@implementation-agent` → backend/server logic
 - `@frontend-agent` → UI/client logic
@@ -103,21 +148,21 @@ After delegation completes:
 lemoria flow step <prd-id> implement --status completed --output "Implemented: auth"
 ```
 
-### Step 7 — Test
+### Step 8 — Test
 Assign testing tasks to `@testing-agent`. Pass: `task-id`, `prd-id`, `project-id`, `conv-id`.
 
 ```bash
 lemoria flow step <prd-id> test --status completed --output "Tests: 10 pass, 0 fail"
 ```
 
-### Step 8 — Review
+### Step 9 — Review
 Assign review tasks to `@review-agent`.
 
 ```bash
 lemoria flow step <prd-id> review --status completed --output "Approved"
 ```
 
-### Step 9 — Commit (MANDATORY)
+### Step 10 — Commit (MANDATORY)
 Call `@github-agent` to commit and push:
 - If there are code changes → commit with task-id in message
 - If there are no changes → skip but log "nothing to commit"
@@ -126,7 +171,7 @@ Call `@github-agent` to commit and push:
 lemoria flow step <prd-id> commit --status completed --output "feat: auth implemented"
 ```
 
-### Step 10 — Document (MANDATORY)
+### Step 11 — Document (MANDATORY)
 Call `@documentation-agent` to:
 - Update README if needed
 - Create or update technical notes
@@ -136,22 +181,22 @@ Call `@documentation-agent` to:
 lemoria flow step <prd-id> document --status completed --output "README updated"
 ```
 
-### Step 11 — Sync vault
+### Step 12 — Sync vault
 ```bash
 lemoria vault sync <project-id>
 lemoria flow step <prd-id> vault_sync --status completed
 ```
 
-### Step 12 — Consolidate
+### Step 13 — Consolidate
 ```bash
 lemoria conv add <conversation-id> agent "<summary of what was done>"
 lemoria flow step <prd-id> consolidate --status completed
 ```
 
-### Step 13 — Closing checklist
+### Step 14 — Closing checklist
 Run the closing checklist below. If any item fails, fix it before reporting.
 
-### Step 14 — Mark complete
+### Step 15 — Mark complete
 ```bash
 lemoria flow step <prd-id> complete --status completed
 ```
