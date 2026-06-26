@@ -109,15 +109,23 @@
       animation: blink 1s step-end infinite;
     }
     @keyframes blink { 50% { opacity: 0; } }
-    .hero-logo {
-      margin-bottom: 24px;
+    .hero-split {
+      display: flex; align-items: center; gap: 48px;
     }
-    .hero-logo img {
-      border-radius: 20px;
+    .hero-split-logo { flex-shrink: 0; }
+    .hero-split-logo img {
+      border-radius: 28px;
       object-fit: cover;
-      box-shadow: 0 8px 40px rgba(0,212,170,.15);
+      box-shadow: 0 12px 50px rgba(0,212,170,.2);
       display: block;
     }
+    .hero-split-content { flex: 1; min-width: 0; }
+
+    @media (max-width: 768px) {
+      .hero-split { flex-direction: column; text-align: center; gap: 24px; }
+      .hero-split-logo img { width: 100px; height: 100px; }
+    }
+
     .hero p {
       font-size: clamp(1rem, 2vw, 1.2rem); color: #94a3b8;
       max-width: 640px; line-height: 1.7; margin-bottom: 36px;
@@ -346,34 +354,37 @@
   <section class="hero" id="hero">
     <div class="container">
       <div class="hero-content">
-        <div class="hero-logo">
-          <img src="assets/logo.jpeg" alt="Lemoria" width="96" height="96">
+        <div class="hero-split">
+          <div class="hero-split-logo">
+            <img src="assets/logo.jpeg" alt="Lemoria" width="140" height="140">
+          </div>
+          <div class="hero-split-content">
+            <div class="hero-badge">v0.2.0 — Memoria y Orquestación para IA</div>
+            <h1>
+              El <span class="gradient">Sistema Operativo</span><br>
+              de memoria para tu<br>
+              <span class="typing-wrap">
+                <span id="typingText">desarrollo con IA</span>
+                <span class="cursor"></span>
+              </span>
+            </h1>
+            <p>
+              Lemoria orquesta proyectos de software con trazabilidad total usando
+              <strong>Spec Driven Development</strong>, 8 agentes OpenCode y PostgreSQL como
+              fuente de verdad. Desde la idea hasta el commit y la documentación.
+            </p>
+            <div class="hero-cta">
+              <a href="#start" class="btn btn-primary">Empezar</a>
+              <a href="https://github.com/devcristianlopez/lemoria" target="_blank" class="btn btn-secondary">Ver en GitHub</a>
+            </div>
+            <dl class="hero-stats">
+              <div><dt>8</dt><dd>Agentes</dd></div>
+              <div><dt>15</dt><dd>Pasos SDD</dd></div>
+              <div><dt>41</dt><dd>Tests</dd></div>
+              <div><dt>8</dt><dd>Enums tipados</dd></div>
+            </dl>
+          </div>
         </div>
-        <div class="hero-badge">v0.2.0 — Memoria y Orquestación para IA</div>
-        <h1>
-          El <span class="gradient">Sistema Operativo</span><br>
-          de memoria para tu<br>
-          <span class="typing-wrap">
-            <span id="typingText">desarrollo con IA</span>
-            <span class="cursor"></span>
-          </span>
-        </h1>
-        <p>
-          Lemoria orquesta proyectos de software con trazabilidad total usando
-          <strong>Spec Driven Development</strong>, 8 agentes OpenCode y PostgreSQL como
-          fuente de verdad. Desde la idea hasta el commit y la documentación.
-        </p>
-        <div class="hero-cta">
-          <a href="#start" class="btn btn-primary">Empezar</a>
-          <a href="https://github.com/devcristianlopez/lemoria" target="_blank" class="btn btn-secondary">Ver en GitHub</a>
-        </div>
-        <dl class="hero-stats">
-          <div><dt>8</dt><dd>Agentes</dd></div>
-          <div><dt>15</dt><dd>Pasos SDD</dd></div>
-          <div><dt>41</dt><dd>Tests</dd></div>
-          <div><dt>8</dt><dd>Enums tipados</dd></div>
-        </dl>
-      </div>
     </div>
   </section>
 
