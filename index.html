@@ -4,326 +4,517 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lemoria — Memory OS for AI Development</title>
-  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
-  <link rel="apple-touch-icon" href="assets/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    /* ── Kanagawa Dragon ───────────────────────────── */
+    :root {
+      --bg:        #181616;
+      --crust:     #1f1e1b;
+      --mantle:    #1d1c19;
+      --surface0:  #2d2b29;
+      --surface1:  #363431;
+      --surface2:  #403e3b;
+      --overlay:   #494743;
+      --subtext0:  #a6a69c;
+      --subtext1:  #bababa;
+      --text:      #c5c9c5;
+      --lavender:  #8992a7;
+      --blue:      #8ba4b0;
+      --cyan:      #7fb4ca;
+      --green:     #8a9a7b;
+      --yellow:    #c0a36e;
+      --orange:    #b98d7b;
+      --red:       #c4746e;
+      --magenta:   #b98d7b;
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #060d1a;
-      color: #c8d0e0;
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-    }
-    a { color: #00d4aa; text-decoration: none; transition: color .2s; }
-    a:hover { color: #00f7c8; }
-    img { max-width: 100%; display: block; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
-    /* --- Nav --- */
+    body {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    a {
+      color: var(--cyan);
+      text-decoration: none;
+      transition: color .2s;
+    }
+    a:hover { color: #9cd1e6; }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Terminal frame ─────────────────────────────── */
+    .term-frame {
+      border: 1px solid var(--surface2);
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 16px 0 32px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.5);
+    }
+    .term-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--mantle);
+      border-bottom: 1px solid var(--surface1);
+      font-size: .8rem;
+      color: var(--subtext0);
+      user-select: none;
+    }
+    .term-dots {
+      display: flex;
+      gap: 6px;
+      margin-right: 8px;
+    }
+    .term-dots span {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .term-dots .d-red    { background: var(--red); }
+    .term-dots .d-yellow { background: var(--yellow); }
+    .term-dots .d-green  { background: var(--green); }
+    .term-titlebar .title {
+      flex: 1;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    /* ── Nav ─────────────────────────────────────────── */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      background: rgba(6,13,26,.85);
-      border-bottom: 1px solid rgba(0,212,170,.1);
-      transition: box-shadow .3s;
+      background: rgba(24,22,22,.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--surface1);
     }
-    nav.scrolled { box-shadow: 0 4px 30px rgba(0,212,170,.08); }
     nav .container {
       display: flex; align-items: center; justify-content: space-between;
-      height: 64px;
+      height: 56px;
     }
     .nav-logo {
-      display: flex; align-items: center; gap: 10px;
-      font-weight: 800; font-size: 1.35rem; color: #e2e8f0;
+      font-weight: 700; font-size: 1.1rem;
+      color: var(--yellow);
       letter-spacing: -.02em;
+      display: flex; align-items: center; gap: 10px;
     }
-    .nav-logo svg { flex-shrink: 0; }
-    .nav-links { display: flex; gap: 8px; list-style: none; align-items: center; }
+    .nav-logo::before {
+      content: '>';
+      color: var(--green);
+      font-weight: 800;
+    }
+    .nav-links { display: flex; gap: 4px; list-style: none; align-items: center; }
     .nav-links a {
-      padding: 8px 16px; border-radius: 8px; font-size: .9rem;
-      font-weight: 500; color: #94a3b8; transition: all .2s;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: .82rem;
+      font-weight: 500;
+      color: var(--subtext0);
+      transition: all .2s;
     }
-    .nav-links a:hover { color: #e2e8f0; background: rgba(0,212,170,.08); }
+    .nav-links a:hover {
+      color: var(--text);
+      background: var(--surface0);
+    }
     .nav-links .nav-gh a {
-      border: 1px solid rgba(0,212,170,.3); color: #00d4aa;
-      font-weight: 600;
+      border: 1px solid var(--surface2);
+      color: var(--cyan);
     }
-    .nav-links .nav-gh a:hover { background: rgba(0,212,170,.12); border-color: #00d4aa; }
-    .nav-hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }
-    .nav-hamburger span { display: block; width: 24px; height: 2px; background: #94a3b8; border-radius: 2px; transition: all .3s; }
+    .nav-links .nav-gh a:hover {
+      background: var(--surface0);
+      border-color: var(--cyan);
+    }
+    .nav-hamburger {
+      display: none; flex-direction: column; gap: 5px; cursor: pointer;
+      background: none; border: none; padding: 4px;
+    }
+    .nav-hamburger span {
+      display: block; width: 22px; height: 2px;
+      background: var(--subtext0); border-radius: 2px;
+      transition: all .3s;
+    }
     .nav-hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
     .nav-hamburger.active span:nth-child(2) { opacity: 0; }
     .nav-hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
 
     @media (max-width: 768px) {
-      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; flex-direction: column; background: rgba(6,13,26,.98); border-bottom: 1px solid rgba(0,212,170,.1); padding: 16px; gap: 4px; }
+      .nav-links {
+        display: none; position: absolute; top: 56px; left: 0; right: 0;
+        flex-direction: column;
+        background: rgba(24,22,22,.98);
+        border-bottom: 1px solid var(--surface1);
+        padding: 12px; gap: 2px;
+      }
       .nav-links.open { display: flex; }
-      .nav-links a { display: block; padding: 12px 16px; }
+      .nav-links a { display: block; padding: 10px 16px; }
       .nav-hamburger { display: flex; }
     }
 
-    /* --- Hero --- */
+    /* ── Hero ────────────────────────────────────────── */
     .hero {
-      min-height: 100vh; display: flex; align-items: center;
-      position: relative; overflow: hidden;
-      padding: 120px 0 80px;
+      min-height: 100vh;
+      display: flex; align-items: center;
+      padding: 100px 0 60px;
     }
-    .hero::before {
-      content: ''; position: absolute; inset: 0;
-      background:
-        radial-gradient(ellipse 600px 400px at 20% 50%, rgba(0,212,170,.06) 0%, transparent 70%),
-        radial-gradient(ellipse 500px 500px at 80% 20%, rgba(0,212,170,.04) 0%, transparent 70%),
-        radial-gradient(ellipse 400px 400px at 50% 80%, rgba(0,150,255,.04) 0%, transparent 70%);
-      pointer-events: none;
+    .hero-prompt {
+      font-size: .85rem;
+      color: var(--green);
+      margin-bottom: 16px;
     }
-    .hero-content { position: relative; z-index: 1; max-width: 800px; }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 14px; border-radius: 100px; font-size: .8rem; font-weight: 600;
-      background: rgba(0,212,170,.1); color: #00d4aa;
-      border: 1px solid rgba(0,212,170,.2);
-      margin-bottom: 24px; letter-spacing: .3px;
-    }
+    .hero-prompt span { color: var(--subtext0); }
     .hero h1 {
-      font-size: clamp(2.6rem, 6vw, 4.2rem); font-weight: 900;
-      line-height: 1.08; letter-spacing: -.03em;
-      margin-bottom: 20px;
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 700;
+      line-height: 1.25;
+      margin-bottom: 16px;
     }
-    .hero h1 .gradient {
-      background: linear-gradient(135deg, #00d4aa 0%, #00a3ff 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero .typing-wrap {
-      display: inline-flex; align-items: center;
-    }
-    .hero .typing-wrap .cursor {
-      display: inline-block; width: 3px; height: 1.1em;
-      background: #00d4aa; margin-left: 4px;
+    .hero h1 .highlight { color: var(--yellow); }
+    .hero h1 .accent   { color: var(--cyan); }
+    .hero h1 .cursor {
+      display: inline-block;
+      width: 2px; height: 1em;
+      background: var(--yellow);
+      margin-left: 4px;
+      vertical-align: text-bottom;
       animation: blink 1s step-end infinite;
     }
     @keyframes blink { 50% { opacity: 0; } }
-    .hero-split {
-      display: flex; align-items: center; gap: 48px;
-    }
-    .hero-split-logo { flex-shrink: 0; }
-    .hero-split-logo img {
-      border-radius: 28px;
-      object-fit: cover;
-      box-shadow: 0 12px 50px rgba(0,212,170,.2);
-      display: block;
-    }
-    .hero-split-content { flex: 1; min-width: 0; }
 
-    @media (max-width: 768px) {
-      .hero-split { flex-direction: column; text-align: center; gap: 24px; }
-      .hero-split-logo img { width: 100px; height: 100px; }
+    .hero-desc {
+      font-size: .92rem;
+      color: var(--subtext0);
+      max-width: 680px;
+      margin-bottom: 28px;
     }
+    .hero-desc strong { color: var(--text); }
 
-    .hero p {
-      font-size: clamp(1rem, 2vw, 1.2rem); color: #94a3b8;
-      max-width: 640px; line-height: 1.7; margin-bottom: 36px;
-    }
     .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+
     .btn {
+      font-family: inherit;
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 14px 32px; border-radius: 12px; font-weight: 600;
-      font-size: 1rem; transition: all .25s; cursor: pointer;
-      border: none; font-family: inherit;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: .85rem;
+      transition: all .2s;
+      cursor: pointer;
+      border: none;
     }
     .btn-primary {
-      background: linear-gradient(135deg, #00d4aa, #00a3ff);
-      color: #060d1a; box-shadow: 0 4px 20px rgba(0,212,170,.25);
+      background: var(--cyan);
+      color: var(--bg);
     }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,212,170,.35); }
+    .btn-primary:hover {
+      background: #9cd1e6;
+    }
     .btn-secondary {
-      background: transparent; color: #c8d0e0;
-      border: 1px solid rgba(200,208,224,.2);
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--surface2);
     }
-    .btn-secondary:hover { border-color: rgba(0,212,170,.4); background: rgba(0,212,170,.06); transform: translateY(-2px); }
+    .btn-secondary:hover {
+      border-color: var(--subtext1);
+      background: var(--surface0);
+    }
+
     .hero-stats {
-      display: flex; gap: 40px; margin-top: 48px;
-      padding-top: 32px; border-top: 1px solid rgba(200,208,224,.08);
+      display: flex;
+      gap: 32px;
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 1px solid var(--surface1);
+      flex-wrap: wrap;
     }
-    .hero-stats dt { font-size: 1.75rem; font-weight: 800; color: #e2e8f0; }
-    .hero-stats dd { font-size: .85rem; color: #64748b; }
+    .hero-stats div {
+      text-align: center;
+    }
+    .hero-stats dt {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--yellow);
+    }
+    .hero-stats dd {
+      font-size: .75rem;
+      color: var(--subtext0);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
 
-    /* --- Sections --- */
-    section { padding: 100px 0; }
-    .section-label {
-      display: inline-block; font-size: .8rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 2px; color: #00d4aa; margin-bottom: 12px;
+    /* ── Prompt line helper ─────────────────────────── */
+    .prompt-line {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
     }
-    .section-title {
-      font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 800;
-      color: #e2e8f0; margin-bottom: 16px; letter-spacing: -.02em;
+    .prompt-line .dollar {
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
     }
-    .section-desc {
-      color: #64748b; max-width: 600px; font-size: 1.05rem;
-      margin-bottom: 48px;
+    .prompt-line .text {
+      color: var(--text);
     }
 
-    /* --- Features --- */
-    #features { position: relative; }
-    #features::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(ellipse 800px 400px at 50% 0%, rgba(0,212,170,.03) 0%, transparent 70%);
-      pointer-events: none;
+    /* ── Section headers ─────────────────────────────── */
+    section { padding: 80px 0; }
+    .section-header {
+      margin-bottom: 40px;
     }
-    .features-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 20px; position: relative; z-index: 1;
+    .section-header .cmd {
+      font-size: .78rem;
+      color: var(--subtext0);
+      margin-bottom: 4px;
     }
-    .feature-card {
-      background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
-      border-radius: 16px; padding: 28px; transition: all .3s;
-      cursor: default;
+    .section-header .cmd code {
+      color: var(--green);
+      font-style: normal;
     }
-    .feature-card:hover {
-      background: rgba(255,255,255,.06); border-color: rgba(0,212,170,.2);
-      transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,.3);
+    .section-header .cmd .flag {
+      color: var(--cyan);
     }
-    .feature-card .icon {
-      width: 44px; height: 44px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.3rem; margin-bottom: 16px;
-      background: rgba(0,212,170,.1); color: #00d4aa;
+    .section-header h2 {
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      font-weight: 700;
+      color: var(--yellow);
+      margin-bottom: 8px;
     }
-    .feature-card h3 { font-size: 1.1rem; font-weight: 700; color: #e2e8f0; margin-bottom: 8px; }
-    .feature-card p { font-size: .92rem; color: #64748b; line-height: 1.65; }
+    .section-header p {
+      color: var(--subtext0);
+      font-size: .85rem;
+      max-width: 600px;
+    }
 
-    /* --- Agents --- */
-    #agents { background: rgba(0,212,170,.015); }
-    .agents-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
-    }
-    .agent-card {
-      background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
-      border-radius: 14px; padding: 24px; transition: all .3s;
-    }
-    .agent-card:hover {
-      border-color: rgba(0,212,170,.2); transform: translateY(-3px);
-      box-shadow: 0 8px 30px rgba(0,0,0,.25);
-    }
-    .agent-card .agent-name {
-      display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
-    }
-    .agent-card .agent-name code {
-      font-family: 'JetBrains Mono', monospace; font-size: .85rem;
-      background: rgba(0,212,170,.12); color: #00d4aa;
-      padding: 2px 10px; border-radius: 6px;
-    }
-    .agent-card .agent-name h3 { font-size: 1rem; font-weight: 700; color: #e2e8f0; }
-    .agent-card .agent-role {
-      font-size: .8rem; font-weight: 600; color: #00d4aa; text-transform: uppercase;
-      letter-spacing: .8px; margin-bottom: 10px;
-    }
-    .agent-card p { font-size: .9rem; color: #64748b; line-height: 1.6; }
-
-    /* --- SDD Flow --- */
-    .flow-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    /* ── Features ────────────────────────────────────── */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 12px;
     }
+    .feat-card {
+      background: var(--mantle);
+      border: 1px solid var(--surface1);
+      border-radius: 8px;
+      padding: 20px;
+      transition: all .2s;
+      cursor: default;
+    }
+    .feat-card:hover {
+      border-color: var(--surface2);
+      background: var(--surface0);
+    }
+    .feat-card .num {
+      color: var(--subtext0);
+      font-size: .75rem;
+      margin-bottom: 4px;
+    }
+    .feat-card h3 {
+      font-size: .95rem;
+      font-weight: 600;
+      color: var(--cyan);
+      margin-bottom: 6px;
+    }
+    .feat-card p {
+      font-size: .8rem;
+      color: var(--subtext0);
+      line-height: 1.65;
+    }
+    .feat-card p code {
+      font-family: inherit;
+      font-size: .78rem;
+      color: var(--yellow);
+    }
+
+    /* ── Agents ──────────────────────────────────────── */
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 10px;
+    }
+    .agent-card {
+      background: var(--mantle);
+      border: 1px solid var(--surface1);
+      border-radius: 8px;
+      padding: 18px;
+      transition: all .2s;
+    }
+    .agent-card:hover {
+      border-color: var(--surface2);
+    }
+    .agent-card .name-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .agent-card .name-row .tag {
+      font-size: .75rem;
+      color: var(--lavender);
+      background: var(--surface0);
+      padding: 1px 8px;
+      border-radius: 4px;
+    }
+    .agent-card .name-row h3 {
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .agent-card .role {
+      font-size: .72rem;
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 6px;
+    }
+    .agent-card p {
+      font-size: .8rem;
+      color: var(--subtext0);
+      line-height: 1.6;
+    }
+
+    /* ── SDD Flow ────────────────────────────────────── */
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 8px;
+    }
     .flow-step {
-      display: flex; flex-direction: column; align-items: center; text-align: center;
-      padding: 20px 12px; border-radius: 12px;
-      background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
-      transition: all .3s; position: relative;
+      background: var(--mantle);
+      border: 1px solid var(--surface1);
+      border-radius: 8px;
+      padding: 16px 12px;
+      text-align: center;
+      transition: all .2s;
     }
-    .flow-step:hover { border-color: rgba(0,212,170,.15); background: rgba(0,212,170,.04); }
+    .flow-step:hover {
+      border-color: var(--surface2);
+    }
     .flow-step .step-num {
-      width: 36px; height: 36px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: .8rem; font-weight: 800;
-      background: rgba(0,212,170,.15); color: #00d4aa;
-      margin-bottom: 10px;
+      font-size: .72rem;
+      color: var(--subtext0);
+      margin-bottom: 4px;
     }
-    .flow-step .step-label { font-size: .82rem; font-weight: 600; color: #e2e8f0; }
-    .flow-step .step-desc { font-size: .78rem; color: #64748b; margin-top: 4px; }
-    .flow-arrows {
-      display: none; grid-column: 1 / -1;
-      text-align: center; color: rgba(0,212,170,.3); font-size: 1.5rem;
+    .flow-step .step-num::before { content: '#'; }
+    .flow-step .step-label {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--text);
+      display: block;
+    }
+    .flow-step .step-desc {
+      font-size: .72rem;
+      color: var(--subtext0);
+      margin-top: 2px;
+    }
+
+    /* ── Install / How to start ──────────────────────── */
+    .start-list {
+      max-width: 700px;
+      list-style: none;
+    }
+    .start-list li {
+      display: flex;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--surface1);
+    }
+    .start-list li:last-child { border-bottom: none; }
+    .start-list .num {
+      min-width: 28px;
+      color: var(--green);
+      font-weight: 700;
+      font-size: .85rem;
+    }
+    .start-list .content h3 {
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .start-list .content p {
+      font-size: .8rem;
+      color: var(--subtext0);
+    }
+    .start-list .content p code {
+      font-family: inherit;
+      font-size: .78rem;
+      color: var(--yellow);
+      background: var(--surface0);
+      padding: 1px 8px;
+      border-radius: 4px;
+    }
+
+    .install-term {
+      margin-top: 28px;
+    }
+    .install-term .line {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
       padding: 2px 0;
+      font-size: .82rem;
     }
+    .install-term .line .ps1 { color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .install-term .line .cmd { color: var(--text); }
+    .install-term .line .arg { color: var(--subtext0); }
 
-    /* --- How to start --- */
-    #start { position: relative; }
-    #start::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(ellipse 700px 300px at 30% 100%, rgba(0,212,170,.03) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .steps-list {
-      max-width: 700px; list-style: none; position: relative; z-index: 1;
-    }
-    .steps-list li {
-      display: flex; gap: 20px; padding: 20px 0;
-      border-bottom: 1px solid rgba(255,255,255,.04);
-    }
-    .steps-list li:last-child { border-bottom: none; }
-    .steps-list .step-num {
-      min-width: 36px; height: 36px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: .85rem; font-weight: 800;
-      background: rgba(0,212,170,.12); color: #00d4aa;
-    }
-    .steps-list .step-content h3 { font-size: 1rem; font-weight: 700; color: #e2e8f0; margin-bottom: 4px; }
-    .steps-list .step-content p { font-size: .9rem; color: #64748b; }
-    .steps-list .step-content code {
-      font-family: 'JetBrains Mono', monospace; font-size: .8rem;
-      background: rgba(255,255,255,.06); color: #00d4aa;
-      padding: 1px 8px; border-radius: 4px;
-    }
-    .install-box {
-      margin-top: 32px; background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.06);
-      border-radius: 12px; padding: 20px 24px;
-    }
-    .install-box code {
-      font-family: 'JetBrains Mono', monospace; font-size: .9rem;
-      color: #e2e8f0; display: block; white-space: pre-wrap;
-    }
-    .install-box .prompt { color: #00d4aa; }
-
-    /* --- Footer --- */
+    /* ── Footer ──────────────────────────────────────── */
     footer {
-      border-top: 1px solid rgba(255,255,255,.04);
-      padding: 40px 0;
+      border-top: 1px solid var(--surface1);
+      padding: 32px 0;
     }
     footer .container {
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
     }
-    footer .copy { font-size: .85rem; color: #475569; }
-    footer .copy a { color: #94a3b8; }
-    footer .copy a:hover { color: #00d4aa; }
-    footer .footer-links { display: flex; gap: 20px; list-style: none; }
-    footer .footer-links a { font-size: .85rem; color: #64748b; }
-    footer .footer-links a:hover { color: #00d4aa; }
+    footer .copy {
+      font-size: .78rem;
+      color: var(--overlay);
+    }
+    footer .copy a { color: var(--subtext0); }
+    footer .copy a:hover { color: var(--cyan); }
+    footer .f-links {
+      display: flex;
+      gap: 16px;
+      list-style: none;
+    }
+    footer .f-links a {
+      font-size: .78rem;
+      color: var(--overlay);
+    }
+    footer .f-links a:hover { color: var(--cyan); }
 
-    /* --- Scroll-triggered fade --- */
+    /* ── Scroll fade ─────────────────────────────────── */
     .fade-in {
-      opacity: 0; transform: translateY(30px);
-      transition: opacity .6s ease, transform .6s ease;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity .5s ease, transform .5s ease;
     }
     .fade-in.visible { opacity: 1; transform: translateY(0); }
 
-    /* --- Responsive --- */
+    /* ── Responsive ──────────────────────────────────── */
     @media (max-width: 640px) {
-      section { padding: 64px 0; }
-      .hero { padding: 100px 0 60px; }
-      .hero-stats { gap: 20px; flex-wrap: wrap; }
-      .hero-stats dt { font-size: 1.4rem; }
-      .features-grid { grid-template-columns: 1fr; }
-      .agents-grid { grid-template-columns: 1fr; }
+      body { font-size: 14px; }
+      section { padding: 56px 0; }
+      .hero { padding: 80px 0 40px; }
+      .hero-stats { gap: 16px; }
+      .feat-grid { grid-template-columns: 1fr; }
+      .agent-grid { grid-template-columns: 1fr; }
       .flow-grid { grid-template-columns: repeat(2, 1fr); }
-      .flow-arrows { display: block; }
       footer .container { flex-direction: column; text-align: center; }
     }
   </style>
@@ -333,15 +524,12 @@
   <!-- Nav -->
   <nav id="nav">
     <div class="container">
-      <a href="#" class="nav-logo">
-        <img src="assets/logo.jpeg" alt="Lemoria" width="32" height="32" style="border-radius:8px;object-fit:cover;">
-        Lemoria
-      </a>
+      <a href="#" class="nav-logo">Lemoria</a>
       <ul class="nav-links" id="navLinks">
         <li><a href="#features">Features</a></li>
         <li><a href="#agents">Agentes</a></li>
         <li><a href="#sdd">SDD Flow</a></li>
-        <li><a href="#start">Cómo empezar</a></li>
+        <li><a href="#start">Instalación</a></li>
         <li class="nav-gh"><a href="https://github.com/devcristianlopez/lemoria" target="_blank">GitHub</a></li>
       </ul>
       <button class="nav-hamburger" id="hamburger" aria-label="Menu">
@@ -353,107 +541,97 @@
   <!-- Hero -->
   <section class="hero" id="hero">
     <div class="container">
-      <div class="hero-content">
-        <div class="hero-split">
-          <div class="hero-split-logo">
-            <img src="assets/logo.jpeg" alt="Lemoria" width="140" height="140">
-          </div>
-          <div class="hero-split-content">
-            <div class="hero-badge">v0.2.0 — Memoria y Orquestación para IA</div>
-            <h1>
-              El <span class="gradient">Sistema Operativo</span><br>
-              de memoria para tu<br>
-              <span class="typing-wrap">
-                <span id="typingText">desarrollo con IA</span>
-                <span class="cursor"></span>
-              </span>
-            </h1>
-            <p>
-              Lemoria orquesta proyectos de software con trazabilidad total usando
-              <strong>Spec Driven Development</strong>, 8 agentes OpenCode y PostgreSQL como
-              fuente de verdad. Desde la idea hasta el commit y la documentación.
-            </p>
-            <div class="hero-cta">
-              <a href="#start" class="btn btn-primary">Empezar</a>
-              <a href="https://github.com/devcristianlopez/lemoria" target="_blank" class="btn btn-secondary">Ver en GitHub</a>
-            </div>
-            <dl class="hero-stats">
-              <div><dt>8</dt><dd>Agentes</dd></div>
-              <div><dt>15</dt><dd>Pasos SDD</dd></div>
-              <div><dt>41</dt><dd>Tests</dd></div>
-              <div><dt>8</dt><dd>Enums tipados</dd></div>
-            </dl>
-          </div>
-        </div>
+      <div class="hero-prompt"><span>cristian@lemoria</span>:<span style="color:var(--cyan);">~</span><span style="color:var(--subtext0);">$</span> cat README.md | head -5</div>
+      <h1>
+        <span class="highlight">Lemoria</span> — Memory OS<br>
+        para tu <span class="accent">desarrollo con IA</span><span class="cursor"></span>
+      </h1>
+      <p class="hero-desc">
+        Orquesta proyectos de software con trazabilidad total usando <strong>Spec Driven Development</strong>,
+        8 agentes OpenCode y PostgreSQL como fuente de verdad.
+        Desde la idea hasta el commit y la documentación.
+      </p>
+      <div class="hero-cta">
+        <a href="#start" class="btn btn-primary">$ ./install</a>
+        <a href="https://github.com/devcristianlopez/lemoria" target="_blank" class="btn btn-secondary">Ver en GitHub</a>
+      </div>
+      <dl class="hero-stats">
+        <div><dt>8</dt><dd>Agentes</dd></div>
+        <div><dt>15</dt><dd>Pasos SDD</dd></div>
+        <div><dt>41</dt><dd>Tests</dd></div>
+        <div><dt>8</dt><dd>Enums</dd></div>
+      </dl>
     </div>
   </section>
 
   <!-- Features -->
   <section id="features">
     <div class="container">
-      <span class="section-label">Características</span>
-      <h2 class="section-title">Diseñado para trazabilidad total</h2>
-      <p class="section-desc">Cada decisión, cada línea de código, cada conversación — todo queda registrado y trazable.</p>
-      <div class="features-grid">
-        <div class="feature-card fade-in">
-          <div class="icon">&#9312;</div>
+      <div class="section-header">
+        <div class="cmd"><code>$ lemoria features</code> <span class="flag">--all</span></div>
+        <h2>Características</h2>
+        <p>Cada decisión, cada línea de código, cada conversación — todo queda registrado y trazable.</p>
+      </div>
+      <div class="feat-grid">
+        <div class="feat-card fade-in">
+          <div class="num">[01]</div>
           <h3>Spec Driven Development</h3>
-           <p>Flujo completo: discovery → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory update.</p>
+          <p>Flujo completo: discovery → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory.</p>
         </div>
-        <div class="feature-card fade-in">
-          <div class="icon">&#9313;</div>
+        <div class="feat-card fade-in">
+          <div class="num">[02]</div>
           <h3>Trazabilidad total</h3>
-          <p>Cada task tiene un ID único. Los commits usan Conventional Commits con task-id. TODO conectado al PRD original.</p>
+          <p>Cada task tiene un ID único. Commits con <code>task-XXX</code>. Todo conectado al PRD original.</p>
         </div>
-        <div class="feature-card fade-in">
-          <div class="icon">&#9314;</div>
+        <div class="feat-card fade-in">
+          <div class="num">[03]</div>
           <h3>8 Agentes OpenCode</h3>
-           <p>Orquestador + implementation + frontend + DB + testing + GitHub + review + documentation. Cada uno con permisos y contexto limitado.</p>
+          <p>Orquestador + implementation + frontend + DB + testing + GitHub + review + documentation. Cada uno con contexto limitado.</p>
         </div>
-        <div class="feature-card fade-in">
-          <div class="icon">&#9315;</div>
+        <div class="feat-card fade-in">
+          <div class="num">[04]</div>
           <h3>PostgreSQL fuente de verdad</h3>
-          <p>Todo se persiste en PostgreSQL 16 con SQLAlchemy. Migraciones con Alembic. La base de datos es el único fuente de verdad.</p>
+          <p>Todo se persiste en PostgreSQL 16 con SQLAlchemy. La base de datos es el único fuente de verdad.</p>
         </div>
-        <div class="feature-card fade-in">
-          <div class="icon">&#9316;</div>
+        <div class="feat-card fade-in">
+          <div class="num">[05]</div>
           <h3>Conventional Commits</h3>
-          <p>Commits con formato <code>tipo(scope): descripción [task-XXX]</code>. Trazabilidad automática entre código y requerimientos.</p>
+          <p>Commits con formato <code>tipo(scope): descripción [task-XXX]</code>. Trazabilidad automática código ↔ requerimientos.</p>
         </div>
-        <div class="feature-card fade-in">
-          <div class="icon">&#9317;</div>
+        <div class="feat-card fade-in">
+          <div class="num">[06]</div>
           <h3>Architecture Decision Records</h3>
-          <p>Cada decisión técnica se registra con contexto, opciones consideradas y justificación. Historial completo del porqué.</p>
+          <p>Cada decisión técnica se registra con contexto, opciones consideradas y justificación.</p>
         </div>
-        <div class="feature-card fade-in">
-          <div class="icon">&#9318;</div>
+        <div class="feat-card fade-in">
+          <div class="num">[07]</div>
           <h3>State Machine Resumible</h3>
           <p>Cada paso del flujo se persiste en <code>flow_steps</code>. Si el contexto del LLM se pierde, se retoma desde donde quedó.</p>
         </div>
-        <div class="feature-card fade-in">
-          <div class="icon">&#9319;</div>
+        <div class="feat-card fade-in">
+          <div class="num">[08]</div>
           <h3>Vault Bidireccional</h3>
-          <p>Sincroniza la DB con Obsidian: exporta a markdown con wikilinks y restaura la DB desde las notas. Sin pérdida de datos.</p>
+          <p>Exporta DB a markdown con wikilinks y restaura DB desde notas. Sin pérdida de datos.</p>
         </div>
-        <div class="feature-card fade-in">
-          <div class="icon">&#9320;</div>
+        <div class="feat-card fade-in">
+          <div class="num">[09]</div>
           <h3>Enums + CheckConstraints</h3>
-          <p>8 enums tipados con restricciones a nivel DB para mantener integridad de datos. Sin strings mágicos.</p>
+          <p>8 enums tipados con restricciones a nivel DB. Sin strings mágicos.</p>
         </div>
-        <div class="feature-card fade-in">
-          <div class="icon">&#9321;</div>
+        <div class="feat-card fade-in">
+          <div class="num">[10]</div>
           <h3>41 Tests + CI Automático</h3>
-          <p>Suite de 41 tests con pytest en SQLite in-memory + CI en GitHub Actions con matrix Python 3.11/3.12/3.13.</p>
+          <p>Suite con pytest en SQLite in-memory + CI en GitHub Actions con matrix Python 3.11/3.12/3.13.</p>
         </div>
-        <div class="feature-card fade-in">
-          <div class="icon">&#9322;</div>
+        <div class="feat-card fade-in">
+          <div class="num">[11]</div>
           <h3>7 Skills Modulares</h3>
-          <p>Skills especializadas por área: frontend, backend, database, testing, code-review, git-workflow, documentation.</p>
+          <p>Skills especializadas: frontend, backend, database, testing, code-review, git-workflow, documentation.</p>
         </div>
-        <div class="feature-card fade-in">
-          <div class="icon">&#9323;</div>
+        <div class="feat-card fade-in">
+          <div class="num">[12]</div>
           <h3>Context7 MCP</h3>
-          <p>Documentación en tiempo real de librerías y frameworks vía MCP server. Consulta docs sin salir del editor.</p>
+          <p>Documentación en tiempo real de librerías y frameworks vía MCP server.</p>
         </div>
       </div>
     </div>
@@ -462,49 +640,51 @@
   <!-- Agents -->
   <section id="agents">
     <div class="container">
-      <span class="section-label">Agentes</span>
-      <h2 class="section-title">Los 8 agentes de Lemoria</h2>
-      <p class="section-desc">Cada agente tiene un rol específico, permisos ajustados y recibe solo el contexto que necesita.</p>
-      <div class="agents-grid">
+      <div class="section-header">
+        <div class="cmd"><code>$ lemoria agents</code> <span class="flag">--list</span></div>
+        <h2>Los 8 agentes</h2>
+        <p>Cada agente tiene un rol específico, permisos ajustados y recibe solo el contexto que necesita.</p>
+      </div>
+      <div class="agent-grid">
         <div class="agent-card fade-in">
-          <div class="agent-name"><code>orchestrator</code><h3>Orquestador</h3></div>
-          <div class="agent-role">Orquestador</div>
-          <p>Analiza el contexto, aplica SDD, delega tareas a subagentes y consolida resultados. Es el director de orquesta.</p>
+          <div class="name-row"><span class="tag">orchestrator</span><h3>Orquestador</h3></div>
+          <div class="role">Orquestador</div>
+          <p>Analiza el contexto, aplica SDD, delega tareas a subagentes y consolida resultados.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="agent-name"><code>implementation-agent</code><h3>Implementation</h3></div>
-          <div class="agent-role">Implementación</div>
-          <p>Implementa lógica de backend, scripts, APIs y toda la lógica de negocio. Especializado en traducción de specs a código.</p>
+          <div class="name-row"><span class="tag">implementation-agent</span><h3>Implementation</h3></div>
+          <div class="role">Implementación</div>
+          <p>Implementa lógica de backend, scripts, APIs y toda la lógica de negocio.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="agent-name"><code>frontend-agent</code><h3>Frontend</h3></div>
-          <div class="agent-role">UI / UX</div>
-          <p>Implementa interfaces de usuario, componentes, estilos y routing. Separa la capa de presentación del backend.</p>
+          <div class="name-row"><span class="tag">frontend-agent</span><h3>Frontend</h3></div>
+          <div class="role">UI / UX</div>
+          <p>Implementa interfaces de usuario, componentes, estilos y routing.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="agent-name"><code>db-agent</code><h3>Database</h3></div>
-          <div class="agent-role">Base de datos</div>
-          <p>Diseña esquemas, genera migraciones Alembic, optimiza consultas y asegura la integridad referencial.</p>
+          <div class="name-row"><span class="tag">db-agent</span><h3>Database</h3></div>
+          <div class="role">Base de datos</div>
+          <p>Diseña esquemas, genera migraciones, optimiza consultas y asegura integridad referencial.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="agent-name"><code>testing-agent</code><h3>Testing</h3></div>
-          <div class="agent-role">Pruebas</div>
-          <p>Escribe tests unitarios y de integración con pytest. Verifica cobertura y que todo pase antes del merge.</p>
+          <div class="name-row"><span class="tag">testing-agent</span><h3>Testing</h3></div>
+          <div class="role">Pruebas</div>
+          <p>Escribe tests unitarios y de integración con pytest. Verifica cobertura.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="agent-name"><code>github-agent</code><h3>GitHub</h3></div>
-          <div class="agent-role">Trazabilidad</div>
-          <p>Mantiene la trazabilidad con GitHub: issues, PRs, milestones. Solo lectura (bash allow, edit deny).</p>
+          <div class="name-row"><span class="tag">github-agent</span><h3>GitHub</h3></div>
+          <div class="role">Trazabilidad</div>
+          <p>Mantiene trazabilidad con GitHub: issues, PRs, milestones. Solo lectura.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="agent-name"><code>review-agent</code><h3>Review</h3></div>
-          <div class="agent-role">Revisión técnica</div>
-          <p>Revisa el código, arquitectura y decisiones técnicas. Sin permisos de escritura — solo observa y reporta.</p>
+          <div class="name-row"><span class="tag">review-agent</span><h3>Review</h3></div>
+          <div class="role">Revisión técnica</div>
+          <p>Revisa código, arquitectura y decisiones técnicas. Solo observa y reporta.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="agent-name"><code>documentation-agent</code><h3>Documentación</h3></div>
-          <div class="agent-role">Documentación</div>
-          <p>Genera y mantiene la documentación en Obsidian vault, READMEs y archivos markdown. Bash + edit allow.</p>
+          <div class="name-row"><span class="tag">documentation-agent</span><h3>Documentación</h3></div>
+          <div class="role">Documentación</div>
+          <p>Genera y mantiene documentación en Obsidian vault, READMEs y markdown.</p>
         </div>
       </div>
     </div>
@@ -513,75 +693,25 @@
   <!-- SDD Flow -->
   <section id="sdd">
     <div class="container">
-      <span class="section-label">SDD Flow</span>
-      <h2 class="section-title">Spec Driven Development</h2>
-      <p class="section-desc">15 pasos desde la idea hasta la memoria actualizada. Cada paso queda registrado en PostgreSQL.</p>
+      <div class="section-header">
+        <div class="cmd"><code>$ lemoria flow</code> <span class="flag">--help</span></div>
+        <h2>Spec Driven Development</h2>
+        <p>15 pasos desde la idea hasta la memoria actualizada. Cada paso queda registrado en PostgreSQL.</p>
+      </div>
       <div class="flow-grid">
-        <div class="flow-step fade-in">
-          <span class="step-num">1</span>
-          <span class="step-label">Discovery</span>
-          <span class="step-desc">Preguntas esenciales</span>
-        </div>
-        <div class="flow-step fade-in">
-          <span class="step-num">2</span>
-          <span class="step-label">Spec</span>
-          <span class="step-desc">Especificación detallada</span>
-        </div>
-        <div class="flow-step fade-in">
-          <span class="step-num">3</span>
-          <span class="step-label">PRD</span>
-          <span class="step-desc">Product Requirements</span>
-        </div>
-        <div class="flow-step fade-in">
-          <span class="step-num">4</span>
-          <span class="step-label">Tasks</span>
-          <span class="step-desc">Desglose en tareas</span>
-        </div>
-        <div class="flow-step fade-in">
-          <span class="step-num">5</span>
-          <span class="step-label">Architecture</span>
-          <span class="step-desc">Diseño arquitectónico</span>
-        </div>
-        <div class="flow-step fade-in">
-          <span class="step-num">6</span>
-          <span class="step-label">Implementation</span>
-          <span class="step-desc">Código por agentes</span>
-        </div>
-        <div class="flow-step fade-in">
-          <span class="step-num">7</span>
-          <span class="step-label">Testing</span>
-          <span class="step-desc">Tests unitarios + integración</span>
-        </div>
-        <div class="flow-step fade-in">
-          <span class="step-num">8</span>
-          <span class="step-label">Review</span>
-          <span class="step-desc">Revisión técnica</span>
-        </div>
-        <div class="flow-step fade-in">
-          <span class="step-num">9</span>
-          <span class="step-label">Commit</span>
-          <span class="step-desc">Conventional Commit</span>
-        </div>
-        <div class="flow-step fade-in">
-          <span class="step-num">10</span>
-          <span class="step-label">Push</span>
-          <span class="step-desc">Subida a GitHub</span>
-        </div>
-        <div class="flow-step fade-in">
-          <span class="step-num">11</span>
-          <span class="step-label">Documentation</span>
-          <span class="step-desc">Documentación generada</span>
-        </div>
-        <div class="flow-step fade-in">
-          <span class="step-num">12</span>
-          <span class="step-label">Memory Update</span>
-          <span class="step-desc">Actualizar memoria</span>
-        </div>
-        <div class="flow-step fade-in">
-          <span class="step-num">13</span>
-          <span class="step-label">State Machine</span>
-          <span class="step-desc">flow_steps en DB</span>
-        </div>
+        <div class="flow-step fade-in"><span class="step-num">1</span><span class="step-label">Discovery</span><span class="step-desc">Preguntas esenciales</span></div>
+        <div class="flow-step fade-in"><span class="step-num">2</span><span class="step-label">Spec</span><span class="step-desc">Especificación detallada</span></div>
+        <div class="flow-step fade-in"><span class="step-num">3</span><span class="step-label">PRD</span><span class="step-desc">Product Requirements</span></div>
+        <div class="flow-step fade-in"><span class="step-num">4</span><span class="step-label">Tasks</span><span class="step-desc">Desglose en tareas</span></div>
+        <div class="flow-step fade-in"><span class="step-num">5</span><span class="step-label">Architecture</span><span class="step-desc">Diseño arquitectónico</span></div>
+        <div class="flow-step fade-in"><span class="step-num">6</span><span class="step-label">Implementation</span><span class="step-desc">Código por agentes</span></div>
+        <div class="flow-step fade-in"><span class="step-num">7</span><span class="step-label">Testing</span><span class="step-desc">Tests unitarios + integración</span></div>
+        <div class="flow-step fade-in"><span class="step-num">8</span><span class="step-label">Review</span><span class="step-desc">Revisión técnica</span></div>
+        <div class="flow-step fade-in"><span class="step-num">9</span><span class="step-label">Commit</span><span class="step-desc">Conventional Commit</span></div>
+        <div class="flow-step fade-in"><span class="step-num">10</span><span class="step-label">Push</span><span class="step-desc">Subida a GitHub</span></div>
+        <div class="flow-step fade-in"><span class="step-num">11</span><span class="step-label">Documentation</span><span class="step-desc">Documentación generada</span></div>
+        <div class="flow-step fade-in"><span class="step-num">12</span><span class="step-label">Memory Update</span><span class="step-desc">Actualizar memoria</span></div>
+        <div class="flow-step fade-in"><span class="step-num">13</span><span class="step-label">State Machine</span><span class="step-desc">flow_steps en DB</span></div>
       </div>
     </div>
   </section>
@@ -589,39 +719,48 @@
   <!-- How to start -->
   <section id="start">
     <div class="container">
-      <span class="section-label">Cómo empezar</span>
-      <h2 class="section-title">Listo en 3 pasos</h2>
-      <p class="section-desc">Instala Lemoria, inicializa el proyecto y empieza a orquestar tu desarrollo con IA.</p>
-      <ul class="steps-list">
+      <div class="section-header">
+        <div class="cmd"><code>$ lemoria quickstart</code> <span class="flag">--guide</span></div>
+        <h2>Listo en 3 pasos</h2>
+        <p>Instala Lemoria, inicializa el proyecto y empieza a orquestar tu desarrollo con IA.</p>
+      </div>
+      <ul class="start-list">
         <li class="fade-in">
-          <span class="step-num">1</span>
-          <div class="step-content">
+          <span class="num">step/1</span>
+          <div class="content">
             <h3>Clona el repositorio</h3>
             <p><code>git clone https://github.com/devcristianlopez/lemoria.git</code></p>
           </div>
         </li>
         <li class="fade-in">
-          <span class="step-num">2</span>
-          <div class="step-content">
+          <span class="num">step/2</span>
+          <div class="content">
             <h3>Instala el paquete</h3>
             <p><code>cd lemoria && pip install -e .</code></p>
           </div>
         </li>
         <li class="fade-in">
-          <span class="step-num">3</span>
-          <div class="step-content">
+          <span class="num">step/3</span>
+          <div class="content">
             <h3>Inicializa tu proyecto</h3>
             <p><code>lemoria init</code> — configura la base de datos, los agentes y empieza a delegar.</p>
           </div>
         </li>
       </ul>
-      <div class="install-box fade-in">
-        <code><span class="prompt">$</span> git clone https://github.com/devcristianlopez/lemoria.git
-<span class="prompt">$</span> cd lemoria
-<span class="prompt">$</span> pip install -e .
-<span class="prompt">$</span> lemoria init
-<span class="prompt">$</span> lemoria project create "Mi proyecto" -d "Descripción"
-<span class="prompt">$</span> lemoria flow start <span style="color:#64748b;">&lt;project-id&gt;</span> "Mi idea"</code>
+
+      <div class="term-frame install-term fade-in">
+        <div class="term-titlebar">
+          <div class="term-dots"><span class="d-red"></span><span class="d-yellow"></span><span class="d-green"></span></div>
+          <span class="title">cristian@lemoria — ~/lemoria</span>
+        </div>
+        <div style="padding: 16px 20px; background: var(--bg);">
+          <div class="line"><span class="ps1">$</span><span class="cmd">git clone https://github.com/devcristianlopez/lemoria.git</span></div>
+          <div class="line"><span class="ps1">$</span><span class="cmd">cd lemoria</span></div>
+          <div class="line"><span class="ps1">$</span><span class="cmd">pip install -e .</span></div>
+          <div class="line" style="margin-top: 8px;"><span class="ps1">$</span><span class="cmd">lemoria init</span></div>
+          <div class="line"><span class="ps1">$</span><span class="cmd">lemoria project create <span class="arg">"Mi proyecto"</span> -d <span class="arg">"Descripción"</span></span></div>
+          <div class="line"><span class="ps1">$</span><span class="cmd">lemoria flow start <span class="arg">&lt;project-id&gt;</span> <span class="arg">"Mi idea"</span></span></div>
+        </div>
       </div>
     </div>
   </section>
@@ -629,10 +768,8 @@
   <!-- Footer -->
   <footer>
     <div class="container">
-      <p class="copy">
-        &copy; 2026 <a href="https://github.com/devcristianlopez/lemoria" target="_blank">Lemoria</a> &mdash; MIT License
-      </p>
-      <ul class="footer-links">
+      <p class="copy">&copy; 2026 <a href="https://github.com/devcristianlopez/lemoria" target="_blank">Lemoria</a> — MIT License</p>
+      <ul class="f-links">
         <li><a href="https://github.com/devcristianlopez/lemoria" target="_blank">GitHub</a></li>
         <li><a href="#features">Features</a></li>
         <li><a href="#agents">Agentes</a></li>
@@ -642,33 +779,12 @@
   </footer>
 
   <script>
-    // Typing effect
-    (function() {
-      const el = document.getElementById('typingText');
-      const phrases = ['desarrollo con IA', 'trazabilidad total', 'Spec Driven Development', 'memoria persistente'];
-      let idx = 0, charIdx = 0, isDeleting = false;
-      function type() {
-        const current = phrases[idx];
-        if (!isDeleting) {
-          el.textContent = current.slice(0, charIdx + 1);
-          charIdx++;
-          if (charIdx === current.length) { isDeleting = true; setTimeout(type, 2000); return; }
-        } else {
-          el.textContent = current.slice(0, charIdx - 1);
-          charIdx--;
-          if (charIdx === 0) { isDeleting = false; idx = (idx + 1) % phrases.length; }
-        }
-        setTimeout(type, isDeleting ? 40 : 80);
-      }
-      type();
-    })();
-
     // Scroll fade-in
     (function() {
-      const observer = new IntersectionObserver((entries) => {
+      const o = new IntersectionObserver(entries => {
         entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
       }, { threshold: .1 });
-      document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+      document.querySelectorAll('.fade-in').forEach(el => o.observe(el));
     })();
 
     // Mobile hamburger
@@ -683,12 +799,6 @@
         btn.classList.remove('active');
         links.classList.remove('open');
       }));
-    })();
-
-    // Nav scroll shadow
-    (function() {
-      const nav = document.getElementById('nav');
-      window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40));
     })();
   </script>
 </body>
