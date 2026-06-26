@@ -12,7 +12,7 @@
 
 ## Fase 2 — Orquestación (completada)
 - [x] Agente mayor/orquestador (modo primary, default_agent)
-- [x] 7 subagentes especializados (backend, db, testing, github, review, documentation)
+- [x] 8 subagentes especializados (implementation, frontend, db, testing, github, review, documentation)
 - [x] Delegación con contexto mínimo
 - [x] Flujo SDD completo (idea → memory update)
 - [x] CLI con Click (project, conv, flow, task, decision, agent)

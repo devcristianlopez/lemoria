@@ -5,6 +5,8 @@
 ```
 Idea
   ↓
+Discovery — Preguntas esenciales (tech stack, DB, auth, deploy, testing, API style)
+  ↓
 Spec — Especificación detallada
   ↓
 PRD — Product Requirements Document

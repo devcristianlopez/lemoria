@@ -8,11 +8,11 @@
   </p>
   <p align="center">
     <a href="https://img.shields.io/badge/python-3.11%2B-blue" target="_blank"><img src="https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square&logo=python" alt="Python 3.11+" /></a>
-    <a href="https://img.shields.io/github/license/cristianl0pez-dev/lemoria" target="_blank"><img src="https://img.shields.io/github/license/cristianl0pez-dev/lemoria?style=flat-square" alt="MIT License" /></a>
-    <a href="https://img.shields.io/github/last-commit/cristianl0pez-dev/lemoria" target="_blank"><img src="https://img.shields.io/github/last-commit/cristianl0pez-dev/lemoria?style=flat-square" alt="Last Commit" /></a>
-    <a href="https://img.shields.io/github/repo-size/cristianl0pez-dev/lemoria" target="_blank"><img src="https://img.shields.io/github/repo-size/cristianl0pez-dev/lemoria?style=flat-square" alt="Repo Size" /></a>
-    <a href="https://img.shields.io/github/actions/workflow/status/cristianl0pez-dev/lemoria/ci.yml?style=flat-square&logo=githubactions" target="_blank"><img src="https://img.shields.io/github/actions/workflow/status/cristianl0pez-dev/lemoria/ci.yml?style=flat-square&logo=githubactions" alt="CI" /></a>
-    <a href="https://img.shields.io/badge/tests-41-brightgreen?style=flat-square" target="_blank"><img src="https://img.shields.io/badge/tests-41-brightgreen?style=flat-square" alt="Tests 41" /></a>
+    <a href="https://img.shields.io/github/license/devcristianlopez/lemoria" target="_blank"><img src="https://img.shields.io/github/license/devcristianlopez/lemoria?style=flat-square" alt="MIT License" /></a>
+    <a href="https://img.shields.io/github/last-commit/devcristianlopez/lemoria" target="_blank"><img src="https://img.shields.io/github/last-commit/devcristianlopez/lemoria?style=flat-square" alt="Last Commit" /></a>
+    <a href="https://img.shields.io/github/repo-size/devcristianlopez/lemoria" target="_blank"><img src="https://img.shields.io/github/repo-size/devcristianlopez/lemoria?style=flat-square" alt="Repo Size" /></a>
+    <a href="https://img.shields.io/github/actions/workflow/status/devcristianlopez/lemoria/ci.yml?style=flat-square&logo=githubactions" target="_blank"><img src="https://img.shields.io/github/actions/workflow/status/devcristianlopez/lemoria/ci.yml?style=flat-square&logo=githubactions" alt="CI" /></a>
+    <a href="https://img.shields.io/badge/tests-41-brightgreen?style=flat-square&label=tests" target="_blank"><img src="https://img.shields.io/badge/tests-41-brightgreen?style=flat-square&label=tests" alt="Tests" /></a>
   </p>
 </p>
 
@@ -26,7 +26,7 @@ Instálalo **una sola vez** y todos tus proyectos —limpios, separados, sin con
 
 ## ✨ Features
 
-- 🎯 **SDD Flow completo** — 12 pasos: idea → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory update
+- 🎯 **SDD Flow completo** — 15 pasos: discovery → idea → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory update
 - 🤖 **8 agentes OpenCode** — Un orquestador que delega automáticamente a agentes especializados (implementation, frontend, DB, testing, GitHub, review, documentation)
 - 🗃️ **Trazabilidad total** — Cada proyecto, PRD, tarea, decisión y flow step se persiste en PostgreSQL con relaciones y metadatos
 - 🐳 **PostgreSQL en Docker** — Base de datos aislada, reproducible, lista en segundos
@@ -45,7 +45,7 @@ Instálalo **una sola vez** y todos tus proyectos —limpios, separados, sin con
 
 ```bash
 # 1. Clona el repositorio
-git clone https://github.com/cristianl0pez-dev/lemoria.git && cd lemoria
+git clone https://github.com/devcristianlopez/lemoria.git && cd lemoria
 
 # 2. Ejecuta el instalador (elige modo GLOBAL para usar agentes en cualquier proyecto)
 ./install.sh
@@ -83,7 +83,10 @@ lemoria --help                     # Ayuda completa
 Lemoria implementa el flujo **SDD** en 12 pasos, donde cada etapa produce un artefacto que alimenta la siguiente:
 
 ```
-💡 Idea
+💡 User Request
+   │
+   ↓
+🔍 Discovery        → Preguntas esenciales (tech stack, DB, auth, deploy, etc.)
    │
    ↓
 📐 Spec              → Especificación detallada
@@ -92,7 +95,7 @@ Lemoria implementa el flujo **SDD** en 12 pasos, donde cada etapa produce un art
 📄 PRD               → Product Requirements Document
    │
    ↓
-📋 Tasks             → Desglose en tareas atómicas
+📋 Tasks             → Desglose en tareas atómicas (INVEST)
    │
    ↓
 🏗️ Architecture      → Diseño arquitectónico
@@ -283,14 +286,14 @@ Las contribuciones son bienvenidas. Este proyecto sigue el flujo SDD para todas 
 
 ## 📄 Licencia
 
-**MIT License** — Copyright © 2026 [Cristian López](https://github.com/cristianl0pez-dev)
+**MIT License** — Copyright © 2026 [Cristian López](https://github.com/devcristianlopez)
 
 Se concede permiso, sin cargo, a cualquier persona que obtenga una copia de este software y de los archivos de documentación asociados, para utilizarlo sin restricción, incluyendo sin limitación los derechos de usar, copiar, modificar, fusionar, publicar, distribuir, sublicenciar y/o vender copias del Software.
 
 ---
 
 <p align="center">
-  <sub>Hecho con ❤️ por <a href="https://github.com/cristianl0pez-dev">@cristianl0pez-dev</a></sub>
+  <sub>Hecho con ❤️ por <a href="https://github.com/devcristianlopez">@devcristianlopez</a></sub>
   <br>
   <sub>✨ Lemoria — Nunca olvides por qué escribes cada línea de código ✨</sub>
 </p>

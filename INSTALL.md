@@ -10,7 +10,7 @@
                         ↓
               instala globalmente:
               • comando `lemoria`
-              • 7 agentes en ~/.config/opencode/agents/
+               • 8 agentes en ~/.config/opencode/agents/
               • PostgreSQL en Docker
                         ↓
 ┌──────────────────────────────────────────────────┐
@@ -31,7 +31,7 @@
 ## Instalación (una sola vez)
 
 ```bash
-git clone https://github.com/cristianl0pez-dev/lemoria.git
+git clone https://github.com/devcristianlopez/lemoria.git
 cd lemoria
 chmod +x install.sh
 ./install.sh
@@ -98,7 +98,7 @@ Tú: "quiero un endpoint POST /login con JWT"
 
 ```bash
 # 1. Clonar
-git clone https://github.com/cristianl0pez-dev/lemoria.git
+git clone https://github.com/devcristianlopez/lemoria.git
 cd lemoria
 
 # 2. Configurar

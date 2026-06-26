@@ -160,10 +160,7 @@ Sistema de memoria persistente: conversaciones, PRDs, tareas, decisiones, errore
 Agente mayor que analiza contexto, revisa PRDs, delega tareas y consolida resultados.
 
 ### Lemoria Agents
-Sistema multiagente especializado: backend, db, testing, documentation, github, review.
-
-### Lemoria Flow
-Motor SDD con flujo: Idea → Spec → PRD → Tasks → Architecture → Implementation → Testing → Review → Commit → Push → Documentation → Memory Update.
+Sistema multiagente especializado: implementation, frontend, db, testing, github, review, documentation.
 
 ### Lemoria Vault
 Integración bidireccional con Obsidian: exporta entidades a markdown con frontmatter (`vault sync`) y reconstruye la DB desde las notas (`vault restore`).
