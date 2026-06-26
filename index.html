@@ -109,6 +109,15 @@
       animation: blink 1s step-end infinite;
     }
     @keyframes blink { 50% { opacity: 0; } }
+    .hero-logo {
+      margin-bottom: 24px;
+    }
+    .hero-logo img {
+      border-radius: 20px;
+      object-fit: cover;
+      box-shadow: 0 8px 40px rgba(0,212,170,.15);
+      display: block;
+    }
     .hero p {
       font-size: clamp(1rem, 2vw, 1.2rem); color: #94a3b8;
       max-width: 640px; line-height: 1.7; margin-bottom: 36px;
@@ -337,10 +346,10 @@
   <section class="hero" id="hero">
     <div class="container">
       <div class="hero-content">
-        <div class="hero-badge">
-          <img src="assets/logo.jpeg" alt="" width="20" height="20" style="border-radius:4px;object-fit:cover;vertical-align:middle;">
-          v0.2.0 — Memoria y Orquestación para IA
+        <div class="hero-logo">
+          <img src="assets/logo.jpeg" alt="Lemoria" width="96" height="96">
         </div>
+        <div class="hero-badge">v0.2.0 — Memoria y Orquestación para IA</div>
         <h1>
           El <span class="gradient">Sistema Operativo</span><br>
           de memoria para tu<br>
