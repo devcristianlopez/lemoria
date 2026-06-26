@@ -163,6 +163,38 @@ Lemoria incluye **8 agentes** en inglés, sin dependencia de lenguaje/framework.
 
 Los agentes y skills se copian tanto a nivel proyecto (`.opencode/`) como global (`~/.config/opencode/`), y están disponibles en cualquier proyecto sin configuración adicional.
 
+### Configuración: `opencode.json` vs `opencode.jsonc`
+
+Lemoria usa dos archivos de configuración de OpenCode, cada uno con un propósito distinto:
+
+| Archivo | Ubicación | Función | Comentarios |
+|---------|-----------|---------|-------------|
+| `opencode.jsonc` | `~/Projects/lemoria/` (en el repo) | Configuración del proyecto Lemoria: agente default, skills paths, comandos personalizados | ✅ Soporta `//` y `/* */` |
+| `opencode.json` | `~/.config/opencode/` (global) | Configuración global del usuario: **personalidad de la AI**, idioma de interacción, MCP servers | ❌ JSON puro, sin comentarios |
+
+**¿Cuál es la diferencia?**
+
+- **`opencode.jsonc`** está en el repo y define cosas del proyecto Lemoria (qué agente se carga por defecto, dónde buscar skills). Usa la extensión `.jsonc` porque así podemos dejar comentarios en el archivo sin que OpenCode proteste.
+
+- **`opencode.json`** lo configura cada usuario en su home y es donde se define **el idioma y tono de la AI**. Si quieres que la AI te hable en español, inglés, o en cualquier otro estilo, es ahí donde se configura.
+
+**¿Por qué importa?**
+
+Los agentes y skills de Lemoria están todos en **inglés** (son universales), pero la AI se comunica contigo en el idioma que definas en tu `~/.config/opencode/opencode.json`. Por ejemplo:
+
+```json
+// ~/.config/opencode/opencode.json
+{
+  "agent": {
+    "plan": {
+      "prompt": "Háblame en español chileno relajado pero correcto. Trátame de 'tú'."
+    }
+  }
+}
+```
+
+Esto significa que **los agentes trabajan en inglés** (código, commits, docs), pero **tú interactúas en el idioma que prefieras**.
+
 ---
 
 ## 🗂️ Project Structure
