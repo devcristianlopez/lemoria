@@ -141,6 +141,27 @@
       background: var(--surface0);
       border-color: var(--cyan);
     }
+    .lang-btn {
+      font-family: inherit;
+      font-size: .78rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--surface2);
+      background: transparent;
+      color: var(--subtext0);
+      cursor: pointer;
+      transition: all .2s;
+      margin: 0 4px;
+    }
+    .lang-btn:hover {
+      color: var(--text);
+      border-color: var(--subtext1);
+      background: var(--surface0);
+    }
+    .lang-btn .active-lang {
+      color: var(--text);
+    }
     .nav-hamburger {
       display: none; flex-direction: column; gap: 5px; cursor: pointer;
       background: none; border: none; padding: 4px;
@@ -164,6 +185,7 @@
       }
       .nav-links.open { display: flex; }
       .nav-links a { display: block; padding: 10px 16px; }
+      .lang-btn { margin: 4px 0; align-self: flex-start; }
       .nav-hamburger { display: flex; }
     }
 
@@ -550,11 +572,16 @@
 |____|___|_|  |_|\___/|_|_\___/_/ \_\</pre>
       </a>
       <ul class="nav-links" id="navLinks">
-        <li><a href="#features">Features</a></li>
-        <li><a href="#agents">Agentes</a></li>
-        <li><a href="#sdd">SDD Flow</a></li>
-        <li><a href="#start">Instalación</a></li>
-        <li class="nav-gh"><a href="https://github.com/devcristianlopez/lemoria" target="_blank">GitHub</a></li>
+        <li><a href="#features" data-i18n="nav.features">Features</a></li>
+        <li><a href="#agents" data-i18n="nav.agents">Agentes</a></li>
+        <li><a href="#sdd" data-i18n="nav.sdd">SDD Flow</a></li>
+        <li><a href="#start" data-i18n="nav.install">Instalación</a></li>
+        <li class="nav-gh"><a href="https://github.com/devcristianlopez/lemoria" target="_blank" data-i18n="nav.github">GitHub</a></li>
+        <li>
+          <button class="lang-btn" id="langToggle" data-i18n="lang.toggle" aria-label="Switch language">
+            <span class="active-lang">ES</span> / EN
+          </button>
+        </li>
       </ul>
       <button class="nav-hamburger" id="hamburger" aria-label="Menu">
         <span></span><span></span><span></span>
@@ -571,23 +598,23 @@
 | |   |  _| | |\/| | | | | |_) || |  / _ \  
 | |___| |___| |  | | |_| |  _ < | | / ___ \ 
 |_____|_____|_|  |_|\___/|_| \_\___/_/   \_\</pre>
-      <h1>
+      <h1 data-i18n="hero.title">
         Memory OS para tu <span class="accent">desarrollo con IA</span><span class="cursor"></span>
       </h1>
-      <p class="hero-desc">
+      <p class="hero-desc" data-i18n="hero.desc">
         Orquesta proyectos de software con trazabilidad total usando <strong>Spec Driven Development</strong>,
         8 agentes OpenCode y PostgreSQL como fuente de verdad.
         Desde la idea hasta el commit y la documentación.
       </p>
       <div class="hero-cta">
-        <a href="#start" class="btn btn-primary">$ ./install</a>
-        <a href="https://github.com/devcristianlopez/lemoria" target="_blank" class="btn btn-secondary">Ver en GitHub</a>
+        <a href="#start" class="btn btn-primary" data-i18n="hero.btn.install">$ ./install</a>
+        <a href="https://github.com/devcristianlopez/lemoria" target="_blank" class="btn btn-secondary" data-i18n="hero.btn.github">Ver en GitHub</a>
       </div>
       <dl class="hero-stats">
-        <div><dt>8</dt><dd>Agentes</dd></div>
-        <div><dt>15</dt><dd>Pasos SDD</dd></div>
-        <div><dt>41</dt><dd>Tests</dd></div>
-        <div><dt>8</dt><dd>Enums</dd></div>
+        <div><dt>8</dt><dd data-i18n="hero.stat.agents">Agentes</dd></div>
+        <div><dt>15</dt><dd data-i18n="hero.stat.sdd">Pasos SDD</dd></div>
+        <div><dt>41</dt><dd data-i18n="hero.stat.tests">Tests</dd></div>
+        <div><dt>8</dt><dd data-i18n="hero.stat.enums">Enums</dd></div>
       </dl>
     </div>
   </section>
@@ -597,69 +624,69 @@
     <div class="container">
       <div class="section-header">
         <div class="cmd"><code>$ lemoria features</code> <span class="flag">--all</span></div>
-        <h2>Características</h2>
-        <p>Cada decisión, cada línea de código, cada conversación — todo queda registrado y trazable.</p>
+        <h2 data-i18n="feat.title">Características</h2>
+        <p data-i18n="feat.desc">Cada decisión, cada línea de código, cada conversación — todo queda registrado y trazable.</p>
       </div>
       <div class="feat-grid">
         <div class="feat-card fade-in">
           <div class="num">[01]</div>
-          <h3>Spec Driven Development</h3>
-          <p>Flujo completo: discovery → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory.</p>
+          <h3 data-i18n="feat.01.title">Spec Driven Development</h3>
+          <p data-i18n="feat.01.desc">Flujo completo: discovery → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[02]</div>
-          <h3>Trazabilidad total</h3>
-          <p>Cada task tiene un ID único. Commits con <code>task-XXX</code>. Todo conectado al PRD original.</p>
+          <h3 data-i18n="feat.02.title">Trazabilidad total</h3>
+          <p data-i18n="feat.02.desc">Cada task tiene un ID único. Commits con <code>task-XXX</code>. Todo conectado al PRD original.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[03]</div>
-          <h3>8 Agentes OpenCode</h3>
-          <p>Orquestador + implementation + frontend + DB + testing + GitHub + review + documentation. Cada uno con contexto limitado.</p>
+          <h3 data-i18n="feat.03.title">8 Agentes OpenCode</h3>
+          <p data-i18n="feat.03.desc">Orquestador + implementation + frontend + DB + testing + GitHub + review + documentation. Cada uno con contexto limitado.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[04]</div>
-          <h3>PostgreSQL fuente de verdad</h3>
-          <p>Todo se persiste en PostgreSQL 16 con SQLAlchemy. La base de datos es el único fuente de verdad.</p>
+          <h3 data-i18n="feat.04.title">PostgreSQL fuente de verdad</h3>
+          <p data-i18n="feat.04.desc">Todo se persiste en PostgreSQL 16 con SQLAlchemy. La base de datos es el único fuente de verdad.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[05]</div>
-          <h3>Conventional Commits</h3>
-          <p>Commits con formato <code>tipo(scope): descripción [task-XXX]</code>. Trazabilidad automática código ↔ requerimientos.</p>
+          <h3 data-i18n="feat.05.title">Conventional Commits</h3>
+          <p data-i18n="feat.05.desc">Commits con formato <code>tipo(scope): descripción [task-XXX]</code>. Trazabilidad automática código ↔ requerimientos.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[06]</div>
-          <h3>Architecture Decision Records</h3>
-          <p>Cada decisión técnica se registra con contexto, opciones consideradas y justificación.</p>
+          <h3 data-i18n="feat.06.title">Architecture Decision Records</h3>
+          <p data-i18n="feat.06.desc">Cada decisión técnica se registra con contexto, opciones consideradas y justificación.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[07]</div>
-          <h3>State Machine Resumible</h3>
-          <p>Cada paso del flujo se persiste en <code>flow_steps</code>. Si el contexto del LLM se pierde, se retoma desde donde quedó.</p>
+          <h3 data-i18n="feat.07.title">State Machine Resumible</h3>
+          <p data-i18n="feat.07.desc">Cada paso del flujo se persiste en <code>flow_steps</code>. Si el contexto del LLM se pierde, se retoma desde donde quedó.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[08]</div>
-          <h3>Vault Bidireccional</h3>
-          <p>Exporta DB a markdown con wikilinks y restaura DB desde notas. Sin pérdida de datos.</p>
+          <h3 data-i18n="feat.08.title">Vault Bidireccional</h3>
+          <p data-i18n="feat.08.desc">Exporta DB a markdown con wikilinks y restaura DB desde notas. Sin pérdida de datos.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[09]</div>
-          <h3>Enums + CheckConstraints</h3>
-          <p>8 enums tipados con restricciones a nivel DB. Sin strings mágicos.</p>
+          <h3 data-i18n="feat.09.title">Enums + CheckConstraints</h3>
+          <p data-i18n="feat.09.desc">8 enums tipados con restricciones a nivel DB. Sin strings mágicos.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[10]</div>
-          <h3>41 Tests + CI Automático</h3>
-          <p>Suite con pytest en SQLite in-memory + CI en GitHub Actions con matrix Python 3.11/3.12/3.13.</p>
+          <h3 data-i18n="feat.10.title">41 Tests + CI Automático</h3>
+          <p data-i18n="feat.10.desc">Suite con pytest en SQLite in-memory + CI en GitHub Actions con matrix Python 3.11/3.12/3.13.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[11]</div>
-          <h3>7 Skills Modulares</h3>
-          <p>Skills especializadas: frontend, backend, database, testing, code-review, git-workflow, documentation.</p>
+          <h3 data-i18n="feat.11.title">7 Skills Modulares</h3>
+          <p data-i18n="feat.11.desc">Skills especializadas: frontend, backend, database, testing, code-review, git-workflow, documentation.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[12]</div>
-          <h3>Context7 MCP</h3>
-          <p>Documentación en tiempo real de librerías y frameworks vía MCP server.</p>
+          <h3 data-i18n="feat.12.title">Context7 MCP</h3>
+          <p data-i18n="feat.12.desc">Documentación en tiempo real de librerías y frameworks vía MCP server.</p>
         </div>
       </div>
     </div>
@@ -670,49 +697,49 @@
     <div class="container">
       <div class="section-header">
         <div class="cmd"><code>$ lemoria agents</code> <span class="flag">--list</span></div>
-        <h2>Los 8 agentes</h2>
-        <p>Cada agente tiene un rol específico, permisos ajustados y recibe solo el contexto que necesita.</p>
+        <h2 data-i18n="agents.title">Los 8 agentes</h2>
+        <p data-i18n="agents.desc">Cada agente tiene un rol específico, permisos ajustados y recibe solo el contexto que necesita.</p>
       </div>
       <div class="agent-grid">
         <div class="agent-card fade-in">
-          <div class="name-row"><span class="tag">orchestrator</span><h3>Orquestador</h3></div>
-          <div class="role">Orquestador</div>
-          <p>Analiza el contexto, aplica SDD, delega tareas a subagentes y consolida resultados.</p>
+          <div class="name-row"><span class="tag">orchestrator</span><h3 data-i18n="agents.orchestrator.title">Orquestador</h3></div>
+          <div class="role" data-i18n="agents.orchestrator.role">Orquestador</div>
+          <p data-i18n="agents.orchestrator.desc">Analiza el contexto, aplica SDD, delega tareas a subagentes y consolida resultados.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="name-row"><span class="tag">implementation-agent</span><h3>Implementation</h3></div>
-          <div class="role">Implementación</div>
-          <p>Implementa lógica de backend, scripts, APIs y toda la lógica de negocio.</p>
+          <div class="name-row"><span class="tag">implementation-agent</span><h3 data-i18n="agents.impl.title">Implementation</h3></div>
+          <div class="role" data-i18n="agents.impl.role">Implementación</div>
+          <p data-i18n="agents.impl.desc">Implementa lógica de backend, scripts, APIs y toda la lógica de negocio.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="name-row"><span class="tag">frontend-agent</span><h3>Frontend</h3></div>
-          <div class="role">UI / UX</div>
-          <p>Implementa interfaces de usuario, componentes, estilos y routing.</p>
+          <div class="name-row"><span class="tag">frontend-agent</span><h3 data-i18n="agents.frontend.title">Frontend</h3></div>
+          <div class="role" data-i18n="agents.frontend.role">UI / UX</div>
+          <p data-i18n="agents.frontend.desc">Implementa interfaces de usuario, componentes, estilos y routing.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="name-row"><span class="tag">db-agent</span><h3>Database</h3></div>
-          <div class="role">Base de datos</div>
-          <p>Diseña esquemas, genera migraciones, optimiza consultas y asegura integridad referencial.</p>
+          <div class="name-row"><span class="tag">db-agent</span><h3 data-i18n="agents.db.title">Database</h3></div>
+          <div class="role" data-i18n="agents.db.role">Base de datos</div>
+          <p data-i18n="agents.db.desc">Diseña esquemas, genera migraciones, optimiza consultas y asegura integridad referencial.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="name-row"><span class="tag">testing-agent</span><h3>Testing</h3></div>
-          <div class="role">Pruebas</div>
-          <p>Escribe tests unitarios y de integración con pytest. Verifica cobertura.</p>
+          <div class="name-row"><span class="tag">testing-agent</span><h3 data-i18n="agents.testing.title">Testing</h3></div>
+          <div class="role" data-i18n="agents.testing.role">Pruebas</div>
+          <p data-i18n="agents.testing.desc">Escribe tests unitarios y de integración con pytest. Verifica cobertura.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="name-row"><span class="tag">github-agent</span><h3>GitHub</h3></div>
-          <div class="role">Trazabilidad</div>
-          <p>Mantiene trazabilidad con GitHub: issues, PRs, milestones. Solo lectura.</p>
+          <div class="name-row"><span class="tag">github-agent</span><h3 data-i18n="agents.github.title">GitHub</h3></div>
+          <div class="role" data-i18n="agents.github.role">Trazabilidad</div>
+          <p data-i18n="agents.github.desc">Mantiene trazabilidad con GitHub: issues, PRs, milestones. Solo lectura.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="name-row"><span class="tag">review-agent</span><h3>Review</h3></div>
-          <div class="role">Revisión técnica</div>
-          <p>Revisa código, arquitectura y decisiones técnicas. Solo observa y reporta.</p>
+          <div class="name-row"><span class="tag">review-agent</span><h3 data-i18n="agents.review.title">Review</h3></div>
+          <div class="role" data-i18n="agents.review.role">Revisión técnica</div>
+          <p data-i18n="agents.review.desc">Revisa código, arquitectura y decisiones técnicas. Solo observa y reporta.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="name-row"><span class="tag">documentation-agent</span><h3>Documentación</h3></div>
-          <div class="role">Documentación</div>
-          <p>Genera y mantiene documentación en Obsidian vault, READMEs y markdown.</p>
+          <div class="name-row"><span class="tag">documentation-agent</span><h3 data-i18n="agents.docs.title">Documentación</h3></div>
+          <div class="role" data-i18n="agents.docs.role">Documentación</div>
+          <p data-i18n="agents.docs.desc">Genera y mantiene documentación en Obsidian vault, READMEs y markdown.</p>
         </div>
       </div>
     </div>
@@ -724,22 +751,22 @@
       <div class="section-header">
         <div class="cmd"><code>$ lemoria flow</code> <span class="flag">--help</span></div>
         <h2>Spec Driven Development</h2>
-        <p>15 pasos desde la idea hasta la memoria actualizada. Cada paso queda registrado en PostgreSQL.</p>
+        <p data-i18n="sdd.desc">15 pasos desde la idea hasta la memoria actualizada. Cada paso queda registrado en PostgreSQL.</p>
       </div>
       <div class="flow-grid">
-        <div class="flow-step fade-in"><span class="step-num">1</span><span class="step-label">Discovery</span><span class="step-desc">Preguntas esenciales</span></div>
-        <div class="flow-step fade-in"><span class="step-num">2</span><span class="step-label">Spec</span><span class="step-desc">Especificación detallada</span></div>
-        <div class="flow-step fade-in"><span class="step-num">3</span><span class="step-label">PRD</span><span class="step-desc">Product Requirements</span></div>
-        <div class="flow-step fade-in"><span class="step-num">4</span><span class="step-label">Tasks</span><span class="step-desc">Desglose en tareas</span></div>
-        <div class="flow-step fade-in"><span class="step-num">5</span><span class="step-label">Architecture</span><span class="step-desc">Diseño arquitectónico</span></div>
-        <div class="flow-step fade-in"><span class="step-num">6</span><span class="step-label">Implementation</span><span class="step-desc">Código por agentes</span></div>
-        <div class="flow-step fade-in"><span class="step-num">7</span><span class="step-label">Testing</span><span class="step-desc">Tests unitarios + integración</span></div>
-        <div class="flow-step fade-in"><span class="step-num">8</span><span class="step-label">Review</span><span class="step-desc">Revisión técnica</span></div>
-        <div class="flow-step fade-in"><span class="step-num">9</span><span class="step-label">Commit</span><span class="step-desc">Conventional Commit</span></div>
-        <div class="flow-step fade-in"><span class="step-num">10</span><span class="step-label">Push</span><span class="step-desc">Subida a GitHub</span></div>
-        <div class="flow-step fade-in"><span class="step-num">11</span><span class="step-label">Documentation</span><span class="step-desc">Documentación generada</span></div>
-        <div class="flow-step fade-in"><span class="step-num">12</span><span class="step-label">Memory Update</span><span class="step-desc">Actualizar memoria</span></div>
-        <div class="flow-step fade-in"><span class="step-num">13</span><span class="step-label">State Machine</span><span class="step-desc">flow_steps en DB</span></div>
+        <div class="flow-step fade-in"><span class="step-num">1</span><span class="step-label" data-i18n="sdd.step.01.label">Discovery</span><span class="step-desc" data-i18n="sdd.step.01.desc">Preguntas esenciales</span></div>
+        <div class="flow-step fade-in"><span class="step-num">2</span><span class="step-label" data-i18n="sdd.step.02.label">Spec</span><span class="step-desc" data-i18n="sdd.step.02.desc">Especificación detallada</span></div>
+        <div class="flow-step fade-in"><span class="step-num">3</span><span class="step-label" data-i18n="sdd.step.03.label">PRD</span><span class="step-desc" data-i18n="sdd.step.03.desc">Product Requirements</span></div>
+        <div class="flow-step fade-in"><span class="step-num">4</span><span class="step-label" data-i18n="sdd.step.04.label">Tasks</span><span class="step-desc" data-i18n="sdd.step.04.desc">Desglose en tareas</span></div>
+        <div class="flow-step fade-in"><span class="step-num">5</span><span class="step-label" data-i18n="sdd.step.05.label">Architecture</span><span class="step-desc" data-i18n="sdd.step.05.desc">Diseño arquitectónico</span></div>
+        <div class="flow-step fade-in"><span class="step-num">6</span><span class="step-label" data-i18n="sdd.step.06.label">Implementation</span><span class="step-desc" data-i18n="sdd.step.06.desc">Código por agentes</span></div>
+        <div class="flow-step fade-in"><span class="step-num">7</span><span class="step-label" data-i18n="sdd.step.07.label">Testing</span><span class="step-desc" data-i18n="sdd.step.07.desc">Tests unitarios + integración</span></div>
+        <div class="flow-step fade-in"><span class="step-num">8</span><span class="step-label" data-i18n="sdd.step.08.label">Review</span><span class="step-desc" data-i18n="sdd.step.08.desc">Revisión técnica</span></div>
+        <div class="flow-step fade-in"><span class="step-num">9</span><span class="step-label" data-i18n="sdd.step.09.label">Commit</span><span class="step-desc" data-i18n="sdd.step.09.desc">Conventional Commit</span></div>
+        <div class="flow-step fade-in"><span class="step-num">10</span><span class="step-label" data-i18n="sdd.step.10.label">Push</span><span class="step-desc" data-i18n="sdd.step.10.desc">Subida a GitHub</span></div>
+        <div class="flow-step fade-in"><span class="step-num">11</span><span class="step-label" data-i18n="sdd.step.11.label">Documentation</span><span class="step-desc" data-i18n="sdd.step.11.desc">Documentación generada</span></div>
+        <div class="flow-step fade-in"><span class="step-num">12</span><span class="step-label" data-i18n="sdd.step.12.label">Memory Update</span><span class="step-desc" data-i18n="sdd.step.12.desc">Actualizar memoria</span></div>
+        <div class="flow-step fade-in"><span class="step-num">13</span><span class="step-label" data-i18n="sdd.step.13.label">State Machine</span><span class="step-desc" data-i18n="sdd.step.13.desc">flow_steps en DB</span></div>
       </div>
     </div>
   </section>
@@ -749,29 +776,29 @@
     <div class="container">
       <div class="section-header">
         <div class="cmd"><code>$ lemoria quickstart</code> <span class="flag">--guide</span></div>
-        <h2>Listo en 3 pasos</h2>
-        <p>Instala Lemoria, inicializa el proyecto y empieza a orquestar tu desarrollo con IA.</p>
+        <h2 data-i18n="install.title">Listo en 3 pasos</h2>
+        <p data-i18n="install.desc">Instala Lemoria, inicializa el proyecto y empieza a orquestar tu desarrollo con IA.</p>
       </div>
       <ul class="start-list">
         <li class="fade-in">
           <span class="num">step/1</span>
           <div class="content">
-            <h3>Clona el repositorio</h3>
+            <h3 data-i18n="install.step1.title">Clona el repositorio</h3>
             <p><code>git clone https://github.com/devcristianlopez/lemoria.git</code></p>
           </div>
         </li>
         <li class="fade-in">
           <span class="num">step/2</span>
           <div class="content">
-            <h3>Instala el paquete</h3>
+            <h3 data-i18n="install.step2.title">Instala el paquete</h3>
             <p><code>cd lemoria && pip install -e .</code></p>
           </div>
         </li>
         <li class="fade-in">
           <span class="num">step/3</span>
           <div class="content">
-            <h3>Inicializa tu proyecto</h3>
-            <p><code>lemoria init</code> — configura la base de datos, los agentes y empieza a delegar.</p>
+            <h3 data-i18n="install.step3.title">Inicializa tu proyecto</h3>
+            <p><code>lemoria init</code> <span data-i18n="install.step3.desc">— configura la base de datos, los agentes y empieza a delegar.</span></p>
           </div>
         </li>
       </ul>
@@ -796,18 +823,260 @@
   <!-- Footer -->
   <footer>
     <div class="container">
-      <p class="copy">&copy; 2026 <a href="https://github.com/devcristianlopez/lemoria" target="_blank">Lemoria</a> — MIT License</p>
+      <p class="copy">&copy; 2026 <a href="https://github.com/devcristianlopez/lemoria" target="_blank">Lemoria</a> <span data-i18n="footer.license">— MIT License</span></p>
       <ul class="f-links">
-        <li><a href="https://github.com/devcristianlopez/lemoria" target="_blank">GitHub</a></li>
-        <li><a href="#features">Features</a></li>
-        <li><a href="#agents">Agentes</a></li>
-        <li><a href="#start">Instalación</a></li>
+        <li><a href="https://github.com/devcristianlopez/lemoria" target="_blank" data-i18n="nav.github">GitHub</a></li>
+        <li><a href="#features" data-i18n="nav.features">Features</a></li>
+        <li><a href="#agents" data-i18n="nav.agents">Agentes</a></li>
+        <li><a href="#start" data-i18n="nav.install">Instalación</a></li>
       </ul>
     </div>
   </footer>
 
   <script>
-    // Scroll fade-in
+    // ── Translations ──────────────────────────────────
+    const i18n = {
+      es: {
+        'nav.features': 'Features',
+        'nav.agents': 'Agentes',
+        'nav.sdd': 'SDD Flow',
+        'nav.install': 'Instalación',
+        'nav.github': 'GitHub',
+        'lang.toggle': 'ES / EN',
+        'hero.title': 'Memory OS para tu <span class="accent">desarrollo con IA</span><span class="cursor"></span>',
+        'hero.desc': 'Orquesta proyectos de software con trazabilidad total usando <strong>Spec Driven Development</strong>, 8 agentes OpenCode y PostgreSQL como fuente de verdad. Desde la idea hasta el commit y la documentación.',
+        'hero.btn.install': '$ ./install',
+        'hero.btn.github': 'Ver en GitHub',
+        'hero.stat.agents': 'Agentes',
+        'hero.stat.sdd': 'Pasos SDD',
+        'hero.stat.tests': 'Tests',
+        'hero.stat.enums': 'Enums',
+        'feat.title': 'Características',
+        'feat.desc': 'Cada decisión, cada línea de código, cada conversación — todo queda registrado y trazable.',
+        'feat.01.title': 'Spec Driven Development',
+        'feat.01.desc': 'Flujo completo: discovery → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory.',
+        'feat.02.title': 'Trazabilidad total',
+        'feat.02.desc': 'Cada task tiene un ID único. Commits con <code>task-XXX</code>. Todo conectado al PRD original.',
+        'feat.03.title': '8 Agentes OpenCode',
+        'feat.03.desc': 'Orquestador + implementation + frontend + DB + testing + GitHub + review + documentation. Cada uno con contexto limitado.',
+        'feat.04.title': 'PostgreSQL fuente de verdad',
+        'feat.04.desc': 'Todo se persiste en PostgreSQL 16 con SQLAlchemy. La base de datos es el único fuente de verdad.',
+        'feat.05.title': 'Conventional Commits',
+        'feat.05.desc': 'Commits con formato <code>tipo(scope): descripción [task-XXX]</code>. Trazabilidad automática código ↔ requerimientos.',
+        'feat.06.title': 'Architecture Decision Records',
+        'feat.06.desc': 'Cada decisión técnica se registra con contexto, opciones consideradas y justificación.',
+        'feat.07.title': 'State Machine Resumible',
+        'feat.07.desc': 'Cada paso del flujo se persiste en <code>flow_steps</code>. Si el contexto del LLM se pierde, se retoma desde donde quedó.',
+        'feat.08.title': 'Vault Bidireccional',
+        'feat.08.desc': 'Exporta DB a markdown con wikilinks y restaura DB desde notas. Sin pérdida de datos.',
+        'feat.09.title': 'Enums + CheckConstraints',
+        'feat.09.desc': '8 enums tipados con restricciones a nivel DB. Sin strings mágicos.',
+        'feat.10.title': '41 Tests + CI Automático',
+        'feat.10.desc': 'Suite con pytest en SQLite in-memory + CI en GitHub Actions con matrix Python 3.11/3.12/3.13.',
+        'feat.11.title': '7 Skills Modulares',
+        'feat.11.desc': 'Skills especializadas: frontend, backend, database, testing, code-review, git-workflow, documentation.',
+        'feat.12.title': 'Context7 MCP',
+        'feat.12.desc': 'Documentación en tiempo real de librerías y frameworks vía MCP server.',
+        'agents.title': 'Los 8 agentes',
+        'agents.desc': 'Cada agente tiene un rol específico, permisos ajustados y recibe solo el contexto que necesita.',
+        'agents.orchestrator.title': 'Orquestador',
+        'agents.orchestrator.role': 'Orquestador',
+        'agents.orchestrator.desc': 'Analiza el contexto, aplica SDD, delega tareas a subagentes y consolida resultados.',
+        'agents.impl.title': 'Implementation',
+        'agents.impl.role': 'Implementación',
+        'agents.impl.desc': 'Implementa lógica de backend, scripts, APIs y toda la lógica de negocio.',
+        'agents.frontend.title': 'Frontend',
+        'agents.frontend.role': 'UI / UX',
+        'agents.frontend.desc': 'Implementa interfaces de usuario, componentes, estilos y routing.',
+        'agents.db.title': 'Database',
+        'agents.db.role': 'Base de datos',
+        'agents.db.desc': 'Diseña esquemas, genera migraciones, optimiza consultas y asegura integridad referencial.',
+        'agents.testing.title': 'Testing',
+        'agents.testing.role': 'Pruebas',
+        'agents.testing.desc': 'Escribe tests unitarios y de integración con pytest. Verifica cobertura.',
+        'agents.github.title': 'GitHub',
+        'agents.github.role': 'Trazabilidad',
+        'agents.github.desc': 'Mantiene trazabilidad con GitHub: issues, PRs, milestones. Solo lectura.',
+        'agents.review.title': 'Review',
+        'agents.review.role': 'Revisión técnica',
+        'agents.review.desc': 'Revisa código, arquitectura y decisiones técnicas. Solo observa y reporta.',
+        'agents.docs.title': 'Documentación',
+        'agents.docs.role': 'Documentación',
+        'agents.docs.desc': 'Genera y mantiene documentación en Obsidian vault, READMEs y markdown.',
+        'sdd.desc': '15 pasos desde la idea hasta la memoria actualizada. Cada paso queda registrado en PostgreSQL.',
+        'sdd.step.01.label': 'Discovery',
+        'sdd.step.01.desc': 'Preguntas esenciales',
+        'sdd.step.02.label': 'Spec',
+        'sdd.step.02.desc': 'Especificación detallada',
+        'sdd.step.03.label': 'PRD',
+        'sdd.step.03.desc': 'Product Requirements',
+        'sdd.step.04.label': 'Tasks',
+        'sdd.step.04.desc': 'Desglose en tareas',
+        'sdd.step.05.label': 'Architecture',
+        'sdd.step.05.desc': 'Diseño arquitectónico',
+        'sdd.step.06.label': 'Implementation',
+        'sdd.step.06.desc': 'Código por agentes',
+        'sdd.step.07.label': 'Testing',
+        'sdd.step.07.desc': 'Tests unitarios + integración',
+        'sdd.step.08.label': 'Review',
+        'sdd.step.08.desc': 'Revisión técnica',
+        'sdd.step.09.label': 'Commit',
+        'sdd.step.09.desc': 'Conventional Commit',
+        'sdd.step.10.label': 'Push',
+        'sdd.step.10.desc': 'Subida a GitHub',
+        'sdd.step.11.label': 'Documentation',
+        'sdd.step.11.desc': 'Documentación generada',
+        'sdd.step.12.label': 'Memory Update',
+        'sdd.step.12.desc': 'Actualizar memoria',
+        'sdd.step.13.label': 'State Machine',
+        'sdd.step.13.desc': 'flow_steps en DB',
+        'install.title': 'Listo en 3 pasos',
+        'install.desc': 'Instala Lemoria, inicializa el proyecto y empieza a orquestar tu desarrollo con IA.',
+        'install.step1.title': 'Clona el repositorio',
+        'install.step2.title': 'Instala el paquete',
+        'install.step3.title': 'Inicializa tu proyecto',
+        'install.step3.desc': '— configura la base de datos, los agentes y empieza a delegar.',
+        'footer.license': '— MIT License',
+      },
+      en: {
+        'nav.features': 'Features',
+        'nav.agents': 'Agents',
+        'nav.sdd': 'SDD Flow',
+        'nav.install': 'Install',
+        'nav.github': 'GitHub',
+        'lang.toggle': 'ES / EN',
+        'hero.title': 'Memory OS for your <span class="accent">AI development</span><span class="cursor"></span>',
+        'hero.desc': 'Orchestrates software projects with full traceability using <strong>Spec Driven Development</strong>, 8 OpenCode agents, and PostgreSQL as the source of truth. From idea to commit and documentation.',
+        'hero.btn.install': '$ ./install',
+        'hero.btn.github': 'View on GitHub',
+        'hero.stat.agents': 'Agents',
+        'hero.stat.sdd': 'SDD Steps',
+        'hero.stat.tests': 'Tests',
+        'hero.stat.enums': 'Enums',
+        'feat.title': 'Features',
+        'feat.desc': 'Every decision, every line of code, every conversation — all logged and traceable.',
+        'feat.01.title': 'Spec Driven Development',
+        'feat.01.desc': 'Full flow: discovery → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory.',
+        'feat.02.title': 'Full Traceability',
+        'feat.02.desc': 'Every task has a unique ID. Commits use <code>task-XXX</code>. Everything linked to the original PRD.',
+        'feat.03.title': '8 OpenCode Agents',
+        'feat.03.desc': 'Orchestrator + implementation + frontend + DB + testing + GitHub + review + documentation. Each with limited context.',
+        'feat.04.title': 'PostgreSQL Source of Truth',
+        'feat.04.desc': 'Everything persisted in PostgreSQL 16 with SQLAlchemy. The database is the single source of truth.',
+        'feat.05.title': 'Conventional Commits',
+        'feat.05.desc': 'Commits formatted as <code>type(scope): description [task-XXX]</code>. Automatic code ↔ requirements traceability.',
+        'feat.06.title': 'Architecture Decision Records',
+        'feat.06.desc': 'Every technical decision recorded with context, options considered, and rationale.',
+        'feat.07.title': 'Resumable State Machine',
+        'feat.07.desc': 'Every flow step persisted in <code>flow_steps</code>. If LLM context is lost, resume from where it left off.',
+        'feat.08.title': 'Bidirectional Vault',
+        'feat.08.desc': 'Export DB to markdown with wikilinks and restore DB from notes. No data loss.',
+        'feat.09.title': 'Enums + CheckConstraints',
+        'feat.09.desc': '8 typed enums with DB-level constraints. No magic strings.',
+        'feat.10.title': '41 Tests + Automated CI',
+        'feat.10.desc': 'Test suite with pytest on SQLite in-memory + CI on GitHub Actions with Python 3.11/3.12/3.13 matrix.',
+        'feat.11.title': '7 Modular Skills',
+        'feat.11.desc': 'Specialized skills: frontend, backend, database, testing, code-review, git-workflow, documentation.',
+        'feat.12.title': 'Context7 MCP',
+        'feat.12.desc': 'Real-time documentation for libraries and frameworks via MCP server.',
+        'agents.title': 'The 8 Agents',
+        'agents.desc': 'Each agent has a specific role, limited permissions, and receives only the context it needs.',
+        'agents.orchestrator.title': 'Orchestrator',
+        'agents.orchestrator.role': 'Orchestrator',
+        'agents.orchestrator.desc': 'Analyzes context, applies SDD, delegates tasks to subagents, and consolidates results.',
+        'agents.impl.title': 'Implementation',
+        'agents.impl.role': 'Implementation',
+        'agents.impl.desc': 'Implements backend logic, scripts, APIs, and all business logic.',
+        'agents.frontend.title': 'Frontend',
+        'agents.frontend.role': 'UI / UX',
+        'agents.frontend.desc': 'Implements user interfaces, components, styles, and routing.',
+        'agents.db.title': 'Database',
+        'agents.db.role': 'Database',
+        'agents.db.desc': 'Designs schemas, generates migrations, optimizes queries, and ensures referential integrity.',
+        'agents.testing.title': 'Testing',
+        'agents.testing.role': 'Testing',
+        'agents.testing.desc': 'Writes unit and integration tests with pytest. Verifies coverage.',
+        'agents.github.title': 'GitHub',
+        'agents.github.role': 'Traceability',
+        'agents.github.desc': 'Maintains GitHub traceability: issues, PRs, milestones. Read-only.',
+        'agents.review.title': 'Review',
+        'agents.review.role': 'Code Review',
+        'agents.review.desc': 'Reviews code, architecture, and technical decisions. Observes and reports only.',
+        'agents.docs.title': 'Documentation',
+        'agents.docs.role': 'Documentation',
+        'agents.docs.desc': 'Generates and maintains documentation in Obsidian vault, READMEs, and markdown files.',
+        'sdd.desc': '15 steps from idea to updated memory. Every step is recorded in PostgreSQL.',
+        'sdd.step.01.label': 'Discovery',
+        'sdd.step.01.desc': 'Essential questions',
+        'sdd.step.02.label': 'Spec',
+        'sdd.step.02.desc': 'Detailed specification',
+        'sdd.step.03.label': 'PRD',
+        'sdd.step.03.desc': 'Product Requirements',
+        'sdd.step.04.label': 'Tasks',
+        'sdd.step.04.desc': 'Breakdown into tasks',
+        'sdd.step.05.label': 'Architecture',
+        'sdd.step.05.desc': 'Architectural design',
+        'sdd.step.06.label': 'Implementation',
+        'sdd.step.06.desc': 'Code by agents',
+        'sdd.step.07.label': 'Testing',
+        'sdd.step.07.desc': 'Unit + integration tests',
+        'sdd.step.08.label': 'Review',
+        'sdd.step.08.desc': 'Technical review',
+        'sdd.step.09.label': 'Commit',
+        'sdd.step.09.desc': 'Conventional Commit',
+        'sdd.step.10.label': 'Push',
+        'sdd.step.10.desc': 'Push to GitHub',
+        'sdd.step.11.label': 'Documentation',
+        'sdd.step.11.desc': 'Generated documentation',
+        'sdd.step.12.label': 'Memory Update',
+        'sdd.step.12.desc': 'Update memory',
+        'sdd.step.13.label': 'State Machine',
+        'sdd.step.13.desc': 'flow_steps in DB',
+        'install.title': 'Ready in 3 steps',
+        'install.desc': 'Install Lemoria, initialize the project, and start orchestrating your AI development.',
+        'install.step1.title': 'Clone the repository',
+        'install.step2.title': 'Install the package',
+        'install.step3.title': 'Initialize your project',
+        'install.step3.desc': '— configures the database, agents, and starts delegating.',
+        'footer.license': '— MIT License',
+      }
+    };
+
+    // ── Language switcher ─────────────────────────────
+    let currentLang = localStorage.getItem('lemoria-lang') || 'es';
+
+    function switchLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('lemoria-lang', lang);
+      const t = i18n[lang];
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (t[key] !== undefined) {
+          el.innerHTML = t[key];
+        }
+      });
+
+      // Update toggle button text
+      const toggle = document.getElementById('langToggle');
+      if (toggle) {
+        const otherLang = lang === 'es' ? 'EN' : 'ES';
+        toggle.innerHTML = `<span class="active-lang">${lang.toUpperCase()}</span> / ${otherLang}`;
+      }
+
+      // Set html lang attribute
+      document.documentElement.lang = lang;
+    }
+
+    // ── Init ──────────────────────────────────────────
+    switchLang(currentLang);
+
+    // Toggle button click
+    document.getElementById('langToggle')?.addEventListener('click', () => {
+      switchLang(currentLang === 'es' ? 'en' : 'es');
+    });
+
+    // ── Scroll fade-in ────────────────────────────────
     (function() {
       const o = new IntersectionObserver(entries => {
         entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
@@ -815,7 +1084,7 @@
       document.querySelectorAll('.fade-in').forEach(el => o.observe(el));
     })();
 
-    // Mobile hamburger
+    // ── Mobile hamburger ─────────────────────────────
     (function() {
       const btn = document.getElementById('hamburger');
       const links = document.getElementById('navLinks');
