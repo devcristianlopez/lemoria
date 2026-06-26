@@ -3,7 +3,7 @@
   "default_agent": "orchestrator",
   "command": {
     "new-feature": {
-      "description": "Inicia el flujo SDD completo para una nueva feature",
+      "description": "Run the full SDD flow for a new feature",
       "template": "Run the full Lemoria SDD workflow: create project if needed, start conversation, create PRD, create tasks, delegate to subagents, and track everything in the database. Use lemoria CLI commands."
     },
     "lemoria-project": {
