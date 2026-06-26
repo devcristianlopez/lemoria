@@ -358,7 +358,8 @@
         <dl class="hero-stats">
           <div><dt>8</dt><dd>Agentes</dd></div>
           <div><dt>15</dt><dd>Pasos SDD</dd></div>
-           <div><dt>Python</dt><dd>3.11+ / Click CLI</dd></div>
+          <div><dt>41</dt><dd>Tests</dd></div>
+          <div><dt>8</dt><dd>Enums tipados</dd></div>
         </dl>
       </div>
     </div>
@@ -374,7 +375,7 @@
         <div class="feature-card fade-in">
           <div class="icon">&#9312;</div>
           <h3>Spec Driven Development</h3>
-           <p>Flujo completo: idea → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory update.</p>
+           <p>Flujo completo: discovery → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory update.</p>
         </div>
         <div class="feature-card fade-in">
           <div class="icon">&#9313;</div>
@@ -383,8 +384,8 @@
         </div>
         <div class="feature-card fade-in">
           <div class="icon">&#9314;</div>
-          <h3>7 Agentes OpenCode</h3>
-          <p>Orquestador + backend + DB + testing + GitHub + review + documentation. Cada uno con permisos y contexto limitado.</p>
+          <h3>8 Agentes OpenCode</h3>
+           <p>Orquestador + implementation + frontend + DB + testing + GitHub + review + documentation. Cada uno con permisos y contexto limitado.</p>
         </div>
         <div class="feature-card fade-in">
           <div class="icon">&#9315;</div>
@@ -400,6 +401,36 @@
           <div class="icon">&#9317;</div>
           <h3>Architecture Decision Records</h3>
           <p>Cada decisión técnica se registra con contexto, opciones consideradas y justificación. Historial completo del porqué.</p>
+        </div>
+        <div class="feature-card fade-in">
+          <div class="icon">&#9318;</div>
+          <h3>State Machine Resumible</h3>
+          <p>Cada paso del flujo se persiste en <code>flow_steps</code>. Si el contexto del LLM se pierde, se retoma desde donde quedó.</p>
+        </div>
+        <div class="feature-card fade-in">
+          <div class="icon">&#9319;</div>
+          <h3>Vault Bidireccional</h3>
+          <p>Sincroniza la DB con Obsidian: exporta a markdown con wikilinks y restaura la DB desde las notas. Sin pérdida de datos.</p>
+        </div>
+        <div class="feature-card fade-in">
+          <div class="icon">&#9320;</div>
+          <h3>Enums + CheckConstraints</h3>
+          <p>8 enums tipados con restricciones a nivel DB para mantener integridad de datos. Sin strings mágicos.</p>
+        </div>
+        <div class="feature-card fade-in">
+          <div class="icon">&#9321;</div>
+          <h3>41 Tests + CI Automático</h3>
+          <p>Suite de 41 tests con pytest en SQLite in-memory + CI en GitHub Actions con matrix Python 3.11/3.12/3.13.</p>
+        </div>
+        <div class="feature-card fade-in">
+          <div class="icon">&#9322;</div>
+          <h3>7 Skills Modulares</h3>
+          <p>Skills especializadas por área: frontend, backend, database, testing, code-review, git-workflow, documentation.</p>
+        </div>
+        <div class="feature-card fade-in">
+          <div class="icon">&#9323;</div>
+          <h3>Context7 MCP</h3>
+          <p>Documentación en tiempo real de librerías y frameworks vía MCP server. Consulta docs sin salir del editor.</p>
         </div>
       </div>
     </div>
@@ -418,9 +449,14 @@
           <p>Analiza el contexto, aplica SDD, delega tareas a subagentes y consolida resultados. Es el director de orquesta.</p>
         </div>
         <div class="agent-card fade-in">
-          <div class="agent-name"><code>backend-agent</code><h3>Backend</h3></div>
+          <div class="agent-name"><code>implementation-agent</code><h3>Implementation</h3></div>
           <div class="agent-role">Implementación</div>
-          <p>Implementa la lógica Python, modelos SQLAlchemy, comandos Click y APIs. Permisos de bash + edit.</p>
+          <p>Implementa lógica de backend, scripts, APIs y toda la lógica de negocio. Especializado en traducción de specs a código.</p>
+        </div>
+        <div class="agent-card fade-in">
+          <div class="agent-name"><code>frontend-agent</code><h3>Frontend</h3></div>
+          <div class="agent-role">UI / UX</div>
+          <p>Implementa interfaces de usuario, componentes, estilos y routing. Separa la capa de presentación del backend.</p>
         </div>
         <div class="agent-card fade-in">
           <div class="agent-name"><code>db-agent</code><h3>Database</h3></div>
@@ -460,8 +496,8 @@
       <div class="flow-grid">
         <div class="flow-step fade-in">
           <span class="step-num">1</span>
-          <span class="step-label">Idea</span>
-          <span class="step-desc">User request inicial</span>
+          <span class="step-label">Discovery</span>
+          <span class="step-desc">Preguntas esenciales</span>
         </div>
         <div class="flow-step fade-in">
           <span class="step-num">2</span>
@@ -517,6 +553,11 @@
           <span class="step-num">12</span>
           <span class="step-label">Memory Update</span>
           <span class="step-desc">Actualizar memoria</span>
+        </div>
+        <div class="flow-step fade-in">
+          <span class="step-num">13</span>
+          <span class="step-label">State Machine</span>
+          <span class="step-desc">flow_steps en DB</span>
         </div>
       </div>
     </div>
