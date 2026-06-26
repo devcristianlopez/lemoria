@@ -20,6 +20,6 @@
     }
   },
   "skills": {
-    "paths": [".opencode/skills"]
+    "paths": [".opencode/skills", "~/.config/opencode/skills"]
   }
 }

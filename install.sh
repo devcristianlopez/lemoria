@@ -134,11 +134,17 @@ if [ "$INSTALL_MODE" = "1" ]; then
     echo "[6/7] Instalando agentes en modo GLOBAL..."
 
     mkdir -p "$OPENCODE_GLOBAL_DIR/agents"
-    mkdir -p "$OPENCODE_GLOBAL_DIR/skills/lemoria"
+    mkdir -p "$OPENCODE_GLOBAL_DIR/skills"
+    for skill_dir in lemoria frontend backend database testing code-review git-workflow documentation; do
+        if [ -d ".opencode/skills/$skill_dir" ]; then
+            mkdir -p "$OPENCODE_GLOBAL_DIR/skills/$skill_dir"
+            cp ".opencode/skills/$skill_dir/SKILL.md" "$OPENCODE_GLOBAL_DIR/skills/$skill_dir/"
+        fi
+    done
 
     cp .opencode/agents/*.md "$OPENCODE_GLOBAL_DIR/agents/"
-    cp .opencode/skills/lemoria/SKILL.md "$OPENCODE_GLOBAL_DIR/skills/lemoria/"
     echo "  Agentes copiados a $OPENCODE_GLOBAL_DIR/agents/"
+    echo "  Skills copiados a $OPENCODE_GLOBAL_DIR/skills/"
 
     if [ ! -f "$OPENCODE_GLOBAL_DIR/opencode.json" ]; then
         cat > "$OPENCODE_GLOBAL_DIR/opencode.json" <<- 'EOF'
@@ -165,9 +171,35 @@ else
     echo "  Abre OpenCode desde esta carpeta para usarlos"
 fi
 
+# ----- Context7 (documentation MCP) -----
+echo ""
+echo "[7/8] Context7 — documentación actualizada para librerías..."
+echo ""
+echo "  Context7 es un MCP server que provee documentación actualizada"
+echo "  de React, Next.js, Prisma, Tailwind, etc. directamente al agente."
+echo ""
+echo "  ¿Quieres instalar Context7?"
+echo "  (requiere Node.js — npx — para ejecutarse)"
+echo ""
+read -rp "  Instalar? [s/N]: " INSTALL_CTX7
+if [ "${INSTALL_CTX7:-n}" = "s" ] || [ "${INSTALL_CTX7:-n}" = "S" ]; then
+    echo ""
+    echo "  Instalando Context7 MCP..."
+    if command -v npx >/dev/null 2>&1; then
+        npx -y ctx7 setup --opencode --mcp 2>&1 && \
+            echo "  ✓ Context7 instalado y configurado" || \
+            echo "  ✗ Falló instalación de Context7 (puedes hacerlo después: npx ctx7 setup --opencode --mcp)"
+    else
+        echo "  npx no encontrado. Salta este paso."
+        echo "  Instala Node.js primero, luego: npx ctx7 setup --opencode --mcp"
+    fi
+else
+    echo "  Saltado. Puedes instalar después: npx ctx7 setup --opencode --mcp"
+fi
+
 # ----- Resumen -----
 echo ""
-echo "[7/7] Instalación completada"
+echo "[8/8] Instalación completada"
 echo ""
 echo "============================================"
 echo "  Lemoria está listo"
@@ -182,7 +214,7 @@ echo ""
 if [ "$INSTALL_MODE" = "1" ]; then
 echo "  Los agentes están disponibles GLOBALMENTE."
 echo "  Abre OpenCode en cualquier proyecto y usa:"
-echo "    @orchestrator, @backend-agent, @testing-agent, ..."
+echo "    @orchestrator, @implementation-agent, @frontend-agent, ..."
 else
 echo "  Los agentes están disponibles solo en este proyecto."
 echo "  Abre OpenCode desde esta carpeta: opencode ."
@@ -193,6 +225,9 @@ echo "  gh (GitHub CLI) no detectado. El github-agent usará git manual."
 echo "  Para crear PRs y gestionar repos: https://cli.github.com/"
 echo ""
 fi
+echo "  Skills disponibles:"
+echo "    frontend, backend, database, testing, code-review, git-workflow, documentation"
+echo ""
 echo "  Para abrir Obsidian vault:"
     echo "    obsidian $LEMORIA_DIR/vault/obsidian/"
     echo ""

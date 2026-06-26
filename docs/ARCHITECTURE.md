@@ -8,7 +8,8 @@ graph TB
 
   subgraph OC[OpenCode]
     SKILL[Skill: lemoria] --> OA[Orchestrator Agent]
-    OA -->|backend-agent| BA[Backend Agent]
+    OA -->|implementation-agent| IA[Implementation Agent]
+    OA -->|frontend-agent| FA[Frontend Agent]
     OA -->|db-agent| DA[DB Agent]
     OA -->|testing-agent| TA[Testing Agent]
     OA -->|github-agent| GA[GitHub Agent]
@@ -34,7 +35,7 @@ graph TB
   LEMORIA -->|lectura/escritura| DB
 ```
 
-## Diagrama de flujo SDD
+## Diagrama de flujo SDD con State Machine
 
 ```mermaid
 flowchart LR
@@ -50,6 +51,12 @@ flowchart LR
   J --> K[Documentation]
   K --> L[Memory Update]
   L -.->|feedback| A
+
+  subgraph SM[State Machine - flow_steps]
+    S1[flow step<br/>--status running] --> S2[Implementación]
+    S2 --> S3[flow step<br/>--status completed]
+    S3 --> S4[flow status<br/>verifica avance]
+  end
 ```
 
 ## Diagrama de jerarquía de contexto
@@ -75,6 +82,7 @@ erDiagram
   Conversation ||--o{ Message : contains
   PRD ||--o{ Spec : "has specs"
   PRD ||--o{ Task : "generates tasks"
+  PRD ||--o{ FlowStep : "tracks steps"
 
   Task ||--o{ Commit : "linked to"
   Task }o--|| Agent : "assigned to"
@@ -110,12 +118,13 @@ graph RL
 
   subgraph AGENTS[OpenCode Agents]
     AG1[orchestrator]
-    AG2[backend-agent]
-    AG3[db-agent]
-    AG4[testing-agent]
-    AG5[github-agent]
-    AG6[review-agent]
-    AG7[documentation-agent]
+    AG2[implementation-agent]
+    AG3[frontend-agent]
+    AG4[db-agent]
+    AG5[testing-agent]
+    AG6[github-agent]
+    AG7[review-agent]
+    AG8[documentation-agent]
   end
 
   AGENTS -->|subagentes| AG1
@@ -157,10 +166,19 @@ Sistema multiagente especializado: backend, db, testing, documentation, github, 
 Motor SDD con flujo: Idea → Spec → PRD → Tasks → Architecture → Implementation → Testing → Review → Commit → Push → Documentation → Memory Update.
 
 ### Lemoria Vault
-Integración con Obsidian para visualización humana y knowledge graph.
+Integración bidireccional con Obsidian: exporta entidades a markdown con frontmatter (`vault sync`) y reconstruye la DB desde las notas (`vault restore`).
+
+### Lemoria Flow
+Motor SDD con state machine. Cada paso del flujo se persiste en `flow_steps` con `flow_id`, `step`, `status`, `started_at`, `completed_at`, `output`. Permite reanudar flujos interrumpidos y ver el progreso completo.
 
 ### Lemoria Git
 Sistema de trazabilidad que registra commits, pushes, ramas y PRs vinculados a tareas.
+
+### Enums y CheckConstraints
+8 enums tipados (`PRDStatus`, `TaskStatus`, `FlowStepStatus`, `DecisionStatus`, `ExecutionStatus`, `SpecStatus`, `CommitFileStatus`, `SolutionOutcome`) con `CheckConstraint` en 7 modelos para integridad de datos a nivel DB.
+
+### Context7 MCP Server
+Servidor MCP remoto para consultar documentación en tiempo real de librerías y frameworks. Configurado en `~/.config/opencode/opencode.json`.
 
 ## Jerarquía de contexto
 
@@ -179,7 +197,9 @@ Cada agente recibe únicamente el contexto necesario.
 ## Reglas fundamentales
 
 1. El orquestador debe revisar contexto antes de delegar
-2. Toda decisión importante debe registrarse
-3. Todo cambio debe tener trazabilidad
-4. Los agentes no modifican componentes críticos automáticamente
-5. Priorizar contexto útil sobre memoria infinita
+2. Toda decisión importante debe registrarse como ADR
+3. Todo cambio debe tener trazabilidad (tarea → commit → push)
+4. Todo paso del flujo se persiste como flow step en la DB
+5. Commit y Documentation son pasos obligatorios (no se pueden saltar)
+6. Los agentes no modifican componentes críticos automáticamente
+7. Priorizar contexto útil sobre memoria infinita

@@ -11,7 +11,8 @@
     <a href="https://img.shields.io/github/license/cristianl0pez-dev/lemoria" target="_blank"><img src="https://img.shields.io/github/license/cristianl0pez-dev/lemoria?style=flat-square" alt="MIT License" /></a>
     <a href="https://img.shields.io/github/last-commit/cristianl0pez-dev/lemoria" target="_blank"><img src="https://img.shields.io/github/last-commit/cristianl0pez-dev/lemoria?style=flat-square" alt="Last Commit" /></a>
     <a href="https://img.shields.io/github/repo-size/cristianl0pez-dev/lemoria" target="_blank"><img src="https://img.shields.io/github/repo-size/cristianl0pez-dev/lemoria?style=flat-square" alt="Repo Size" /></a>
-    <a href="https://img.shields.io/badge/made%20with-%E2%9D%A4%EF%B8%8F-red?style=flat-square" target="_blank"><img src="https://img.shields.io/badge/made%20with-%E2%9D%A4%EF%B8%8F-red?style=flat-square" alt="Made with love" /></a>
+    <a href="https://img.shields.io/github/actions/workflow/status/cristianl0pez-dev/lemoria/ci.yml?style=flat-square&logo=githubactions" target="_blank"><img src="https://img.shields.io/github/actions/workflow/status/cristianl0pez-dev/lemoria/ci.yml?style=flat-square&logo=githubactions" alt="CI" /></a>
+    <a href="https://img.shields.io/badge/tests-41-brightgreen?style=flat-square" target="_blank"><img src="https://img.shields.io/badge/tests-41-brightgreen?style=flat-square" alt="Tests 41" /></a>
   </p>
 </p>
 
@@ -26,13 +27,17 @@ Instálalo **una sola vez** y todos tus proyectos —limpios, separados, sin con
 ## ✨ Features
 
 - 🎯 **SDD Flow completo** — 12 pasos: idea → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory update
-- 🤖 **7 agentes OpenCode** — Un orquestador que delega automáticamente a agentes especializados (backend, DB, testing, GitHub, review, documentación)
-- 🗃️ **Trazabilidad total** — Cada proyecto, PRD, tarea y decisión se persiste en PostgreSQL con relaciones y metadatos
+- 🤖 **8 agentes OpenCode** — Un orquestador que delega automáticamente a agentes especializados (implementation, frontend, DB, testing, GitHub, review, documentation)
+- 🗃️ **Trazabilidad total** — Cada proyecto, PRD, tarea, decisión y flow step se persiste en PostgreSQL con relaciones y metadatos
 - 🐳 **PostgreSQL en Docker** — Base de datos aislada, reproducible, lista en segundos
 - 🔌 **CLI global** — `lemoria` disponible en cualquier terminal tras la instalación
 - 📂 **Proyectos independientes** — Cada proyecto vive en su propia carpeta, sin contaminación cruzada
-- 📚 **Obsidian vault** — Documentación sincronizada opcional para edición visual
+- 📚 **Obsidian vault** — Sincronización bidireccional opcional: exporta a markdown y restaura la DB desde el vault
 - 📋 **Decisiones registradas** — Cada cambio importante queda documentado como ADR antes de implementar
+- 🔄 **State machine** — Cada paso del flujo se registra en `flow_steps`, permitiendo retomar sesiones tras pérdida de contexto
+- 🧪 **41 tests automatizados** — pytest con SQLite in-memory, CI en GitHub Actions (Python 3.11/3.12/3.13)
+- 🏷️ **8 enums tipados** — Todos los status con `CheckConstraint` en DB para integridad a nivel de base de datos
+- 📡 **Context7 MCP** — Documentación en tiempo real de librerías y frameworks vía MCP server
 
 ---
 
@@ -57,11 +62,18 @@ opencode
 Comandos esenciales:
 
 ```bash
-lemoria project list              # Lista todos tus proyectos
-lemoria flow list <project-id>    # PRDs del proyecto
-lemoria task list <project-id>    # Tareas del proyecto
+lemoria project list               # Lista todos tus proyectos
+lemoria flow list <project-id>     # PRDs del proyecto
+lemoria flow status <flow-id>      # Estado del state machine (pasos completados/faltantes)
+lemoria flow step <flow-id> <step> # Registrar paso del flujo
+lemoria task list <project-id>     # Tareas del proyecto
 lemoria decision list <project-id> # Decisiones registradas
-lemoria --help                    # Ayuda completa
+lemoria spec list <project-id>     # Especificaciones técnicas
+lemoria error list <project-id>    # Errores registrados
+lemoria vault sync <project-id>    # Sincronizar DB → Obsidian vault
+lemoria vault restore <project-id> # Restaurar DB desde vault
+lemoria context set/get <project>  # Contexto jerárquico
+lemoria --help                     # Ayuda completa
 ```
 
 ---
@@ -107,6 +119,17 @@ Lemoria implementa el flujo **SDD** en 12 pasos, donde cada etapa produce un art
 🧠 Memory Update     → Persistencia en memoria del agente
 ```
 
+### State Machine
+
+Cada ejecución del flujo SDD se registra como un **flow** en la tabla `flow_steps`. El orquestador consulta el estado actual al iniciar, permitiendo **reanudar flujos interrumpidos** sin pérdida de contexto:
+
+```
+flow step <flow-id> <step> --status completed|running|failed
+flow status <flow-id>        # Muestra todos los pasos + overall state
+```
+
+Cada paso tiene: `id`, `flow_id`, `step`, `status`, `started_at`, `completed_at`, `output`.
+
 ### Principios SDD
 
 | # | Principio |
@@ -116,22 +139,26 @@ Lemoria implementa el flujo **SDD** en 12 pasos, donde cada etapa produce un art
 | 3 | Todo commit referencia una **tarea** |
 | 4 | Toda decisión se registra **antes** de implementar |
 | 5 | La documentación se actualiza en **cada ciclo** |
+| 6 | Todo paso del flujo se persiste como **flow step** en la DB |
 
 ---
 
 ## 🤖 Agentes OpenCode
 
-Lemoria incluye **7 agentes** que se orquestan automáticamente. El `orchestrator` es el agente por defecto; los demás son subagentes a los que delega según la fase del flujo SDD.
+Lemoria incluye **8 agentes** en inglés, sin dependencia de lenguaje/framework. El `orchestrator` es el agente por defecto; los demás son subagentes a los que delega según la fase del flujo SDD.
 
 | Agente | Modo | Rol |
 |--------|------|-----|
-| 🧠 **Orchestrator** | `primary` (default) | Decide el flujo SDD y asigna tareas a subagentes |
-| 🖥️ **Backend Agent** | `subagent` | Implementación de código backend |
+| 🧠 **Orchestrator** | `primary` (default) | Decide el flujo SDD, delega tareas, ejecuta closing checklist |
+| ⚙️ **Implementation Agent** | `subagent` | Implementación de código (backend, scripts, lógica) |
+| 🎨 **Frontend Agent** | `subagent` | Implementación de UI/UX (componentes, estilos, routing) |
 | 🗄️ **DB Agent** | `subagent` | Gestión de esquemas y modelos de base de datos |
 | 🧪 **Testing Agent** | `subagent` | Escritura y ejecución de tests |
 | 👁️ **Review Agent** | `subagent` | Revisión técnica de código y PRDs |
 | 🐙 **GitHub Agent** | `subagent` | Trazabilidad GitHub: commits, PRs, issues |
-| 📝 **Documentation Agent** | `subagent` | Documentación técnica y sincronización con Obsidian |
+| 📝 **Documentation Agent** | `subagent` | Documentación técnica y sincronización con vault |
+
+Los agentes y skills se copian tanto a nivel proyecto (`.opencode/`) como global (`~/.config/opencode/`), y están disponibles en cualquier proyecto sin configuración adicional.
 
 ---
 
@@ -142,55 +169,52 @@ lemoria/
 ├── lemoria/                  # CLI principal (Click)
 │   ├── __init__.py
 │   ├── __main__.py
-│   ├── cli.py                # Punto de entrada CLI (Click commands)
+│   ├── cli.py                # Punto de entrada CLI (14+ comandos)
 │   ├── config.py             # Configuración vía pydantic-settings
 │   ├── core.py               # Orquestador principal (Lemoria class)
 │   ├── database.py           # Conexión y sesión SQLAlchemy
-│   ├── flow.py               # Motor SDD (FlowEngine)
+│   ├── flow.py               # Motor SDD + state machine (FlowEngine)
 │   ├── git_service.py        # Servicio de commits/pushes
 │   ├── memory.py             # Servicio de memoria (conversaciones)
 │   ├── orchestrator.py       # Registro y delegación de agentes
 │   ├── project.py            # CRUD de proyectos
-│   └── vault.py              # Integración con Obsidian
+│   └── vault.py              # Integración Obsidian bidireccional
 ├── database/                 # Capa de base de datos
-│   ├── models/               # 15 modelos SQLAlchemy
+│   ├── enums.py              # 8 enums tipados (PRDStatus, TaskStatus, etc.)
+│   ├── models/               # 16 modelos SQLAlchemy
 │   │   ├── agent.py
 │   │   ├── commit.py
 │   │   ├── conversation.py
 │   │   ├── decision.py
+│   │   ├── flow_step.py      # State machine: pasos del flujo SDD
 │   │   ├── prd.py
 │   │   ├── project.py
 │   │   ├── task.py
 │   │   └── ... (8 más)
-│   ├── migrations/           # Migraciones Alembic
 │   └── seed/                 # Datos semilla
-├── apps/                     # Aplicaciones modulares
-│   ├── agents/
-│   ├── github/
-│   ├── memory/
-│   ├── obsidian/
-│   ├── orchestration/
-│   ├── projects/
-│   └── sdd/
 ├── docs/                     # Documentación
 │   ├── ARCHITECTURE.md
 │   ├── PRD.md
 │   ├── ROADMAP.md
 │   └── SDD.md
-├── vault/                    # Obsidian vault (opcional)
+├── vault/                    # Obsidian vault (bidireccional)
 ├── .opencode/
-│   ├── agents/               # Definiciones de los 7 agentes
-│   └── skills/               # Skills Lemoria
-├── tests/                    # Tests unitarios e integración
-├── docker/                   # Dockerfile adicional
+│   ├── agents/               # Definiciones de los 8 agentes
+│   └── skills/               # 7 skills Lemoria (frontend, backend, database, etc.)
+├── tests/                    # 41 tests (pytest, SQLite in-memory)
+│   ├── conftest.py
+│   ├── test_cli.py           # 10 tests
+│   ├── test_flow.py          # 13 tests
+│   ├── test_project.py       # 6 tests
+│   └── test_vault.py         # 9 tests
+├── .github/
+│   └── workflows/
+│       └── ci.yml            # GitHub Actions: matrix 3.11/3.12/3.13, PostgreSQL, ruff, Codecov
 ├── docker-compose.yml        # PostgreSQL 16
-├── Dockerfile                # Imagen del proyecto
-├── install.sh                # Instalación automatizada
-├── pyproject.toml            # Configuración del proyecto
+├── install.sh                # Instalación automatizada (con Context7 opcional)
+├── pyproject.toml            # Configuración del proyecto + pytest
 ├── opencode.jsonc            # Configuración de OpenCode
-├── alembic.ini               # Configuración de Alembic
 ├── INSTALL.md                # Guía de instalación detallada
-├── index.html                # Landing page
 ├── LICENSE                   # MIT License
 └── README.md                 # Este archivo
 ```
@@ -210,10 +234,13 @@ lemoria/
 | **HTTP Client** | [HTTPX](https://www.python-httpx.org/) |
 | **Git** | [GitPython](https://gitpython.readthedocs.io/) |
 | **Terminal UI** | [Rich](https://rich.readthedocs.io/) |
-| **Agentes** | [OpenCode](https://opencode.ai) (7 agentes) |
-| **Vault** | [Obsidian](https://obsidian.md/) (opcional) |
-| **Testing** | [pytest](https://pytest.org/) |
+| **Agentes** | [OpenCode](https://opencode.ai) (8 agentes) |
+| **Skills** | 7 skills modulares (frontend, backend, database, testing, code-review, git-workflow, documentation) |
+| **Documentación en tiempo real** | [Context7 MCP](https://context7.com) |
+| **Vault** | [Obsidian](https://obsidian.md/) (bidireccional) |
+| **Testing** | [pytest](https://pytest.org/) — 41 tests |
 | **Linting** | [Ruff](https://docs.astral.sh/ruff/) |
+| **CI/CD** | [GitHub Actions](https://github.com/features/actions) (matrix 3.11/3.12/3.13) |
 
 ---
 
@@ -226,6 +253,7 @@ lemoria/
 | [🏗️ ARCHITECTURE](docs/ARCHITECTURE.md) | Arquitectura del sistema |
 | [🗺️ ROADMAP](docs/ROADMAP.md) | Roadmap del proyecto |
 | [📋 SDD](docs/SDD.md) | Spec Driven Development — flujo completo |
+| [🏷️ Enums](database/enums.py) | 8 enums tipados con CheckConstraints |
 
 ---
 

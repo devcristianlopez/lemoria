@@ -27,12 +27,23 @@
 - [x] Conventional commits
 - [x] GitHub Flow (branch strategy)
 
-## Fase 4 — Obsidian Sync (funcionalidad básica)
+## Fase 4 — Obsidian Sync (completada)
 - [x] Exportación a Markdown (vault service)
 - [x] Vault configurable por proyecto
-- [ ] Sincronización bidireccional (PostgreSQL ↔ Obsidian)
-- [ ] Knowledge graph navegable
-- [ ] Watch de cambios en vault
+- [x] Sincronización bidireccional (PostgreSQL ↔ Obsidian) — `vault restore` reconstruye DB desde markdown
+- [x] Knowledge graph navegable — decisiones, flow steps, PRDs exportados con wikilinks + frontmatter
+- [ ] Watch de cambios en vault (pendiente)
+
+## Fase 4.5 — Ingeniería de Calidad (completada)
+- [x] 8 enums tipados con CheckConstraints en 7 modelos (integridad a nivel DB)
+- [x] 41 tests automatizados (pytest, SQLite in-memory)
+- [x] CI en GitHub Actions (matrix Python 3.11/3.12/3.13, PostgreSQL, ruff, Codecov)
+- [x] FlowStep state machine (flow step CLI + orquestador resumible)
+- [x] CLI completo: spec, error, context commands
+- [x] Agentes refactorizados a inglés genérico (implementation-agent, frontend-agent)
+- [x] 7 skills modulares (frontend, backend, database, testing, code-review, git-workflow, documentation)
+- [x] Context7 MCP server para documentación en tiempo real
+- [x] Instalador actualizado con Context7 opcional + 8 skills
 
 ## Fase 5 — Semantic Memory (pendiente)
 - [ ] pgvector extension

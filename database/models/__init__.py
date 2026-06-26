@@ -12,6 +12,7 @@ from .file_record import FileRecord
 from .error_record import ErrorRecord
 from .solution import Solution
 from .agent_execution import AgentExecution
+from .flow_step import FlowStep
 
 __all__ = [
     "Base",
@@ -30,4 +31,5 @@ __all__ = [
     "ErrorRecord",
     "Solution",
     "AgentExecution",
+    "FlowStep",
 ]

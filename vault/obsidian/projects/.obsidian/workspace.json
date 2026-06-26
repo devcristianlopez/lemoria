@@ -1,0 +1,224 @@
+{
+  "main": {
+    "id": "dfe47ab74c6c4f9d",
+    "type": "split",
+    "children": [
+      {
+        "id": "8b6e978dbb600a92",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5fb75f3245b79e68",
+            "type": "leaf",
+            "state": {
+              "type": "excalidraw",
+              "state": {
+                "file": "Excalidraw/Drawing 2026-06-15 15.54.21.excalidraw.md"
+              },
+              "icon": "excalidraw-icon",
+              "title": "Drawing 2026-06-15 15.54.21.excalidraw"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "5d03fbf5ac0d6a61",
+    "type": "split",
+    "children": [
+      {
+        "id": "f1a884148268cd67",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3f7a026024474e70",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "af700c00802ab847",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "63f8e1f3908fe0e5",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 255.5
+  },
+  "right": {
+    "id": "898de6395277ca7f",
+    "type": "split",
+    "children": [
+      {
+        "id": "100629244bbd82d3",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "8b01bf189297e231",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Excalidraw/Drawing 2026-06-15 15.54.21.excalidraw.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Drawing 2026-06-15 15.54.21.excalidraw"
+            }
+          },
+          {
+            "id": "3274137775ae4c99",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Excalidraw/Drawing 2026-06-15 15.54.21.excalidraw.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Drawing 2026-06-15 15.54.21.excalidraw"
+            }
+          },
+          {
+            "id": "36d2d94406860c8c",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "11afde00fdb091cb",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "8513cda98076de1d",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Excalidraw/Drawing 2026-06-15 15.54.21.excalidraw.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Drawing 2026-06-15 15.54.21.excalidraw"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false,
+      "obsidian-excalidraw-plugin:New drawing": false
+    }
+  },
+  "active": "5fb75f3245b79e68",
+  "lastOpenFiles": [
+    "Excalidraw/Drawing 2026-06-15 15.54.21.excalidraw.md",
+    "Excalidraw",
+    "lemoria/README.md",
+    "guardian-live-monitor/conversations/a3c04c1a.md",
+    "projects/guardian-live-monitor/decisions/7f64fcb0.md",
+    "projects/guardian-live-monitor/decisions",
+    "projects/guardian-live-monitor",
+    "projects",
+    "guardian-live-monitor/commits.md",
+    "guardian-live-monitor/tasks.md",
+    "guardian-live-monitor/agents.md",
+    "guardian-live-monitor/conversations",
+    "guardian-live-monitor/decisions/ece2bb2b.md",
+    "guardian-live-monitor/decisions/e86522d8.md",
+    "guardian-live-monitor/decisions/dc866a59.md",
+    "guardian-live-monitor/decisions/d9aa95c2.md",
+    "guardian-live-monitor/decisions/ccad2ed6.md",
+    "guardian-live-monitor/decisions/c6eda17d.md",
+    "guardian-live-monitor/decisions/bfa810e2.md",
+    "guardian-live-monitor/decisions/aceaab10.md",
+    "guardian-live-monitor/decisions/7f64fcb0.md",
+    "guardian-live-monitor/decisions/5d571a0b.md",
+    "guardian-live-monitor/decisions/45aade3f.md",
+    "guardian-live-monitor/decisions/3642855f.md",
+    "guardian-live-monitor/decisions",
+    "guardian-live-monitor/prds/949a892a.md",
+    "guardian-live-monitor/prds",
+    "guardian-live-monitor/README.md",
+    "guardian-live-monitor",
+    "skills-opencode/commits.md",
+    "skills-opencode/tasks.md",
+    "skills-opencode/agents.md",
+    "skills-opencode/conversations/46d98a9a.md",
+    "skills-opencode/conversations",
+    "skills-opencode/decisions/e545abf2.md",
+    "skills-opencode/decisions"
+  ]
+}

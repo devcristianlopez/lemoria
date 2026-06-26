@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: lemoria_test
+          POSTGRES_USER: lemoria
+          POSTGRES_PASSWORD: lemoria
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+
+      - name: Run tests (unit — SQLite)
+        run: |
+          LEMORIA_ENV=test python -m pytest tests/ --cov=lemoria --cov-report=term-missing
+
+      - name: Run tests (integration — PostgreSQL)
+        if: matrix.python-version == '3.13'
+        env:
+          LEMORIA_DB_HOST: localhost
+          LEMORIA_DB_PORT: 5432
+          LEMORIA_DB_NAME: lemoria_test
+          LEMORIA_DB_USER: lemoria
+          LEMORIA_DB_PASSWORD: lemoria
+        run: |
+          python -m pytest tests/ -v
+
+      - name: Lint
+        if: matrix.python-version == '3.13'
+        run: |
+          pip install ruff
+          ruff check lemoria/
+
+      - name: Upload coverage
+        if: matrix.python-version == '3.13'
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: false

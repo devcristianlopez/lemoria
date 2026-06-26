@@ -53,8 +53,9 @@ Elige **1) Global**.
 | 3 | Levanta PostgreSQL en Docker |
 | 4 | Instala `lemoria` como comando global (`pip install --user`) |
 | 5 | Inicializa la base de datos |
-| 6 | Copia agentes a `~/.config/opencode/agents/` |
-| 7 | Crea `~/.config/opencode/opencode.json` con `default_agent: orchestrator` |
+| 6 | Copia agentes y skills a `~/.config/opencode/` |
+| 7 | Configura Context7 MCP (documentación en tiempo real para librerías) |
+| 8 | Crea `~/.config/opencode/opencode.json` con `default_agent: orchestrator` |
 
 ### Después de instalar
 
@@ -89,7 +90,7 @@ Los agentes globales están disponibles inmediatamente. El orquestador responde 
 Tú: "quiero un endpoint POST /login con JWT"
 → Orchestrator ejecuta el flujo SDD completo
 → Crea proyecto en PostgreSQL, conversación, PRD, tareas
-→ Delega a backend-agent, testing-agent, review-agent...
+→ Delega a implementation-agent, frontend-agent, testing-agent, review-agent...
 → Todo queda registrado con trazabilidad
 ```
 
@@ -113,10 +114,11 @@ export PATH="$PATH:$HOME/.local/bin"
 # 5. Inicializar DB
 lemoria init
 
-# 6. Copiar agentes a global
+# 6. Copiar agentes y skills a global
 mkdir -p ~/.config/opencode/{agents,skills/lemoria}
 cp .opencode/agents/*.md ~/.config/opencode/agents/
 cp .opencode/skills/lemoria/SKILL.md ~/.config/opencode/skills/lemoria/
+cp -r .opencode/skills/{frontend,backend,database,testing,code-review,git-workflow,documentation} ~/.config/opencode/skills/
 
 # 7. Crear config global
 cat > ~/.config/opencode/opencode.json <<- 'EOF'
@@ -128,7 +130,10 @@ cat > ~/.config/opencode/opencode.json <<- 'EOF'
 }
 EOF
 
-# 8. Listo. El repo lemoria/ ya no es necesario
+# 8. Instalar Context7 MCP (documentación en tiempo real)
+npx -y ctx7 setup --opencode --mcp
+
+# 9. Listo. El repo lemoria/ ya no es necesario
 cd ~
 rm -rf lemoria  # opcional
 ```
