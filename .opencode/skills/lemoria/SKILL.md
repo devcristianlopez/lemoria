@@ -7,33 +7,33 @@ description: >-
   This is the default orchestrator for all development work.
 ---
 
-# Lemoria — Sistema de Orquestación y Memoria
+# Lemoria — Orchestration & Memory System
 
-## Workflow completo (SDD)
+## Full workflow (SDD)
 
-Cuando el usuario pide cualquier feature o cambio técnico, el orquestador ejecuta:
+When the user requests any feature or technical change, the orchestrator executes:
 
 ```
 User request
   ↓
-1. lemoria project list → crear proyecto si no existe
-2. lemoria conv create → iniciar conversación
-3. lemoria conv add user → registrar pedido
-4. lemoria flow start → crear PRD
-5. lemoria task create → desglosar en tareas
-6. Delegar a subagentes (@backend-agent, @testing-agent, etc.)
-7. Consolidar resultados → lemoria conv add agent
-8. lemoria decision log → registrar decisiones
+1. lemoria project list → create project if not exists
+2. lemoria conv create → start conversation
+3. lemoria conv add user → log request
+4. lemoria flow start → create PRD
+5. lemoria task create → decompose into tasks
+6. Delegate to subagents (@implementation-agent, @testing-agent, etc.)
+7. Consolidate results → lemoria conv add agent
+8. lemoria decision log → register decisions
 ```
 
-## Comandos CLI
+## CLI commands
 
 ```bash
-# Proyectos
+# Projects
 lemoria project create "name" -d "desc"
 lemoria project list
 
-# Conversaciones
+# Conversations
 lemoria conv create <pid> -t "title"
 lemoria conv add <cid> user "msg"
 lemoria conv add <cid> agent "msg"
@@ -41,31 +41,31 @@ lemoria conv add <cid> agent "msg"
 # PRDs
 lemoria flow start <pid> "idea"
 
-# Tareas
-lemoria task create <pid> <prd-id> --title "tarea"
+# Tasks
+lemoria task create <pid> <prd-id> --title "task"
 lemoria task list <pid>
 
-# Decisiones
+# Decisions
 lemoria decision log <pid> -t "title" -d "desc"
 
-# Agentes
+# Agents
 lemoria agent list
 ```
 
-## Agentes disponibles
+## Available agents
 
-| Agente | Rol | Permisos |
-|--------|-----|----------|
-| orchestrator | Orquestador (default) | bash allow, edit deny |
-| backend-agent | Implementación | bash+edit allow |
-| db-agent | Base de datos | bash+edit allow |
-| testing-agent | Tests | bash+edit allow |
-| github-agent | Trazabilidad | bash allow, edit deny |
-| review-agent | Revisión | todo deny |
-| documentation-agent | Documentación | bash+edit allow |
+| Agent | Role | Permissions |
+|-------|------|-------------|
+| orchestrator | Orchestrator (default) | bash allow, edit deny |
+| implementation-agent | Implementation | bash+edit allow |
+| db-agent | Database | bash+edit allow |
+| testing-agent | Testing | bash+edit allow |
+| github-agent | Traceability | bash allow, edit deny |
+| review-agent | Review | all deny |
+| documentation-agent | Documentation | bash+edit allow |
 
-## Contexto
+## Context
 
-- PostgreSQL es fuente de verdad
-- Obsidian vault es representación visual
-- Cada agente recibe solo el contexto necesario
+- PostgreSQL is the source of truth
+- Obsidian vault is the visual representation
+- Each agent receives only the context it needs

@@ -81,12 +81,12 @@ Use your judgment: if the user already specified something, do NOT ask it again.
 
 | Area | Questions |
 |------|-----------|
-| **Tech stack** | ¿Qué lenguaje/framework prefieres? ¿Backend y frontend por separado? ¿Versiones específicas? |
-| **Database** | ¿Qué base de datos usamos? (PostgreSQL, MySQL, SQLite, etc.) ¿Necesitas ORM? |
-| **Authentication** | ¿Requiere auth? ¿Qué tipo? (JWT, OAuth, sesiones, API keys) ¿Roles de usuario? |
-| **Deployment** | ¿Dónde se va a deployar? ¿Docker? ¿Cloud específico? ¿Dominio propio? |
-| **Testing** | ¿Qué nivel de testing esperas? (unit, integration, e2e) ¿Cobertura mínima? |
-| **API style** | ¿REST, GraphQL, gRPC, o websockets? ¿Versionado? ¿Documentación? (OpenAPI, etc.) |
+| **Tech stack** | Preferred language/framework? Backend and frontend separate? Specific versions? |
+| **Database** | Which database? (PostgreSQL, MySQL, SQLite, etc.) Need an ORM? |
+| **Authentication** | Requires auth? What type? (JWT, OAuth, sessions, API keys) User roles? |
+| **Deployment** | Where will it be deployed? Docker? Specific cloud? Custom domain? |
+| **Testing** | Expected testing level? (unit, integration, e2e) Minimum coverage? |
+| **API style** | REST, GraphQL, gRPC, or websockets? Versioning? Documentation? (OpenAPI, etc.) |
 
 #### Project-type-specific questions
 
@@ -102,10 +102,10 @@ Use your judgment: if the user already specified something, do NOT ask it again.
 #### Process questions
 
 ```
-- ¿Hay un diseño, mockup o referencia visual?
-- ¿Hay requerimientos no funcionales? (performance, escalabilidad, seguridad)
-- ¿Necesitas migración de datos desde otro sistema?
-- ¿Hay features que NO deben incluirse en este ciclo?
+- Is there a design, mockup, or visual reference?
+- Are there non-functional requirements? (performance, scalability, security)
+- Do you need data migration from another system?
+- Are there features that should NOT be included in this cycle?
 ```
 
 After collecting answers, log them:
