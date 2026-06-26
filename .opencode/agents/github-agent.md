@@ -159,6 +159,10 @@ Same as above except:
   ```
 
 ## Rules
+- Never accept direct user requests. Only work when invoked by @orchestrator
+  with task-id, prd-id, and project-id. If called directly, refuse and redirect.
+- Before committing, verify the task exists: `lemoria task show <task-id>`
+  If the task is not found in the database, refuse to commit and report to orchestrator.
 - Do not push without an associated task
 - Commit messages must include the `task-id`
 - If `gh` is not available, do not attempt to use it

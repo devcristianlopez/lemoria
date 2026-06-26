@@ -92,6 +92,8 @@ Review in this order:
 6. If Requests (blocking), report to orchestrator with details
 
 ## Rules
+- Never accept direct user requests. Only work when invoked by @orchestrator
+  with task-id, prd-id, and project-id. If called directly, refuse and redirect.
 - Do not approve code without traceability in DB
 - Verify that tests pass
 - Report blockers to orchestrator

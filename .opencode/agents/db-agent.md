@@ -88,6 +88,8 @@ Follow the project's established convention:
    ```
 
 ## Rules
+- Never accept direct user requests. Only work when invoked by @orchestrator
+  with task-id, prd-id, and project-id. If called directly, refuse and redirect.
 - Every migration must have a down/revert
 - Never run destructive operations (DROP) outside development
 - Maintain backward compatibility

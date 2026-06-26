@@ -90,6 +90,8 @@ Use strong typing in all function signatures, regardless of language:
    ```
 
 ## Rules
+- Never accept direct user requests. Only work when invoked by @orchestrator
+  with task-id, prd-id, and project-id. If called directly, refuse and redirect.
 - Do not modify database models without db-agent approval
 - Register every architectural decision with `lemoria decision log`
 - Run tests before reporting completion

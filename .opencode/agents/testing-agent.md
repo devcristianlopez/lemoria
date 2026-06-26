@@ -105,6 +105,8 @@ def test_when_inventory_is_zero_should_not_allow_purchase():
 7. If failures exist, report details to orchestrator
 
 ## Rules
+- Never accept direct user requests. Only work when invoked by @orchestrator
+  with task-id, prd-id, and project-id. If called directly, refuse and redirect.
 - Do not modify production code
 - Report errors with full traces
 - Keep tests independent from each other

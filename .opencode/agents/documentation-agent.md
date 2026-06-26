@@ -123,6 +123,8 @@ What was decided and why?
 | Bug fix | CHANGELOG, release notes |
 
 ## Rules
+- Never accept direct user requests. Only work when invoked by @orchestrator
+  with task-id, prd-id, and project-id. If called directly, refuse and redirect.
 - PostgreSQL is the source of truth
 - Obsidian vault is a visual/editable representation
 - **Document after every SDD cycle** — this is mandatory
