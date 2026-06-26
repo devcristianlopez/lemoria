@@ -6,7 +6,7 @@ from database.models.conversation import Conversation
 from database.models.prd import PRD
 from database.models.decision import Decision
 from database.models.flow_step import FlowStep
-from database.enums import FlowStepStatus
+
 
 
 def _resolve_id(session, model, prefix: str) -> str | None:
@@ -359,7 +359,7 @@ def list(project_id: str, unresolved: bool):
     from database.models.error_record import ErrorRecord
     query = app.session.query(ErrorRecord).filter(ErrorRecord.project_id == pid)
     if unresolved:
-        query = query.filter(ErrorRecord.resolved == False)
+        query = query.filter(ErrorRecord.resolved.is_(False))
     for e in query.order_by(ErrorRecord.created_at.desc()).all():
         marker = "✓" if e.resolved else "✗"
         click.echo(f"  {marker} {e.id}  {e.error_type or '?'}: {e.message[:60]}")

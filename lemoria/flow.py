@@ -4,7 +4,6 @@ from database.models.prd import PRD
 from database.models.spec import Spec
 from database.models.task import Task
 from database.models.decision import Decision
-from database.models.project import Project
 from database.models.flow_step import FlowStep
 from database.enums import FlowStepStatus
 from .orchestrator import Orchestrator

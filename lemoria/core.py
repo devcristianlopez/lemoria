@@ -1,4 +1,3 @@
-from pathlib import Path
 from .config import settings
 from .database import init_db, get_session
 from .project import ProjectService
@@ -30,8 +29,7 @@ class Lemoria:
         """Restore project data from vault markdown files back to the database."""
         from database.models.decision import Decision
         from database.models.flow_step import FlowStep
-        from database.enums import DecisionStatus, FlowStepStatus
-        from datetime import datetime
+        from database.enums import FlowStepStatus
 
         restored = {"decisions": 0, "flow_steps": 0}
 

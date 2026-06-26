@@ -1,5 +1,4 @@
 from pathlib import Path
-from datetime import datetime
 
 
 class VaultService:
@@ -133,7 +132,6 @@ project: {project_name}
 
     def export_flow_steps(self, project_name: str, prd_title: str, steps: list) -> Path:
         """Export flow steps for a PRD with frontmatter for restore."""
-        project_link = self.project_wikilink(project_name)
         # Build frontmatter for each step
         notes = []
         for s in steps:

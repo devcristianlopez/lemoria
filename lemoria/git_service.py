@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from database.models.commit import Commit, Push
 from database.models.file_record import FileRecord
-from database.models.task import Task
 
 
 class GitService:

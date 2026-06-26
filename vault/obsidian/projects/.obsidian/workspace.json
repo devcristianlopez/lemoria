@@ -4,19 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "8b6e978dbb600a92",
+        "id": "a6ca5cf8090df301",
         "type": "tabs",
         "children": [
           {
-            "id": "5fb75f3245b79e68",
+            "id": "cdfea6ffcd1b5fac",
             "type": "leaf",
             "state": {
-              "type": "excalidraw",
+              "type": "markdown",
               "state": {
-                "file": "Excalidraw/Drawing 2026-06-15 15.54.21.excalidraw.md"
+                "file": "projects/lemoria/README.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "excalidraw-icon",
-              "title": "Drawing 2026-06-15 15.54.21.excalidraw"
+              "icon": "lucide-file",
+              "title": "README"
             }
           }
         ]
@@ -182,8 +184,17 @@
       "obsidian-excalidraw-plugin:New drawing": false
     }
   },
-  "active": "5fb75f3245b79e68",
+  "active": "cdfea6ffcd1b5fac",
   "lastOpenFiles": [
+    "projects/lemoria/README.md",
+    "projects/lemoria",
+    "boilerplate-django/commits.md",
+    "lemoria/decisions/4b986382.md",
+    "lemoria/decisions/7edf4635.md",
+    "lemoria/decisions/8e9843ac.md",
+    "lemoria/decisions/39c8c409.md",
+    "lemoria/flow_steps/2a9d33d0_flow_model.md",
+    "lemoria/flow_steps/3f020b1f_vault.md",
     "Excalidraw/Drawing 2026-06-15 15.54.21.excalidraw.md",
     "Excalidraw",
     "lemoria/README.md",
@@ -207,18 +218,9 @@
     "guardian-live-monitor/decisions/7f64fcb0.md",
     "guardian-live-monitor/decisions/5d571a0b.md",
     "guardian-live-monitor/decisions/45aade3f.md",
-    "guardian-live-monitor/decisions/3642855f.md",
     "guardian-live-monitor/decisions",
-    "guardian-live-monitor/prds/949a892a.md",
     "guardian-live-monitor/prds",
-    "guardian-live-monitor/README.md",
     "guardian-live-monitor",
-    "skills-opencode/commits.md",
-    "skills-opencode/tasks.md",
-    "skills-opencode/agents.md",
-    "skills-opencode/conversations/46d98a9a.md",
-    "skills-opencode/conversations",
-    "skills-opencode/decisions/e545abf2.md",
-    "skills-opencode/decisions"
+    "skills-opencode/conversations"
   ]
 }
