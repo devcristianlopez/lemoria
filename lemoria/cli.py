@@ -568,6 +568,8 @@ def sync(project_id: str):
     click.echo(f"  exported  projects/{name}/commits.md ({len(commits_data)} commits)")
 
     click.echo(f"\nVault sync complete: {count['prds']} PRDs, {count['decisions']} decisions, {count['convs']} conversations.")
+    for warning in app.vault.warnings:
+        click.echo(f"  ! {warning}", err=True)
     app.close()
 
 
@@ -587,6 +589,8 @@ def restore(project_id: str, name: str | None):
     project_name = name or p.name
     restored = app.restore_from_vault(pid, project_name)
     click.echo(f"Restored: {restored['decisions']} decisions, {restored['flow_steps']} flow steps")
+    for warning in app.vault.warnings:
+        click.echo(f"  ! {warning}", err=True)
     app.close()
 
 

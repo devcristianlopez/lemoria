@@ -8,3 +8,8 @@ build/
 .venv/
 venv/
 *.db
+
+# Obsidian vault — memoria local, nunca versionar
+# VaultService.protect_from_git() agrega esto automaticamente a cualquier
+# repo donde caiga el vault; ver lemoria/vault.py
+vault/

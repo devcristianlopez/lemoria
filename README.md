@@ -12,7 +12,7 @@
     <a href="https://img.shields.io/github/last-commit/devcristianlopez/lemoria" target="_blank"><img src="https://img.shields.io/github/last-commit/devcristianlopez/lemoria?style=flat-square" alt="Last Commit" /></a>
     <a href="https://img.shields.io/github/repo-size/devcristianlopez/lemoria" target="_blank"><img src="https://img.shields.io/github/repo-size/devcristianlopez/lemoria?style=flat-square" alt="Repo Size" /></a>
     <a href="https://img.shields.io/github/actions/workflow/status/devcristianlopez/lemoria/ci.yml?style=flat-square&logo=githubactions" target="_blank"><img src="https://img.shields.io/github/actions/workflow/status/devcristianlopez/lemoria/ci.yml?style=flat-square&logo=githubactions" alt="CI" /></a>
-    <a href="https://img.shields.io/badge/tests-41-brightgreen?style=flat-square&label=tests" target="_blank"><img src="https://img.shields.io/badge/tests-41-brightgreen?style=flat-square&label=tests" alt="Tests" /></a>
+    <a href="https://img.shields.io/badge/tests-51-brightgreen?style=flat-square&label=tests" target="_blank"><img src="https://img.shields.io/badge/tests-51-brightgreen?style=flat-square&label=tests" alt="Tests" /></a>
   </p>
 </p>
 
@@ -32,10 +32,10 @@ Instálalo **una sola vez** y todos tus proyectos —limpios, separados, sin con
 - 🐳 **PostgreSQL en Docker** — Base de datos aislada, reproducible, lista en segundos
 - 🔌 **CLI global** — `lemoria` disponible en cualquier terminal tras la instalación
 - 📂 **Proyectos independientes** — Cada proyecto vive en su propia carpeta, sin contaminación cruzada
-- 📚 **Obsidian vault** — Sincronización bidireccional opcional: exporta a markdown y restaura la DB desde el vault
+- 📚 **Obsidian vault** — Sincronización bidireccional opcional: exporta a markdown y restaura la DB desde el vault (memoria privada, guardada fuera de repos git).
 - 📋 **Decisiones registradas** — Cada cambio importante queda documentado como ADR antes de implementar
 - 🔄 **State machine** — Cada paso del flujo se registra en `flow_steps`, permitiendo retomar sesiones tras pérdida de contexto
-- 🧪 **41 tests automatizados** — pytest con SQLite in-memory, CI en GitHub Actions (Python 3.11/3.12/3.13)
+- 🧪 **51 tests automatizados** — pytest con SQLite in-memory, CI en GitHub Actions (Python 3.11/3.12/3.13)
 - 🏷️ **8 enums tipados** — Todos los status con `CheckConstraint` en DB para integridad a nivel de base de datos
 - 📡 **Context7 MCP** — Documentación en tiempo real de librerías y frameworks vía MCP server
 
@@ -74,6 +74,26 @@ lemoria vault sync <project-id>    # Sincronizar DB → Obsidian vault
 lemoria vault restore <project-id> # Restaurar DB desde vault
 lemoria context set/get <project>  # Contexto jerárquico
 lemoria --help                     # Ayuda completa
+```
+
+### 🔒 El vault nunca se sube a git
+
+El vault contiene **memoria privada**: conversaciones, ADRs, PRDs y commits de
+todos tus proyectos. Por eso vive fuera de cualquier repositorio:
+
+```
+~/.lemoria/vault/          ← por defecto (fuera de todo repo)
+```
+
+Si alguien configura `LEMORIA_VAULT_PATH` dentro de un repositorio, Lemoria se
+autoprotege: `VaultService.protect_from_git()` detecta el `.git` más cercano y
+**agrega el vault al `.gitignore`** de ese repo antes de escribir, de forma
+idempotente. Nunca falla: si el `.gitignore` no se puede escribir, avisa por
+stderr y sigue operando.
+
+```console
+$ lemoria vault sync <project-id>
+  ! Vault is inside a git repo — added 'vault/obsidian/' to /ruta/al/repo/.gitignore
 ```
 
 ---
@@ -232,16 +252,15 @@ lemoria/
 │   ├── PRD.md
 │   ├── ROADMAP.md
 │   └── SDD.md
-├── vault/                    # Obsidian vault (bidireccional)
 ├── .opencode/
 │   ├── agents/               # Definiciones de los 8 agentes
 │   └── skills/               # 7 skills Lemoria (frontend, backend, database, etc.)
-├── tests/                    # 41 tests (pytest, SQLite in-memory)
+├── tests/                    # 51 tests (pytest, SQLite in-memory)
 │   ├── conftest.py
 │   ├── test_cli.py           # 10 tests
-│   ├── test_flow.py          # 13 tests
-│   ├── test_project.py       # 6 tests
-│   └── test_vault.py         # 9 tests
+│   ├── test_flow.py          # 14 tests
+│   ├── test_project.py       # 7 tests
+│   └── test_vault.py         # 20 tests
 ├── .github/
 │   └── workflows/
 │       └── ci.yml            # GitHub Actions: matrix 3.11/3.12/3.13, PostgreSQL, ruff, Codecov
@@ -273,7 +292,7 @@ lemoria/
 | **Skills** | 7 skills modulares (frontend, backend, database, testing, code-review, git-workflow, documentation) |
 | **Documentación en tiempo real** | [Context7 MCP](https://context7.com) |
 | **Vault** | [Obsidian](https://obsidian.md/) (bidireccional) |
-| **Testing** | [pytest](https://pytest.org/) — 41 tests |
+| **Testing** | [pytest](https://pytest.org/) — 51 tests |
 | **Linting** | [Ruff](https://docs.astral.sh/ruff/) |
 | **CI/CD** | [GitHub Actions](https://github.com/features/actions) (matrix 3.11/3.12/3.13) |
 

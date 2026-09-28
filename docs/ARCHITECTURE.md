@@ -28,7 +28,8 @@ graph TB
   end
 
   LEMORIA --> DB[(PostgreSQL)]
-  VS --> OBSIDIAN[Obsidian Vault<br/>vault/obsidian/]
+  VS --> OBSIDIAN[Obsidian Vault<br/>~/.lemoria/vault/]
+  VS -.->|protect_from_git| GITIGNORE[.gitignore del repo]
   GS --> GITHUB[GitHub]
 
   OC -.->|ejecuta comandos| CLI

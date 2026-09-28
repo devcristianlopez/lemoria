@@ -30,7 +30,10 @@ class Lemoria:
         from database.models.decision import Decision
         from database.models.flow_step import FlowStep
         from database.enums import FlowStepStatus
+        from .vault import VaultService
 
+        # Mirror VaultService.restore_project so read and write agree on the path.
+        project_name = VaultService.sanitize_name(project_name)
         restored = {"decisions": 0, "flow_steps": 0}
 
         # --- Restore decisions from vault ---

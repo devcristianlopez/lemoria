@@ -2,6 +2,7 @@
 set -euo pipefail
 
 LEMORIA_DIR="$(cd "$(dirname "$0")" && pwd)"
+LEMORIA_VAULT_DIR="$HOME/.lemoria/vault"
 cd "$LEMORIA_DIR"
 
 echo "========================================"
@@ -125,7 +126,8 @@ echo "  Lemoria instalado globalmente: $(command -v lemoria || echo 'recarga tu 
 echo "[5/7] Inicializando Lemoria..."
 lemoria init
 echo "  Base de datos inicializada"
-echo "  Vault listo en vault/obsidian/"
+echo "  Vault listo en $LEMORIA_VAULT_DIR/"
+echo "  (memoria privada — mantenla fuera de tus repos git)"
 
 # ----- Configurar OpenCode -----
 OPENCODE_GLOBAL_DIR="$HOME/.config/opencode"
@@ -229,7 +231,7 @@ echo "  Skills disponibles:"
 echo "    frontend, backend, database, testing, code-review, git-workflow, documentation"
 echo ""
 echo "  Para abrir Obsidian vault:"
-    echo "    obsidian $LEMORIA_DIR/vault/obsidian/"
+    echo "    obsidian $LEMORIA_VAULT_DIR"
     echo ""
     echo "  Para detener PostgreSQL:"
     echo "    docker compose down"

@@ -157,4 +157,8 @@ lemoria agent list
 
 - PostgreSQL corre en Docker con `restart: unless-stopped` (siempre activo)
 - Sin `gh` (GitHub CLI) el github-agent usa git manual
-- El vault para Obsidian se configura por proyecto en `.env`
+- El vault para Obsidian se configura en `.env` (`LEMORIA_VAULT_PATH`) y por
+  defecto queda en `~/.lemoria/vault`, **fuera de cualquier repositorio git**.
+  Contiene memoria privada (conversaciones, ADRs, PRDs), así que no debería
+  terminar nunca en un commit. Si lo apontas dentro de un repo, Lemoria lo
+  agrega solo al `.gitignore` de ese repo.
