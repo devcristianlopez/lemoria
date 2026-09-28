@@ -1,12 +1,17 @@
+from pathlib import Path
+
 import click
-from .core import Lemoria
-from database.models.task import Task
-from database.models.project import Project
+
 from database.models.conversation import Conversation
-from database.models.prd import PRD
 from database.models.decision import Decision
 from database.models.flow_step import FlowStep
+from database.models.prd import PRD
+from database.models.project import Project
+from database.models.task import Task
 
+from .agents import AgentSync
+from .config import settings
+from .core import Lemoria
 
 
 def _resolve_id(session, model, prefix: str) -> str | None:
@@ -63,8 +68,8 @@ def get(project_id: str):
         click.echo("Project not found.")
 
 
-@project.command()
-def list():
+@project.command("list")
+def list_cmd():
     app = Lemoria()
     for p in app.projects.list():
         click.echo(f"  {p.id}  {p.name}")
@@ -96,9 +101,9 @@ def add(conversation_id: str, role: str, content: str):
     click.echo(f"Message added (id={m.id}).")
 
 
-@conv.command()
+@conv.command("list")
 @click.argument("project_id")
-def list(project_id: str):
+def list_cmd(project_id: str):
     app = Lemoria()
     pid = _resolve_id(app.session, Project, project_id) or project_id
     for c in app.memory.list_conversations(pid):
@@ -120,11 +125,298 @@ def register(name: str, role: str, description: str | None):
     click.echo(f"Agent [{a.id}] {a.name} registered.")
 
 
-@agent.command()
-def list():
+@agent.command("list")
+def list_cmd():
     app = Lemoria()
     for a in app.orchestrator.list_agents():
         click.echo(f"  {a.id}  {a.name} ({a.role})")
+
+
+def _syncer(app, agents_dir: str | None) -> AgentSync:
+    directory = Path(agents_dir).expanduser() if agents_dir else settings.opencode_agents_dir
+    return AgentSync(app.session, directory)
+
+
+@agent.command("sync")
+@click.option("--dry-run", is_flag=True, default=False, help="Report what would change, write nothing")
+@click.option("--dir", "agents_dir", default=None, help="Override the agents directory")
+def sync_cmd(dry_run: bool, agents_dir: str | None):
+    """Mirror .opencode/agents/*.md into the database."""
+    app = Lemoria()
+    syncer = _syncer(app, agents_dir)
+    if not syncer.agents_dir.is_dir():
+        click.echo(f"Error: no agents directory at {syncer.agents_dir}", err=True)
+        app.close()
+        raise SystemExit(1)
+
+    report = syncer.sync(dry_run=dry_run)
+    verb = "would sync" if dry_run else "synced"
+    total = sum(len(v) for v in report.values())
+    click.echo(f"{verb} {total} agent(s) from {syncer.agents_dir}")
+    for key in ("created", "updated", "deactivated", "unchanged"):
+        names = report[key]
+        if names:
+            click.echo(f"  {key:11} {len(names)}  {', '.join(names)}")
+    if not total:
+        click.echo("  nothing to do")
+    app.close()
+
+
+@agent.command("status")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON instead of a table")
+def status_cmd(as_json: bool):
+    """Show each agent's model, live sessions and token usage.
+
+    The Omarchy panel models a provider, not a subagent, so this is where the
+    per-agent breakdown lives.
+    """
+    import json as _json
+
+    from database.models.agent import Agent
+
+    from .opencode_telemetry import OpenCodeTelemetry
+
+    app = Lemoria()
+    agents = {a.name: a for a in app.session.query(Agent).order_by(Agent.name).all()}
+    telemetry = OpenCodeTelemetry().read()
+    orchestrator_model = None
+    root = telemetry.by_agent.get("orchestrator")
+    if root:
+        orchestrator_model = root.model
+
+    if as_json:
+        payload = {
+            "telemetryAvailable": telemetry.available,
+            "telemetryReason": telemetry.reason,
+            "orchestratorModel": orchestrator_model,
+            "agents": [
+                {
+                    "name": name,
+                    # False for opencode's own builtins: they show up in
+                    # telemetry but have no .md, so there is nothing to pin.
+                    "managed": agent is not None,
+                    "role": agent.role if agent else None,
+                    "mode": agent.config_dict.get("mode") if agent else None,
+                    "model": agent.model if agent else None,
+                    "variant": agent.variant if agent else None,
+                    "inheritsFrom": None if (agent is None or agent.model) else orchestrator_model,
+                    "sessions": usage.sessions if usage else 0,
+                    "subagentSessions": usage.subagent_sessions if usage else 0,
+                    "activeSessions": usage.active_sessions if usage else 0,
+                    "tokens": usage.tokens if usage else 0,
+                    "cost": usage.cost if usage else 0.0,
+                    "observedModel": usage.model if usage else None,
+                    "observedVariant": usage.variant if usage else None,
+                }
+                for name, agent, usage in (
+                    (name, agents.get(name), telemetry.by_agent.get(name))
+                    for name in sorted(set(agents) | set(telemetry.by_agent))
+                )
+            ],
+        }
+        click.echo(_json.dumps(payload, indent=2))
+        app.close()
+        return
+
+    def human(value: int) -> str:
+        for unit, size in (("G", 1_000_000_000), ("M", 1_000_000), ("K", 1_000)):
+            if abs(value) >= size:
+                return f"{value / size:.1f}{unit}"
+        return str(value)
+
+    def short(model: str | None) -> str:
+        return (model or "?").rstrip("/").split("/")[-1]
+
+    header = f"{'agent':22} {'source':8} {'model':16} {'variant':8} {'sess':>5} {'live':>5} {'tokens':>9}"
+    click.echo(header)
+    click.echo("-" * len(header))
+
+    # DB-registered agents first: those are the ones Lemoria manages and can
+    # pin a model on. opencode's own builtins follow, since they appear in
+    # telemetry but have no .md to configure.
+    managed = sorted(agents)
+    builtins = sorted(set(telemetry.by_agent) - set(agents))
+
+    def render(name: str, is_managed: bool) -> None:
+        agent, usage = agents.get(name), telemetry.by_agent.get(name)
+        if agent and agent.model:
+            model, source, variant = short(agent.model), "pinned", agent.variant or "default"
+        else:
+            model, source = short(orchestrator_model) or "?", "inherits"
+            variant = (usage.variant if usage else None) or "default"
+        if not is_managed:
+            source = "builtin"
+        live = usage.active_sessions if usage else 0
+        click.echo(
+            f"{name:22} {source:8} {model:16} {variant:8} "
+            f"{(usage.sessions if usage else 0):>5} "
+            f"{str(live) + ('*' if live else ''):>5} "
+            f"{human(usage.tokens if usage else 0):>9}"
+        )
+
+    for name in managed:
+        render(name, True)
+    if managed and builtins:
+        click.echo("-" * len(header))
+    for name in builtins:
+        render(name, False)
+
+    if not telemetry.available:
+        click.echo(f"\n! opencode telemetry unavailable: {telemetry.reason}", err=True)
+    click.echo("\ninherits = no model in frontmatter, so opencode uses the calling agent's")
+    click.echo("builtin   = opencode's own agent, no .md to pin a model on")
+    click.echo("*         = session updated in the last 5 minutes")
+    app.close()
+
+
+@agent.command("model")
+@click.argument("name")
+@click.argument("model", required=False)
+@click.option("--variant", "-v", default=None, help="Reasoning effort variant, e.g. high or low")
+@click.option("--clear", is_flag=True, default=False, help="Remove the pin and inherit the caller's model")
+def model_cmd(name: str, model: str | None, variant: str | None, clear: bool):
+    """Show or set the model an agent runs on.
+
+    With no MODEL, prints the current one. Passing MODEL writes it into the
+    agent's markdown. Use --clear to remove the pin and restore inheritance
+    from the invoking agent.
+    """
+    if clear and model:
+        raise click.UsageError("--clear and MODEL are mutually exclusive")
+    if clear:
+        model, variant = None, None
+    app = Lemoria()
+    syncer = _syncer(app, None)
+    path = syncer.agents_dir / f"{name}.md"
+    if not path.is_file():
+        click.echo(f"Error: no agent file at {path}", err=True)
+        app.close()
+        raise SystemExit(1)
+
+    # `clear` also normalises both to None, so it must not fall through to the
+    # read branch below.
+    if model is None and variant is None and not clear:
+        current = next((d for d in syncer.discover() if d.name == name), None)
+        if current is None:
+            click.echo(f"Error: cannot parse {path}", err=True)
+            app.close()
+            raise SystemExit(1)
+        if current.model:
+            click.echo(f"{name}: model={current.model} variant={current.variant or 'default'}")
+        else:
+            click.echo(f"{name}: inherited (no model in frontmatter)")
+        app.close()
+        return
+
+    try:
+        definition = syncer.set_model(name, model, variant)
+        syncer.sync()
+    except (ValueError, FileNotFoundError) as error:
+        click.echo(f"Error: {error}", err=True)
+        app.close()
+        raise SystemExit(1)
+
+    if definition.model:
+        click.echo(f"{name}: model={definition.model} variant={definition.variant or 'default'}")
+    else:
+        click.echo(f"{name}: no model pinned; opencode will inherit the caller's")
+    click.echo(f"  updated {definition.path}")
+    app.close()
+
+
+@cli.group()
+def omarchy():
+    """Integrate with the Omarchy desktop shell."""
+
+
+@omarchy.command("record")
+@click.option("--output", "-o", default=None, help="Write here instead of the panel's directory")
+@click.option("--print", "print_only", is_flag=True, default=False, help="Print the record, write nothing")
+def omarchy_record(output: str | None, print_only: bool):
+    """Publish opencode usage for the Omarchy agents panel."""
+    from .omarchy import build_record, validate_record
+    from .opencode_telemetry import OpenCodeTelemetry
+
+    telemetry = OpenCodeTelemetry().read()
+    record = build_record(telemetry)
+    problems = validate_record(record)
+    if problems:
+        for problem in problems:
+            click.echo(f"contract problem: {problem}", err=True)
+    if print_only:
+        import json as _json
+
+        click.echo(_json.dumps(record, indent=2, sort_keys=True))
+        return
+
+    from .omarchy import write_record
+
+    destination = write_record(record, Path(output) if output else None)
+    click.echo(f"Wrote {destination}")
+    if telemetry.reason:
+        click.echo(f"  ! {telemetry.reason}", err=True)
+    if record["ready"]:
+        click.echo(
+            f"  {record['totalSessions']} sessions, "
+            f"{record['totalPrompts']} prompts, "
+            f"{record['totalTokens']:,} tokens, "
+            f"${record['totalCost']:.2f}"
+        )
+    else:
+        click.echo("  record is not ready; the panel will not show a tab")
+
+
+@omarchy.command("install")
+@click.option("--interval", default="5min", help="How often the panel should refresh (e.g. 5min, 1h)")
+@click.option("--enable", is_flag=True, default=True, help="Enable and start the timer (--no-enable to only write)")
+def omarchy_install(interval: str, enable: bool):
+    """Install the user-level timer that keeps the panel record fresh."""
+    from .omarchy import install_timer, write_record
+
+    service, timer = install_timer(interval=interval)
+    click.echo(f"Wrote {service}")
+    click.echo(f"Wrote {timer}")
+
+    # Publish once now so the panel is populated before the first tick.
+    from .omarchy import build_record
+    from .opencode_telemetry import OpenCodeTelemetry
+
+    destination = write_record(build_record(OpenCodeTelemetry().read()))
+    click.echo(f"Wrote {destination}")
+
+    if not enable:
+        click.echo("\nTimer written but not enabled.")
+        return
+
+    import shutil as _shutil
+    import subprocess
+
+    if not _shutil.which("systemctl"):
+        click.echo("\nsystemctl not found; enable the timer manually.", err=True)
+        return
+    try:
+        subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
+        subprocess.run(["systemctl", "--user", "enable", "--now", "lemoria-usage.timer"], check=True)
+    except subprocess.CalledProcessError as error:
+        click.echo(f"\ncould not enable the timer: {error}", err=True)
+        return
+    click.echo("\nTimer enabled. Next runs:")
+    subprocess.run(
+        ["systemctl", "--user", "list-timers", "lemoria-usage.timer", "--no-pager"],
+        check=False,
+    )
+
+
+@omarchy.command("where")
+def omarchy_where():
+    """Show where the panel reads its records from."""
+    from .omarchy import default_record_dir
+
+    directory = default_record_dir()
+    click.echo(f"records: {directory}")
+    if directory.is_dir():
+        for path in sorted(directory.glob("*.json")):
+            click.echo(f"  {path.name:16} {path.stat().st_size:>7} bytes")
 
 
 @cli.group()
@@ -160,10 +452,10 @@ def complete(prd_id: str):
     click.echo(f"PRD {pid} completed.")
 
 
-@flow.command()
+@flow.command("list")
 @click.argument("project_id")
 @click.option("--status", "-s", default=None, help="Filter by status")
-def list(project_id: str, status: str | None):
+def list_cmd(project_id: str, status: str | None):
     app = Lemoria()
     pid = _resolve_id(app.session, Project, project_id) or project_id
     query = app.session.query(PRD).filter(PRD.project_id == pid)
@@ -246,10 +538,10 @@ def create(project_id: str, prd_id: str, title: str, description: str | None, ag
     click.echo(f"Task [{t.id}] created: {title}")
 
 
-@task.command()
+@task.command("list")
 @click.argument("project_id")
 @click.option("--status", "-s", default=None, help="Filter by status")
-def list(project_id: str, status: str | None):
+def list_cmd(project_id: str, status: str | None):
     app = Lemoria()
     pid = _resolve_id(app.session, Project, project_id) or project_id
     query = app.session.query(Task).filter(Task.project_id == pid)
@@ -290,9 +582,9 @@ def log(project_id: str, title: str, description: str, rationale: str | None):
     click.echo(f"Decision [{d.id}] logged: {title}")
 
 
-@decision.command()
+@decision.command("list")
 @click.argument("project_id")
-def list(project_id: str):
+def list_cmd(project_id: str):
     app = Lemoria()
     pid = _resolve_id(app.session, Project, project_id) or project_id
     for d in app.session.query(Decision).filter(Decision.project_id == pid).order_by(Decision.created_at.desc()).all():
@@ -318,9 +610,9 @@ def create(prd_id: str, title: str, content: str, order: int):
     app.close()
 
 
-@spec.command()
+@spec.command("list")
 @click.argument("prd_id")
-def list(prd_id: str):
+def list_cmd(prd_id: str):
     app = Lemoria()
     prid = _resolve_id(app.session, PRD, prd_id) or prd_id
     from database.models.spec import Spec
@@ -350,10 +642,10 @@ def log(project_id: str, source: str | None, error_type: str | None, message: st
     app.close()
 
 
-@error.command()
+@error.command("list")
 @click.argument("project_id")
 @click.option("--unresolved", "-u", is_flag=True, default=False, help="Show only unresolved")
-def list(project_id: str, unresolved: bool):
+def list_cmd(project_id: str, unresolved: bool):
     app = Lemoria()
     pid = _resolve_id(app.session, Project, project_id) or project_id
     from database.models.error_record import ErrorRecord
@@ -387,12 +679,12 @@ def context():
     """Manage hierarchical context."""
 
 
-@context.command()
+@context.command("set")
 @click.argument("project_id")
 @click.option("--key", "-k", required=True, help="Context key")
 @click.option("--value", "-v", required=True, help="Context value")
 @click.option("--level", "-l", default="global", help="Context level (global, project, task, agent)")
-def set(project_id: str, key: str, value: str, level: str):
+def set_cmd(project_id: str, key: str, value: str, level: str):
     app = Lemoria()
     pid = _resolve_id(app.session, Project, project_id) or project_id
     from database.models.context import Context

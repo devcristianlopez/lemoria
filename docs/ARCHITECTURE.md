@@ -25,7 +25,21 @@ graph TB
     CORE --> FE[Flow Engine]
     CORE --> VS[Vault Service]
     CORE --> GS[Git Service]
+    CLI --> AS[Agent Sync]
+    CLI --> OCS[OpenCode Telemetry]
+    OCS --> OP[Omarchy Publisher]
   end
+
+  subgraph MD[Fuente de verdad]
+    AGMD[.opencode/agents/*.md]
+  end
+
+  AS <-->|lee y escribe frontmatter| AGMD
+  AGMD -->|definiciones| OC
+
+  OCS -->|solo lectura| OCDB[("opencode.db")]
+  OP -->|record JSON| OMREC["~/.local/state/omarchy/agents/usage/"]
+  OMREC --> OMPANEL[Panel de agentes<br/>de Omarchy]
 
   LEMORIA --> DB[(PostgreSQL)]
   VS --> OBSIDIAN[Obsidian Vault<br/>~/.lemoria/vault/]
@@ -171,6 +185,23 @@ Motor SDD con state machine. Cada paso del flujo se persiste en `flow_steps` con
 
 ### Lemoria Git
 Sistema de trazabilidad que registra commits, pushes, ramas y PRs vinculados a tareas.
+
+### Lemoria Agents (`agents.py`)
+Espejo de `.opencode/agents/*.md` hacia la tabla `agents`. El markdown es la
+fuente de verdad y la DB solo lo refleja, así que `sync` es idempotente y la
+única escritura hacia el `.md` (fijar `model`/`variant`) edita el frontmatter en
+lugar de re-serializarlo. Detalle en [AGENT-MANAGEMENT.md](AGENT-MANAGEMENT.md).
+
+### OpenCode Telemetry (`opencode_telemetry.py`)
+Lectura de solo lectura (`mode=ro` + `query_only`) del `opencode.db` de
+opencode. Aporta sesiones, tokens y costo por agente sin pedirle nada a los
+agentes. Las columnas se detectan por feature detection: si opencode cambia su
+esquema, el reporte se degrada con un motivo legible en vez de fallar.
+
+### Omarchy Publisher (`omarchy.py`)
+Traduce la telemetría al contrato JSON que el panel de agentes de Omarchy ya
+vigila, y opcionalmente instala un timer systemd de usuario que lo refresca.
+Es un *display consumer*: escribe atómicamente y nunca toca el plugin QML.
 
 ### Enums y CheckConstraints
 8 enums tipados (`PRDStatus`, `TaskStatus`, `FlowStepStatus`, `DecisionStatus`, `ExecutionStatus`, `SpecStatus`, `CommitFileStatus`, `SolutionOutcome`) con `CheckConstraint` en 7 modelos para integridad de datos a nivel DB.

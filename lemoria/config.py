@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     vault_path: Path = Field(default=Path.home() / ".lemoria" / "vault", alias="LEMORIA_VAULT_PATH")
     obsidian_path: Path | None = Field(default=None, alias="LEMORIA_OBSIDIAN_PATH")
     github_token: str | None = Field(default=None, alias="LEMORIA_GITHUB_TOKEN")
-    opencode_agents_dir: Path = Field(default=Path("./agents"), alias="LEMORIA_OPENCODE_AGENTS_DIR")
+    opencode_agents_dir: Path = Field(default=Path("./.opencode/agents"), alias="LEMORIA_OPENCODE_AGENTS_DIR")
 
     @field_validator("vault_path", "obsidian_path", "opencode_agents_dir", mode="before")
     @classmethod

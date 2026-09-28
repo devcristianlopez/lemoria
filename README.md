@@ -28,6 +28,8 @@ Instálalo **una sola vez** y todos tus proyectos —limpios, separados, sin con
 
 - 🎯 **SDD Flow completo** — 15 pasos: discovery → idea → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory update
 - 🤖 **8 agentes OpenCode** — Un orquestador que delega automáticamente a agentes especializados (implementation, frontend, DB, testing, GitHub, review, documentation)
+- 🧭 **Gestión de agentes** — Los subagentes viven en la DB, y su modelo se ve y se cambia por agente (`lemoria agent sync|model|status`)
+- 📊 **Telemetría de opencode** — Sesiones, tokens y costo por agente, y un record publicado al panel de agentes de Omarchy
 - 🗃️ **Trazabilidad total** — Cada proyecto, PRD, tarea, decisión y flow step se persiste en PostgreSQL con relaciones y metadatos
 - 🐳 **PostgreSQL en Docker** — Base de datos aislada, reproducible, lista en segundos
 - 🔌 **CLI global** — `lemoria` disponible en cualquier terminal tras la instalación
@@ -217,6 +219,123 @@ Esto significa que **los agentes trabajan en inglés** (código, commits, docs),
 
 ---
 
+## 🧭 Gestión de agentes y telemetría
+
+Lemoria no solo delega: también **registra** a sus subagentes, te deja **cambiar el modelo de cada uno** y publica el **consumo** al panel de agentes de Omarchy.
+
+### El concepto clave: el modelo se hereda
+
+OpenCode lee la clave `model` del frontmatter de cada agente. **Si un agente no la declara, hereda el modelo de quien lo invoca.**
+
+Los 7 subagentes de Lemoria no declaran modelo, así que los 7 usan el modelo del orquestador. Por eso la columna `agents.model` está vacía:
+
+> **No es un bug.** Es el comportamiento de OpenCode. Fijar un modelo es **opcional y por agente**, y una columna vacía significa exactamente eso: *"este agente no fija modelo"*.
+
+Fijarlo es una línea en su frontmatter, y se hace con un comando:
+
+```bash
+lemoria agent model review-agent anthropic/claude-sonnet-4-5   # fija modelo
+lemoria agent model review-agent anthropic/claude-sonnet-4-5 --variant high
+lemoria agent model review-agent          # sin argumentos: muestra el actual
+```
+
+El comando **edita el `.md`**, no la DB. El markdown es la fuente de verdad y la base solo lo refleja. `lemoria agent status` distingue las tres situaciones:
+
+| `source` | Significado |
+|---|---|
+| `inherits` | sin `model` en el frontmatter → usa el modelo de quien lo invoca |
+| `pinned` | con `model` en el frontmatter → ese modelo, siempre |
+| `builtin` | agente propio de OpenCode (`build`, `plan`, …) sin `.md` que configurar |
+
+### Comandos
+
+| Comando | Qué hace |
+|---|---|
+| `lemoria agent sync [--dry-run] [--dir PATH]` | Refleja `.opencode/agents/*.md` en la tabla `agents` |
+| `lemoria agent list` | Agentes registrados |
+| `lemoria agent status [--json]` | Modelo efectivo, sesiones, sesiones vivas y tokens **por agente** |
+| `lemoria agent model <name> [model] [--variant V]` | Fija o muestra el modelo de un agente |
+
+`--dry-run` informa qué cambiaría sin escribir nada. La ruta de los `.md` sale de `LEMORIA_OPENCODE_AGENTS_DIR` (default `./.opencode/agents`).
+
+### Ver quién está corriendo y cuánto consumió
+
+`lemoria agent status` es el desglose por subagente que el panel **no** tiene:
+
+```console
+$ lemoria agent status
+agent                  source   model            variant   sess  live    tokens
+-------------------------------------------------------------------------------
+orchestrator           inherits big-pickle       default      6    1*    137.2M
+implementation-agent   inherits big-pickle       default     36     0     35.7M
+testing-agent          inherits big-pickle       default      6     0      7.7M
+review-agent           inherits big-pickle       default      9     0      2.2M
+-------------------------------------------------------------------------------
+build                  builtin  big-pickle       default      5     0     46.2M
+plan                   builtin  big-pickle       default      2     0      1.6M
+
+inherits = no model in frontmatter, so opencode uses the calling agent's
+builtin   = opencode's own agent, no .md to pin a model on
+*         = session updated in the last 5 minutes
+```
+
+`live` con `*` marca una sesión tocada en los últimos 5 minutos: opencode no expone un flag "corriendo", así que la recencia es la señal honesta. Con `--json` debería salir lo mismo estructurado más el `cost` real por agente.
+
+El `--json` incluye además los agentes propios de opencode (`build`, `plan`, …) marcados con `managed: false`, para que puedas distinguirlos de los que Lemoria administra.
+
+### El panel de Omarchy
+
+Omarchy ya trae un panel de agentes con su propio contrato de datos. Lemoria **no escribe un plugin QML propio**: publica un *record* JSON en el directorio que el panel ya vigila, que es la vía que el propio plugin documenta para añadir proveedores.
+
+```bash
+lemoria omarchy record            # escribe el record donde el panel lo lee
+lemoria omarchy record --print    # solo lo muestra, no escribe
+lemoria omarchy where             # dónde busca el panel los records
+```
+
+**Qué muestra el panel y qué no, con honestidad:**
+
+| Solo en el panel | Solo en `lemoria agent status` |
+|---|---|
+| Tokens **por día**, últimos 7 días | Tokens, sesiones y costo **por subagente** |
+| Tokens **por modelo** | Modelo efectivo **por subagente** |
+| Sesiones y prompts de hoy | Sesiones vivas **por subagente** |
+| Días activos acumulados | Agentes `builtin` de OpenCode incluidos |
+
+El panel **agrega por modelo y por día**: una sola pestaña para todo Lemoria, sin desglose por subagente y sin cifra de costo. Eso no se quita desde el contrato del panel — el panel no tiene campo de costo. Por eso el desglose por agente vive en el CLI.
+
+El record se escribe de forma atómica (archivo temporal + rename) para que el watcher del panel nunca lea un documento a medias. `ready` es `false` mientras no haya consumo registrado, y el panel esconde la pestaña hasta que hay algo que mostrar.
+
+### Timer de actualización
+
+El panel refresca sus propios collectors cada 15 min, pero solo conoce los suyos: `omarchy-agent-usage-update` escribe un record por collector `omarchy-agent-usage-*` y nunca toca el nuestro. Para que la pestaña de Lemoria se mantenga al día hace falta un timer propio, de **usuario** (systemd `--user`):
+
+```bash
+lemoria omarchy install                  # cada 5 min, y lo activa
+lemoria omarchy install --interval 30min # otra frecuencia
+lemoria omarchy install --no-enable      # solo escribe las units, no las activa
+```
+
+Es reversible:
+
+```bash
+systemctl --user disable --now lemoria-usage.timer
+```
+
+Las units viven en `~/.config/systemd/user/lemoria-usage.{service,timer}`; borra esos dos archivos para deshacerlo del todo.
+
+### Configuración
+
+| Variable | Default | Para qué |
+|---|---|---|
+| `LEMORIA_OPENCODE_AGENTS_DIR` | `./.opencode/agents` | De dónde lee los `.md` de agentes |
+
+La tabla `agents` ganó las columnas `model` y `variant`. La migración es idempotente y se aplica sola en `lemoria init`.
+
+> Detalle completo, contrato del record y cómo quitar un pin: [📄 AGENT-MANAGEMENT](docs/AGENT-MANAGEMENT.md)
+
+---
+
 ## 🗂️ Project Structure
 
 ```
@@ -227,7 +346,10 @@ lemoria/
 │   ├── cli.py                # Punto de entrada CLI (14+ comandos)
 │   ├── config.py             # Configuración vía pydantic-settings
 │   ├── core.py               # Orquestador principal (Lemoria class)
-│   ├── database.py           # Conexión y sesión SQLAlchemy
+│   ├── database.py           # Conexión, sesión y migración idempotente
+│   ├── agents.py             # Sync .opencode/agents/*.md → tabla agents
+│   ├── opencode_telemetry.py # Lectura de solo lectura del opencode.db
+│   ├── omarchy.py            # Record para el panel de agentes de Omarchy
 │   ├── flow.py               # Motor SDD + state machine (FlowEngine)
 │   ├── git_service.py        # Servicio de commits/pushes
 │   ├── memory.py             # Servicio de memoria (conversaciones)
@@ -305,6 +427,7 @@ lemoria/
 | [📖 INSTALL.md](INSTALL.md) | Instalación detallada paso a paso |
 | [📄 PRD](docs/PRD.md) | Product Requirements Document |
 | [🏗️ ARCHITECTURE](docs/ARCHITECTURE.md) | Arquitectura del sistema |
+| [🧭 AGENT-MANAGEMENT](docs/AGENT-MANAGEMENT.md) | Gestión de subagentes, modelos y telemetría |
 | [🗺️ ROADMAP](docs/ROADMAP.md) | Roadmap del proyecto |
 | [📋 SDD](docs/SDD.md) | Spec Driven Development — flujo completo |
 | [🏷️ Enums](database/enums.py) | 8 enums tipados con CheckConstraints |

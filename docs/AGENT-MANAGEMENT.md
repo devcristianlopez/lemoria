@@ -1,0 +1,444 @@
+# Gestión de agentes y telemetría
+
+Cómo Lemoria conoce a sus subagentes, cómo se cambia el modelo de cada uno y
+cómo se publica el consumo al panel de agentes de Omarchy.
+
+Tres ideas explican casi todo lo de esta página:
+
+1. **El `.md` es la fuente de verdad.** La tabla `agents` es un espejo.
+2. **El modelo se hereda, no se supone.** Si el frontmatter no declara `model`,
+   opencode usa el de quien invoca. Una columna vacía es el estado normal.
+3. **La telemetría no se pide a los agentes.** Ya está en la base de datos de
+   opencode; Lemoria la lee de solo lectura.
+
+---
+
+## Por qué el `.md` manda
+
+opencode carga los agentes desde `.opencode/agents/*.md`. Si Lemoria guardara el
+modelo solo en PostgreSQL, bastaría con que alguien editara el `.md` a mano para
+que la DB dijera una cosa y opencode otra. El orden importa:
+
+```
+.opencode/agents/*.md          ← fuente de verdad
+        │  lemoria agent sync
+        ▼
+tabla agents (PostgreSQL)      ← espejo: reporte, vault, atribución
+```
+
+`sync` hace *upsert* por nombre y es idempotente: correrlo dos veces sobre los
+mismos archivos no cambia nada. Además marca como `active = false` los agentes
+cuyo `.md` desapareció — **pero solo los que él mismo escribió** (los que llevan
+`config.source == "sync"`). Un agente registrado a mano con `lemoria agent
+register` sobrevive aunque no tenga archivo detrás.
+
+```bash
+lemoria agent sync --dry-run    # qué cambiaría, sin escribir
+```
+
+---
+
+## El modelo: heredado o pineado
+
+OpenCode resuelve el modelo de un subagente así:
+
+```
+frontmatter tiene `model:`  →  usa ese modelo          (source: pinned)
+frontmatter NO tiene `model:`  →  hereda del invocador  (source: inherits)
+```
+
+Los 7 subagentes de Lemoria no declaran modelo, y el orquestador corre en
+`big-pickle`. Resultado: los 7 usan `big-pickle`, y `agents.model` es `NULL`
+para los 8. **Eso es correcto, no un bug.** Fijar un modelo es opcional y se
+decide agente por agente.
+
+### Fijar uno
+
+```bash
+lemoria agent model review-agent anthropic/claude-sonnet-4-5
+lemoria agent model review-agent anthropic/claude-sonnet-4-5 --variant high
+```
+
+Esto escribe en el frontmatter y vuelve a sincronizar:
+
+```yaml
+---
+description: >-
+  Technical review — reviews code, verifies PRD alignment, detects technical
+  debt, and validates traceability. Language-agnostic.
+mode: subagent
+permission:
+  bash: deny
+  edit: deny
+model: anthropic/claude-sonnet-4-5
+variant: high
+---
+```
+
+La edición del frontmatter es **quirúrgica**: se reescriben solo las líneas
+afectadas, nunca se re-serializa el YAML. Eso conserva los escalares plegados
+(`>-`), los comentarios y el orden de las claves. La clave nueva se añade al
+final del bloque, a columna 0, porque insertarla "después de la última clave de
+primer nivel" caería dentro del mapping anidado de `permission:` y rompería el
+YAML.
+
+`variant` es el reasoning effort. Solo tiene sentido junto a un `model` fijado:
+`--variant` sin modelo no hace nada por sí solo.
+
+### Quitar un pin
+
+```bash
+lemoria agent model review-agent --clear
+```
+
+Borra las claves `model` y `variant` del frontmatter y devuelve el agente a la
+herencia. Para volver a consultar el valor actual, el comando sin argumentos:
+
+```bash
+lemoria agent model review-agent
+# review-agent: inherited (no model in frontmatter)
+```
+
+Si el `.md` llegara a quedar a mano, esto es lo que produce `--clear`:
+
+```yaml
+model: anthropic/claude-sonnet-4-5
+variant: high
+```
+
+La API de Python sí expone el borrado explícito, que es lo que cubren los tests:
+
+```python
+from lemoria.agents import AgentSync
+AgentSync(session, agents_dir).set_model("review-agent", None)   # model=None, variant=None
+```
+
+### Ver el estado
+
+```console
+$ lemoria agent model review-agent
+review-agent: model=anthropic/claude-sonnet-4-5 variant=high
+
+$ lemoria agent model db-agent
+db-agent: inherited (no model in frontmatter)
+```
+
+---
+
+## Telemetría: la DB de opencode
+
+opencode ya registra cada sesión en
+`$XDG_DATA_HOME/opencode/opencode.db`: qué agente la abrió, con qué modelo, el
+reparto de tokens y el costo. Pedirle a cada agente que reporte eso otra vez por
+el ledger SDD sería duplicar un dato que ya existe y que opencode mantiene
+mejor que nosotros.
+
+`OpenCodeTelemetry` lo lee así:
+
+- **Solo lectura.** `mode=ro` + `PRAGMA query_only`, para que una lectura nunca
+  bloquee al escritor de opencode ni deje un WAL detrás.
+- **Agregación en SQL**, no en Python: el archivo pesa cientos de MB.
+- **Columnas detectadas por feature detection.** opencode es dueño de ese
+  esquema y puede cambiarlo entre versiones; si falta una columna, el reporte se
+  degrada con un motivo legible en vez de reventar el comando.
+
+Los buckets por modelo del panel se calculan sobre la **última semana**, mientras
+que los totales (`totalSessions`, `totalTokens`, `totalPrompts`, `totalCost`) son
+de todo el historial. Por eso las cifras por modelo del panel no suman el total
+histórico: son una ventana móvil.
+
+Una sesión se considera **viva** si fue tocada en los últimos 5 minutos
+(`ACTIVE_WINDOW_SECONDS`). opencode no tiene un flag "corriendo", así que la
+recencia es la señal honesta.
+
+### El desglose por agente
+
+```console
+$ lemoria agent status
+agent                  source   model            variant   sess  live    tokens
+-------------------------------------------------------------------------------
+db-agent               inherits big-pickle       default      0     0         0
+documentation-agent    inherits big-pickle       default      9     0      7.9M
+frontend-agent         inherits big-pickle       default      4     0      4.3M
+github-agent           inherits big-pickle       default      8     0      1.9M
+implementation-agent   inherits big-pickle       default     36     0     35.7M
+orchestrator           inherits big-pickle       default      6    1*    137.2M
+review-agent           inherits big-pickle       default      9     0      2.2M
+testing-agent          inherits big-pickle       default      6     0      7.7M
+-------------------------------------------------------------------------------
+build                  builtin  big-pickle       default      5     0     46.2M
+explore                builtin  big-pickle       default      3     0    961.8K
+general                builtin  big-pickle       default      3     0      2.5M
+plan                   builtin  big-pickle       default      2     0      1.6M
+
+inherits = no model in frontmatter, so opencode uses the calling agent's
+builtin   = opencode's own agent, no .md to pin a model on
+*         = session updated in the last 5 minutes
+```
+
+Lectura de la tabla:
+
+| Columna | Significado |
+|---|---|
+| `source` | `pinned` / `inherits` (agentes de Lemoria) o `builtin` (los de opencode) |
+| `model` | Modelo **efectivo**: el pineado, o el del orquestador si hereda |
+| `variant` | Reasoning effort; `default` si no hay |
+| `sess` | Sesiones con ese nombre de agente |
+| `live` | Sesiones raíz tocadas en los últimos 5 min (`*` marca las vivas) |
+| `tokens` | Tokens acumulados, abreviados a K/M/G |
+
+Los agentes gestionados por Lemoria salen primero; los `builtin` de opencode
+(`build`, `explore`, `general`, `plan`) después, separados por una línea, porque
+aparecen en la telemetría pero no tienen `.md` donde pinear un modelo.
+
+Con `--json` sale lo mismo estructurado, más lo que la tabla no cabe: `cost` por
+agente, `inheritsFrom` (el modelo del que hereda) y `observedModel` (el modelo
+que opencode realmente usó en la sesión más reciente de ese agente).
+
+```jsonc
+{
+  "telemetryAvailable": true,
+  "telemetryReason": "",
+  "orchestratorModel": "big-pickle",
+  "agents": [
+    {
+      "name": "review-agent",
+      "role": "Technical review",
+      "mode": "subagent",
+      "model": null,          // pineado en el frontmatter; null = heredado
+      "variant": null,
+      "inheritsFrom": "big-pickle",
+      "sessions": 9,
+      "subagentSessions": 0,  // sesiones lanzadas por otro agente
+      "activeSessions": 0,
+      "tokens": 2192736,
+      "cost": 0.0,
+      "observedModel": "big-pickle"
+    }
+  ]
+}
+```
+
+`inheritsFrom` junto a `model: null` es la forma programática de preguntar
+"¿este agente está pineado?". `subagentSessions` cuenta cuántas de esas sesiones
+fueron lanzadas por otro agente (`parent_id IS NOT NULL`).
+
+El payload incluye los `builtin` de opencode (`build`, `plan`, `explore`,
+`general`) aunque no tengan fila en la DB ni `.md` que configurar. Para
+distinguir los dos grupos, cada entrada trae un booleano `managed`: `true` para
+los agentes que Lemoria administra, `false` para los propios de opencode. Un
+`builtin` nunca reporta `inheritsFrom`, porque no tiene frontmatter del que
+heredar.
+
+---
+
+## El panel de Omarchy
+
+### Por qué un record y no un plugin
+
+El panel de agentes de Omarchy es estrictamente un **display**: vigila
+`$XDG_STATE_HOME/omarchy/agents/usage/*.json` y dibuja lo que encuentre, sin
+importar quién lo escribió. Su propio README documenta esto como la vía
+soportada para añadir un proveedor: *ship a collector that prints the record
+contract*.
+
+Escribir un plugin QML propio habría significado meter un binario dentro de
+`/usr/share/omarchy/bin`, que es de solo lectura y que `omarchy update` se lleva
+por delante. El record evita las dos cosas.
+
+```mermaid
+flowchart LR
+  OC[("opencode.db")] -->|lectura de solo lectura| TEL[OpenCodeTelemetry]
+  TEL --> REC[build_record]
+  REC -->|temp + rename| DIR["~/.local/state/omarchy/agents/usage/lemoria.json"]
+  DIR -->|watcher| PANEL[Panel de agentes de Omarchy]
+  TEL --> CLI[lemoria agent status]
+  REC --> CLI2[lemoria omarchy record]
+```
+
+### El contrato del record
+
+Claves que el panel lee de forma obligatoria:
+
+| Clave | Origen en Lemoria | Ventana |
+|---|---|---|
+| `ready` | `true` solo si hay sesiones o tokens | — |
+| `todayPrompts` | mensajes assistant de hoy | hoy |
+| `todaySessions` | sesiones creadas hoy | hoy |
+| `todayTotalTokens` | tokens de hoy | hoy |
+| `todayTokensByModel` | tokens de hoy por modelo | hoy |
+| `recentDays` | 7 entradas `{date, messageCount}` | 7 días |
+| `modelUsage` | buckets `inputTokens` / `outputTokens` / `cacheReadInputTokens` / `cacheCreationInputTokens` | 7 días |
+| `totalPrompts` / `totalSessions` | conteos assistant y sesiones | histórico |
+| `activeDays` / `activeDates` | fechas con uso | histórico |
+| `limits` / `tierLabel` | `[]` y `""` | — |
+
+`limits: []` y `tierLabel: ""` son la respuesta honesta: Lemoria no maneja ninguna
+suscripción, así que no hay plan, ni ventana de límites, ni balance que
+reportar. El panel dibuja la pestaña sin el medidor principal.
+
+`recentDays[].messageCount` se alimenta con **tokens**, pese al nombre. No es un
+error: `Panel.qml` lo renderiza con `formatTokenCount(day.messageCount)` y lo
+etiqueta `· N tokens`.
+
+`totalCost`, `totalTokens` y `scope: "device"` no son parte del contrato. El
+panel ignora claves desconocidas, pero hacen que el record se autodescriba para
+cualquier otro que lo lea. `scope: "device"` importa si en algún momento se
+activa el sync entre máquinas: los records de alcance de dispositivo se suman
+entre máquinas sincronizadas, en vez de tomar el valor más ancho.
+
+```bash
+lemoria omarchy record --print    # inspeccionar sin escribir
+lemoria omarchy where             # el directorio que el panel vigila
+```
+
+### Qué muestra el panel y qué no
+
+El panel **agrega por modelo y por día**. Una sola pestaña para todo Lemoria.
+
+| Lo ves en el panel | Lo ves en `lemoria agent status` |
+|---|---|
+| Tokens por día, últimos 7 días | Tokens acumulados por subagente |
+| Tokens por modelo (split input / output / cache) | Modelo efectivo por subagente |
+| Sesiones y prompts de hoy | Sesiones y costo real por subagente |
+| Días activos acumulados | Sesiones vivas por subagente |
+| — | Agentes `builtin` de opencode |
+
+Dos cosas que **el panel no puede dar**, y no es culpa del record:
+
+- **Desglose por subagente.** El contrato no tiene un campo de agente; hay un
+  registro y una pestaña por proveedor, no por subagente.
+- **Costo.** El contrato no tiene campo de costo, así que Lemoria lo deja fuera
+  de la pestaña. El costo real vive en `lemoria agent status --json`.
+
+Por eso el desglose por agente se queda en el CLI en lugar de prometer una UI que
+el panel no puede dibujar.
+
+### Escritura atómica
+
+El panel re-escanea el directorio ante cualquier cambio, así que un archivo a
+medias se vería como una pestaña rota. `write_record` escribe a un temporal en el
+mismo directorio y hace `replace()`, de modo que el watcher siempre recibe un
+documento completo.
+
+---
+
+## El timer
+
+El panel refresca sus propios collectors cada `refreshIntervalSec` (900 s por
+defecto) llamando a `omarchy-agent-usage-update`. Ese script escribe un record
+por cada collector `omarchy-agent-usage-*` que encuentre y **no borra ni
+sobrescribe los que no son suyos** — el nuestro sobrevive intacto, pero tampoco
+se refresca. De ahí el timer propio.
+
+```bash
+lemoria omarchy install                  # 5 min, escribe y activa
+lemoria omarchy install --interval 30min
+lemoria omarchy install --no-enable      # solo escribe las units
+```
+
+Genera dos units de **usuario** (no de sistema, no necesitan root):
+
+`~/.config/systemd/user/lemoria-usage.service`
+```ini
+[Unit]
+Description=Publish lemoria opencode usage to the Omarchy panel
+
+[Service]
+Type=oneshot
+ExecStart=/ruta/al/lemoria omarchy record
+```
+
+`~/.config/systemd/user/lemoria-usage.timer`
+```ini
+[Unit]
+Description=Refresh the Omarchy agents panel
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+Persistent=true
+Unit=lemoria-usage.service
+
+[Install]
+WantedBy=timers.target
+```
+
+`OnBootSec=1min` cubre el arranque; `Persistent=true` hace que una sesión
+apagada se recupere al volver. El `ExecStart` usa la ruta absoluta del CLI
+(resuelta con `shutil.which`) porque una unit no corre con shell y no tiene `PATH`
+de sesión.
+
+Escribir las units y activarlas son pasos separados: `install_timer()` solo
+escribe, y el comando decide si llama a `systemctl --user enable --now`. Con
+`--no-enable` no arranca nada.
+
+### Deshacerlo
+
+```bash
+systemctl --user disable --now lemoria-usage.timer
+rm ~/.config/systemd/user/lemoria-usage.{service,timer}
+systemctl --user daemon-reload
+```
+
+---
+
+## Referencia rápida
+
+| Comando | Efecto |
+|---|---|
+| `lemoria agent sync` | Refleja `.opencode/agents/*.md` en la tabla `agents` |
+| `lemoria agent sync --dry-run` | Igual, sin escribir |
+| `lemoria agent sync --dir PATH` | Lee los `.md` de otro directorio |
+| `lemoria agent list` | Agentes registrados |
+| `lemoria agent model <name>` | Muestra el modelo actual |
+| `lemoria agent model <name> <model>` | Lo fija en el frontmatter |
+| `lemoria agent model <name> <model> -v <variant>` | Fija modelo y reasoning effort |
+| `lemoria agent status` | Tabla por agente |
+| `lemoria agent status --json` | Lo mismo, estructurado, con costo |
+| `lemoria omarchy record` | Escribe el record del panel |
+| `lemoria omarchy record --print` | Lo muestra sin escribir |
+| `lemoria omarchy record -o PATH` | Lo escribe en otro directorio |
+| `lemoria omarchy install` | Instala y activa el timer de usuario |
+| `lemoria omarchy where` | Ruta que el panel vigila |
+
+### Configuración
+
+| Variable | Default | Para qué |
+|---|---|---|
+| `LEMORIA_OPENCODE_AGENTS_DIR` | `./.opencode/agents` | De dónde lee los `.md` de agentes |
+
+### Esquema
+
+La tabla `agents` tiene dos columnas nuevas:
+
+```python
+model   VARCHAR(255) NULL   # NULL = heredado del agente invocador
+variant VARCHAR(64)  NULL   # reasoning effort
+```
+
+La migración corre en `init_db()` con `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`,
+que es idempotente: `create_all()` crea tablas nuevas pero nunca altera una
+existente, y `IF NOT EXISTS` hace que repetir `lemoria init` sea inofensivo.
+Corre sola en `lemoria init`.
+
+---
+
+## Límites conocidos
+
+- **El modelo efectivo es una atribución, no una medición.** Cuando un agente
+  hereda, Lemoria muestra el modelo del orquestador. Si el invocador cambia, la
+  columna sigue mostrando el valor leído del último registro de ese agente. El
+  campo `observedModel` del `--json` es el dato duro: lo que opencode
+  realmente usó.
+- **`--dir` solo existe en `sync`.** `agent model` siempre usa
+  `LEMORIA_OPENCODE_AGENTS_DIR`. Con la variable apuntando a un directorio
+  incompleto, `agent model` sincronizaría solo esos archivos y desactivaría el
+  resto; un `lemoria agent sync` a secas lo corrige.
+- **La ventana de `modelUsage` es de 7 días**, no histórica.
+- **La nota `agents.md` del vault no incluye el modelo.** `export_agents()`
+  escribe nombre, rol y descripción. Como los agentes se registran por proyecto
+  y los modelos se heredan del invocador, la vista por agente con su modelo
+  efectivo vive en `lemoria agent status`, no en Obsidian.
+- **El panel no distingue subagentes ni muestra costo.** Es su contrato, no el
+  record.

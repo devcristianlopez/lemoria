@@ -10,8 +10,17 @@ class Orchestrator:
         self.session = session
 
     def register_agent(self, name: str, role: str, description: str | None = None) -> Agent:
-        agent = Agent(name=name, role=role, description=description)
-        self.session.add(agent)
+        """Idempotent by name: re-registering updates the row instead of
+        inserting a second agent with the same name, so calling this twice
+        (a rerun, a migration, a test) cannot double the registry."""
+        agent = self.session.query(Agent).filter(Agent.name == name).one_or_none()
+        if agent is None:
+            agent = Agent(name=name, role=role, description=description)
+            self.session.add(agent)
+        else:
+            agent.role = role
+            agent.description = description
+            agent.active = True
         self.session.commit()
         return agent
 
