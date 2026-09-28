@@ -137,7 +137,10 @@ def write_record(record: dict, output: Path | None = None) -> Path:
         with os.fdopen(handle, "w", encoding="utf-8") as stream:
             json.dump(record, stream, separators=(",", ":"), sort_keys=True)
             stream.write("\n")
-        temp_path.chmod(0o644)
+        # 600, matching the permissions Omarchy's own collectors write. The
+        # record only carries token counts, but there is no reason for it to
+        # be more permissive than the files next to it.
+        temp_path.chmod(0o600)
         temp_path.replace(destination)
     except BaseException:
         temp_path.unlink(missing_ok=True)

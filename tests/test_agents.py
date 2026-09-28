@@ -501,3 +501,13 @@ class TestReportedModelAndActivity:
         telemetry = OpenCodeTelemetry(path).read()
         # 500+50 + 700+0: the second row must not disappear.
         assert telemetry.total_tokens == 1250
+
+    def test_record_is_not_world_readable(self, tmp_path, opencode_db):
+        """Omarchy's own collectors write 600. Usage counts are not secret,
+        but the record should not be more permissive than its neighbours."""
+        from lemoria.omarchy import build_record as _build
+        from lemoria.omarchy import write_record as _write
+
+        destination = tmp_path / "usage" / "lemoria.json"
+        _write(_build(OpenCodeTelemetry(opencode_db).read()), destination)
+        assert destination.stat().st_mode & 0o077 == 0
