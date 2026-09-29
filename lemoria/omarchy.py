@@ -43,6 +43,46 @@ def default_record_dir() -> Path:
     return Path(state_home) / "omarchy" / "agents" / "usage"
 
 
+def default_plugin_dir() -> Path:
+    """Where Omarchy's plugin catalog looks for user plugins."""
+    return Path.home() / ".config" / "omarchy" / "plugins"
+
+
+def plugin_source_dir() -> Path:
+    """The bundled QML plugin shipped with Lemoria."""
+    return Path(__file__).resolve().parent / "omarchy_plugin" / "lemoria.usage"
+
+
+def plugin_destination_dir() -> Path:
+    return default_plugin_dir() / "lemoria.usage"
+
+
+def install_plugin(destination: Path | None = None) -> Path:
+    """Install/update the user-level Omarchy plugin.
+
+    Omarchy's catalog walks ~/.config/omarchy/plugins and treats every
+    manifest.json at depth two as a first-class plugin. Copying there is the
+    supported extension point; nothing under /usr/share/omarchy is touched.
+    """
+    source = plugin_source_dir()
+    if not source.exists():
+        raise FileNotFoundError(f"bundled plugin not found: {source}")
+    target = destination or plugin_destination_dir()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(source, target)
+    return target
+
+
+def uninstall_plugin(destination: Path | None = None) -> bool:
+    target = destination or plugin_destination_dir()
+    if target.exists():
+        shutil.rmtree(target)
+        return True
+    return False
+
+
 # "No budget set" is what every existing caller means, and `NO_BUDGET` is
 # frozen, so handing it out as a default is safe.
 NO_BUDGET = Budget()
@@ -112,7 +152,7 @@ def build_record(telemetry: Telemetry, budget: Budget = NO_BUDGET) -> dict:
             for entry in sorted(
                 telemetry.by_agent.values(), key=lambda e: -e.tokens
             )
-            if entry.tokens
+            if entry.tokens or entry.sessions or entry.prompts
         ],
         # Not part of the panel's contract: the panel ignores unknown keys, but
         # they make the record self-describing for anything else that reads it.
@@ -182,8 +222,10 @@ def write_record(record: dict, output: Path | None = None) -> Path:
 
 
 def publish(db_path: Path | str | None = None, output: Path | str | None = None) -> tuple[Path, dict]:
+    from .budget import Budget
+
     telemetry = OpenCodeTelemetry(db_path).read()
-    record = build_record(telemetry)
+    record = build_record(telemetry, Budget.load())
     return write_record(record, Path(output) if output else None), record
 
 

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "lemoria.usage",
+  "name": "Lemoria Usage",
+  "version": "0.1.0",
+  "author": "Lemoria",
+  "license": "MIT",
+  "description": "opencode token usage with a monthly budget, plus which model each agent runs on.",
+  "kinds": ["bar-widget"],
+  "activation": "on-demand",
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Lemoria",
+    "description": "All-time token total in the bar; today, the week, a per-agent table and a monthly budget on click.",
+    "category": "AI",
+    "aliases": ["lemoria", "tokens", "usage"],
+    "allowMultiple": false
+  }
+}

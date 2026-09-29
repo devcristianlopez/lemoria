@@ -19,7 +19,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 
 # At 80% the meter turns amber: still fine, but worth knowing before it is
@@ -137,5 +137,11 @@ def month_start_ms(now: datetime | None = None) -> int:
     Local because "what did I spend this month" is a question about the
     calendar on the wall, not about UTC.
     """
-    moment = now or datetime.now(UTC).astimezone()
-    return int(moment.replace(day=1, hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000)
+    moment = now.astimezone() if now is not None else datetime.now().astimezone()
+    # Do not keep moment.tzinfo here. `astimezone()` usually gives a fixed
+    # offset for *today*, and reusing today's -03 for the first day of a month
+    # whose historical offset was -04 shifts the budget by an hour. A naive
+    # timestamp is interpreted in the machine's local timezone rules for that
+    # date, which is exactly what SQLite's `localtime` modifier does too.
+    local_start = datetime(moment.year, moment.month, 1)  # noqa: DTZ001
+    return int(local_start.timestamp() * 1000)

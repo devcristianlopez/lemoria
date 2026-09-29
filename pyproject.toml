@@ -32,6 +32,9 @@ lemoria = "lemoria.cli:cli"
 [tool.setuptools.packages.find]
 include = ["lemoria*", "database*"]
 
+[tool.setuptools.package-data]
+lemoria = ["omarchy_plugin/lemoria.usage/*"]
+
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"

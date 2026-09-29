@@ -170,20 +170,35 @@ lemoria decision log <project-id> -t "usar JWT" -d "stateless"
 lemoria agent list
 ```
 
-## Panel de Omarchy (solo si usás Omarchy)
+## Panel propio de Omarchy (solo si usás Omarchy)
 
-Si estás en Omarchy, el instalador te ofrece publicar el consumo de opencode en
-su panel de agentes:
+Si estás en Omarchy, Lemoria instala un plugin propio además del record JSON:
 
 ```bash
-lemoria omarchy install        # escribe el record + timer de usuario, cada 1 min
-lemoria omarchy record --print # ver el record sin escribirlo
-lemoria omarchy where          # dónde busca el panel los records
+lemoria budget 500M          # opcional: presupuesto mensual en tokens
+lemoria omarchy install      # plugin + record + timer de usuario, cada 1 min
+lemoria omarchy record --print
+lemoria omarchy where
 ```
 
-No instala nada en `/usr/share/omarchy`: escribe un record JSON en el directorio
-que el panel ya vigila, que es la vía que el propio plugin documenta. Se
-deshace con `lemoria omarchy uninstall`.
+No toca `/usr/share/omarchy`. El plugin se copia a
+`~/.config/omarchy/plugins/lemoria.usage`, el record a
+`~/.local/state/omarchy/agents/usage/lemoria.json`, y el timer a
+`~/.config/systemd/user/lemoria-usage.{service,timer}`. Se deshace con:
+
+```bash
+lemoria omarchy uninstall
+```
+
+El widget muestra el total histórico siempre en la barra. Al abrirlo ves hoy,
+los últimos 7 días, presupuesto usado/restante y la tabla por agente con modelo
+dominante, tokens totales y tokens de hoy. Los que no usan Omarchy tienen lo
+mismo por CLI:
+
+```bash
+lemoria usage
+lemoria usage --json
+```
 
 Si el panel deja de actualizar, el timer suele estar *activo pero sin disparo
 programado*: `systemctl --user list-timers` muestra `-` en la columna NEXT
@@ -195,22 +210,8 @@ systemctl --user start lemoria-usage.service   # rearma el ancla del timer
 systemctl --user start lemoria-usage.timer
 ```
 
-`lemoria omarchy install` ahora verifica eso solo al terminar, y repara el
-timer si encuentra el estado roto.
-
-## Consumo de opencode (todos los casos)
-
-Con o sin Omarchy:
-
-```bash
-lemoria usage          # total, por modelo, por agente, últimos 7 días
-lemoria usage --json   # lo mismo, estructurado
-```
-
-El panel de Omarchy agrega todo en una sola pestaña: tokens por día, tokens por
-modelo (histórico completo) y días activos. **No** muestra el desglose por
-subagente ni el costo real, porque su contrato no tiene esos campos. Eso vive
-en el CLI.
+`lemoria omarchy install` verifica eso al terminar y repara el timer si
+encuentra el estado roto.
 
 ## Fijar el modelo de un agente (opcional)
 

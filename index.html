@@ -704,7 +704,7 @@
         <div class="feat-card fade-in">
           <div class="num">[14]</div>
           <h3 data-i18n="feat.14.title">Panel de Omarchy</h3>
-          <p data-i18n="feat.14.desc">Publica el consumo en el panel de agentes de Omarchy como un record JSON, con un timer propio que lo refresca cada minuto. No toca <code>/usr/share/omarchy</code>.</p>
+          <p data-i18n="feat.14.desc">Instala un plugin propio de Omarchy: total histórico siempre visible, presupuesto mensual y tabla por agente con modelo. No toca <code>/usr/share/omarchy</code>.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[15]</div>
@@ -827,14 +827,14 @@
           <span class="num">panel</span>
           <div class="content">
             <h3 data-i18n="tele.panel.title">En Omarchy, en el panel</h3>
-            <p data-i18n="tele.panel.desc">Si usas Omarchy, Lemoria publica el consumo en su panel de agentes: tokens por día y por modelo, con el histórico completo. Un timer propio lo refresca cada minuto y nunca toca <code>/usr/share/omarchy</code>.</p>
+            <p data-i18n="tele.panel.desc">Si usas Omarchy, Lemoria instala <code>lemoria.usage</code>: total en la barra, hoy, 7 días, presupuesto mensual y tabla por agente con modelo dominante.</p>
           </div>
         </li>
         <li class="fade-in">
           <span class="num">gap</span>
           <div class="content">
             <h3 data-i18n="tele.gap.title">Lo que el panel no tiene</h3>
-            <p data-i18n="tele.gap.desc">El panel agrupa todo en una pestaña: no hay campo de costo ni de subagente en su contrato. Por eso el desglose por agente y el costo real viven en el CLI, no en la UI.</p>
+            <p data-i18n="tele.gap.desc">El panel nativo de Omarchy no tiene esos campos. El plugin propio lee las claves extras del mismo record; quienes no usan Omarchy siguen teniendo el CLI.</p>
           </div>
         </li>
         <li class="fade-in">
@@ -959,15 +959,15 @@
         'feat.13.title': 'Telemetría de opencode',
         'feat.13.desc': 'Lee opencode.db en modo read-only: sesiones, tokens y costo por agente. `lemoria usage` te da el total histórico, el desglose por modelo y por subagente.',
         'feat.14.title': 'Panel de Omarchy',
-        'feat.14.desc': 'Publica el consumo en el panel de agentes de Omarchy como un record JSON, con un timer propio que lo refresca cada minuto. No toca /usr/share/omarchy.',
+        'feat.14.desc': 'Instala un plugin propio de Omarchy: total histórico siempre visible, presupuesto mensual y tabla por agente con modelo. No toca /usr/share/omarchy.',
         'feat.15.title': 'Modelos por agente',
         'feat.15.desc': 'Fija modelo y reasoning effort por subagente. Por defecto heredan el de quien los invoca, y se cambian cuando quieras.',
         'tele.title': 'Tu consumo, de verdad',
         'tele.desc': 'Lemoria lee `opencode.db` en modo read-only y convierte el consumo disperso en una sola lectura: cuánto llevas, en qué modelos y qué agente lo gastó.',
         'tele.panel.title': 'En Omarchy, en el panel',
-        'tele.panel.desc': 'Si usas Omarchy, Lemoria publica el consumo en su panel de agentes: tokens por día y por modelo, con el histórico completo. Un timer propio lo refresca cada minuto y nunca toca `/usr/share/omarchy`.',
-        'tele.gap.title': 'Lo que el panel no tiene',
-        'tele.gap.desc': 'El panel agrupa todo en una pestaña: no hay campo de costo ni de subagente en su contrato. Por eso el desglose por agente y el costo real viven en el CLI, no en la UI.',
+        'tele.panel.desc': 'Si usas Omarchy, Lemoria instala `lemoria.usage`: total en la barra, hoy, 7 días, presupuesto mensual y tabla por agente con modelo dominante.',
+        'tele.gap.title': 'Lo que faltaba en el panel nativo',
+        'tele.gap.desc': 'El panel nativo de Omarchy no tiene esos campos. El plugin propio lee las claves extras del mismo record; quienes no usan Omarchy siguen teniendo el CLI.',
         'tele.ro.title': 'Nunca bloquea a opencode',
         'tele.ro.desc': 'Conexión read-only y cada agregado pushed a SQL. Lemoria lee miles de sesiones sin dejar un archivo de bloqueo ni frenar una sesión en curso.',
         'agents.title': 'Los 8 agentes',
@@ -1076,15 +1076,15 @@
         'feat.13.title': 'opencode Telemetry',
         'feat.13.desc': 'Reads opencode.db read-only: sessions, tokens and cost per agent. `lemoria usage` gives you the all-time total, the per-model and per-subagent breakdown.',
         'feat.14.title': 'Omarchy Panel',
-        'feat.14.desc': 'Publishes usage to the Omarchy agents panel as a JSON record, with its own timer refreshing it every minute. Never touches /usr/share/omarchy.',
+        'feat.14.desc': 'Installs a dedicated Omarchy plugin: all-time total always visible, monthly token budget, and a per-agent table with the model. Never touches /usr/share/omarchy.',
         'feat.15.title': 'Per-agent Models',
         'feat.15.desc': 'Pin a model and reasoning effort per subagent. By default they inherit the caller\'s model, and you change it whenever you want.',
         'tele.title': 'Your usage, for real',
         'tele.desc': 'Lemoria reads `opencode.db` read-only and turns scattered usage into a single read: how much you have spent, on which models, and which agent spent it.',
         'tele.panel.title': 'On Omarchy, on the panel',
-        'tele.panel.desc': 'If you use Omarchy, Lemoria publishes usage to its agents panel: tokens per day and per model, with the all-time history. Its own timer refreshes it every minute and never touches `/usr/share/omarchy`.',
-        'tele.gap.title': 'What the panel cannot show',
-        'tele.gap.desc': 'The panel collapses everything into one tab: its contract has no cost field and no subagent field. That is why the per-agent breakdown and real cost live in the CLI, not in the UI.',
+        'tele.panel.desc': 'If you use Omarchy, Lemoria installs `lemoria.usage`: total in the bar, today, 7 days, monthly budget, and a per-agent table with dominant model.',
+        'tele.gap.title': 'What the native panel was missing',
+        'tele.gap.desc': 'Omarchy\'s native panel has no fields for those. Lemoria\'s plugin reads extra keys from the same record; non-Omarchy users keep the CLI.',
         'tele.ro.title': 'Never blocks opencode',
         'tele.ro.desc': 'Read-only connection and every aggregate pushed down to SQL. Lemoria reads thousands of sessions without leaving a lock file or stalling a session in progress.',
         'agents.title': 'The 8 Agents',

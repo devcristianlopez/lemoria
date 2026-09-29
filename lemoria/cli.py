@@ -544,20 +544,22 @@ def omarchy_record(output: str | None, print_only: bool):
 
 @omarchy.command("install")
 @click.option("--interval", default="1min", help="How often the panel should refresh (e.g. 1min, 5min, 1h)")
-@click.option("--enable", is_flag=True, default=True, help="Enable and start the timer (--no-enable to only write)")
+@click.option("--enable/--no-enable", default=True, help="Enable and start the timer (--no-enable to only write)")
 def omarchy_install(interval: str, enable: bool):
     """Install the user-level timer that keeps the panel record fresh."""
-    from .omarchy import install_timer, write_record
+    from .budget import Budget
+    from .omarchy import build_record, install_plugin, install_timer, write_record
+    from .opencode_telemetry import OpenCodeTelemetry
+
+    plugin = install_plugin()
+    click.echo(f"Wrote {plugin}")
 
     service, timer = install_timer(interval=interval)
     click.echo(f"Wrote {service}")
     click.echo(f"Wrote {timer}")
 
     # Publish once now so the panel is populated before the first tick.
-    from .omarchy import build_record
-    from .opencode_telemetry import OpenCodeTelemetry
-
-    destination = write_record(build_record(OpenCodeTelemetry().read()))
+    destination = write_record(build_record(OpenCodeTelemetry().read(), Budget.load()))
     click.echo(f"Wrote {destination}")
 
     if not enable:
@@ -645,7 +647,12 @@ def omarchy_uninstall(keep_record: bool):
     import shutil as _shutil
     import subprocess
 
-    from .omarchy import default_record_dir, default_unit_dir
+    from .omarchy import (
+        default_record_dir,
+        default_unit_dir,
+        plugin_destination_dir,
+        uninstall_plugin,
+    )
 
     units = [
         default_unit_dir() / "lemoria-usage.service",
@@ -665,6 +672,12 @@ def omarchy_uninstall(keep_record: bool):
             click.echo(f"Removed {unit}")
         else:
             click.echo(f"Not present: {unit}")
+
+    plugin = plugin_destination_dir()
+    if uninstall_plugin():
+        click.echo(f"Removed {plugin}")
+    else:
+        click.echo(f"Not present: {plugin}")
 
     record = default_record_dir() / "lemoria.json"
     if keep_record:

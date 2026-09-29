@@ -285,46 +285,42 @@ El `--json` incluye además los agentes propios de opencode (`build`, `plan`, �
 
 ### El panel de Omarchy
 
-Omarchy ya trae un panel de agentes con su propio contrato de datos. Lemoria **no escribe un plugin QML propio**: publica un *record* JSON en el directorio que el panel ya vigila, que es la vía que el propio plugin documenta para añadir proveedores.
+Omarchy ya trae un panel de agentes, pero su contrato no tiene dónde dibujar el **total global** ni el **modelo por agente**. Lemoria publica el record compatible que ese panel ya lee y además instala un plugin propio, `lemoria.usage`, en `~/.config/omarchy/plugins/` para mostrar lo que falta.
 
 ```bash
-lemoria omarchy record            # escribe el record donde el panel lo lee
-lemoria omarchy record --print    # solo lo muestra, no escribe
-lemoria omarchy where             # dónde busca el panel los records
+lemoria budget 500M              # presupuesto mensual en tokens; reinicia el día 1
+lemoria budget                   # uso del mes, restante y estado
+lemoria omarchy install          # plugin + record + timer de usuario, cada 1 min
+lemoria omarchy record --print   # inspeccionar el JSON sin escribir
+lemoria omarchy where            # dónde busca Omarchy los records
 ```
 
-**Qué muestra el panel y qué no, con honestidad:**
+El widget propio deja el **total acumulado** siempre visible en la barra. Al abrirlo muestra:
 
-| Solo en el panel | Solo en `lemoria agent status` |
-|---|---|
-| Tokens **por día**, últimos 7 días | Tokens, sesiones y costo **por subagente** |
-| Tokens **por modelo** | Modelo efectivo **por subagente** |
-| Sesiones y prompts de hoy | Sesiones vivas **por subagente** |
-| Días activos acumulados | Agentes `builtin` de OpenCode incluidos |
+- total histórico, sesiones, prompts y rango de fechas;
+- tokens de hoy y últimos 7 días;
+- presupuesto mensual en tokens, con `ok`/`warn` al 80%/`over`;
+- tabla con **todos los agentes**, total, tokens de hoy, sesiones, prompts y el modelo dominante con `(+N more)` cuando usó más de uno.
 
-El panel **agrega por modelo y por día**: una sola pestaña para todo Lemoria, sin desglose por subagente y sin cifra de costo. Eso no se quita desde el contrato del panel — el panel no tiene campo de costo. Por eso el desglose por agente vive en el CLI.
-
-"TOKENS BY MODEL" es el **acumulado histórico**, no la última semana: es lo que el manifest del propio plugin llama *all-time model breakdown*. La última semana tiene su propia sección, "TOKENS BY DAY".
-
-El record se escribe de forma atómica (archivo temporal + rename) para que el watcher del panel nunca lea un documento a medias. `ready` es `false` mientras no haya consumo registrado, y el panel esconde la pestaña hasta que hay algo que mostrar.
+El record sigue siendo compatible con `omarchy.agents`: las claves nuevas (`agents`, `budget`, `monthTokens`) son nuestras y el panel de Omarchy las ignora.
 
 ### Timer de actualización
 
-El panel refresca sus propios collectors cada 15 min, pero solo conoce los suyos: `omarchy-agent-usage-update` escribe un record por collector `omarchy-agent-usage-*` y nunca toca el nuestro. Para que la pestaña de Lemoria se mantenga al día hace falta un timer propio, de **usuario** (systemd `--user`):
+`lemoria omarchy install` escribe el plugin, publica un record una vez y deja un timer de **usuario** (systemd `--user`) que refresca cada minuto:
 
 ```bash
 lemoria omarchy install                  # cada 1 min, y lo activa
 lemoria omarchy install --interval 30min # otra frecuencia
-lemoria omarchy install --no-enable      # solo escribe las units, no las activa
+lemoria omarchy install --no-enable      # solo escribe plugin, record y units
 ```
 
 Es reversible:
 
 ```bash
-systemctl --user disable --now lemoria-usage.timer
+lemoria omarchy uninstall
 ```
 
-Las units viven en `~/.config/systemd/user/lemoria-usage.{service,timer}`; borra esos dos archivos para deshacerlo del todo.
+Las units viven en `~/.config/systemd/user/lemoria-usage.{service,timer}`; el plugin vive en `~/.config/omarchy/plugins/lemoria.usage`.
 
 ### Configuración
 

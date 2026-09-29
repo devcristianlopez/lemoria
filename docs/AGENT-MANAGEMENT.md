@@ -234,37 +234,42 @@ heredar.
 
 ## El panel de Omarchy
 
-### Por qué un record y no un plugin
+### Record compatible + plugin propio
 
-El panel de agentes de Omarchy es estrictamente un **display**: vigila
-`$XDG_STATE_HOME/omarchy/agents/usage/*.json` y dibuja lo que encuentre, sin
-importar quién lo escribió. Su propio README documenta esto como la vía
-soportada para añadir un proveedor: *ship a collector that prints the record
-contract*.
+Hay dos consumidores del mismo record:
 
-Escribir un plugin QML propio habría significado meter un binario dentro de
-`/usr/share/omarchy/bin`, que es de solo lectura y que `omarchy update` se lleva
-por delante. El record evita las dos cosas.
+1. `omarchy.agents`, el panel de Omarchy. Lee solo su contrato conocido y por eso
+   ignora cualquier clave nueva.
+2. `lemoria.usage`, el plugin propio de Lemoria. Lee las claves extras para
+   mostrar total global, presupuesto y tabla por agente.
+
+El record sigue siendo el punto único de verdad: QML no lee `opencode.db`, solo
+observa `~/.local/state/omarchy/agents/usage/lemoria.json`.
 
 ```mermaid
 flowchart LR
   OC[("opencode.db")] -->|lectura de solo lectura| TEL[OpenCodeTelemetry]
-  TEL --> REC[build_record]
+  BUD["~/.config/lemoria/budget.json"] --> REC[build_record]
+  TEL --> REC
   REC -->|temp + rename| DIR["~/.local/state/omarchy/agents/usage/lemoria.json"]
-  DIR -->|watcher| PANEL[Panel de agentes de Omarchy]
-  TEL --> CLI[lemoria agent status]
-  REC --> CLI2[lemoria omarchy record]
+  DIR -->|watcher| OLD[omarchy.agents]
+  DIR -->|watcher| NEW[lemoria.usage]
+  TEL --> CLI[lemoria usage]
 ```
+
+El plugin se copia a `~/.config/omarchy/plugins/lemoria.usage`, que es el
+directorio que el catálogo de Omarchy recorre para plugins de usuario. Nada bajo
+`/usr/share/omarchy` se toca.
 
 ### El contrato del record
 
-Claves que el panel lee de forma obligatoria:
+Claves que `omarchy.agents` lee de forma obligatoria:
 
 | Clave | Origen en Lemoria | Ventana |
 |---|---|---|
 | `ready` | `true` solo si hay sesiones o tokens | — |
 | `todayPrompts` | mensajes assistant de hoy | hoy |
-| `todaySessions` | sesiones creadas hoy | hoy |
+| `todaySessions` | sesiones con mensajes hoy | hoy |
 | `todayTotalTokens` | tokens de hoy | hoy |
 | `todayTokensByModel` | tokens de hoy por modelo | hoy |
 | `recentDays` | 7 entradas `{date, messageCount}` | 7 días |
@@ -273,9 +278,15 @@ Claves que el panel lee de forma obligatoria:
 | `activeDays` / `activeDates` | fechas con uso | histórico |
 | `limits` / `tierLabel` | `[]` y `""` | — |
 
-`limits: []` y `tierLabel: ""` son la respuesta honesta: Lemoria no maneja ninguna
-suscripción, así que no hay plan, ni ventana de límites, ni balance que
-reportar. El panel dibuja la pestaña sin el medidor principal.
+Claves extras para `lemoria.usage`:
+
+| Clave | Para qué |
+|---|---|
+| `totalTokens` | total histórico exacto, incluyendo razonamiento |
+| `monthTokens` | tokens desde el día 1 local |
+| `budget` | `{funded, used, remaining, percent, status}` |
+| `balance` | `{funded, remaining}` compatible con el medidor de Omarchy |
+| `agents[]` | nombre, total, hoy, sesiones, prompts, modelo dominante y reparto por modelo |
 
 `recentDays[].messageCount` se alimenta con **tokens**, pese al nombre. No es un
 error: `Panel.qml` lo renderiza con `formatTokenCount(day.messageCount)` y lo
@@ -284,44 +295,21 @@ etiqueta `· N tokens`.
 `modelUsage` es **histórico, no una ventana de 7 días**. El manifest del propio
 plugin llama a esa sección el "all-time model breakdown", así que recortarla
 escondía justamente el dato que existe para mostrar. Los 7 días ya tienen su
-sección propia: "TOKENS BY DAY" (`recentDays`).
+sección propia: `recentDays`.
 
-La suma de los buckets es menor que `totalTokens` por exactamente los tokens de
-razonamiento: el contrato del panel tiene cuatro buckets y no tiene campo para
-razonamiento. Hoy son ~157 mil sobre 265 millones (0,06%).
+`modelUsage` conserva el contrato de Omarchy y por eso no tiene campo para
+razonamiento. Para totales exactos se usa `totalTokens`, `byModel` del CLI y la
+propiedad `ModelBucket.tokens`; esos sí incluyen reasoning y por eso sus buckets
+cuadran con el total.
 
-`totalCost`, `totalTokens` y `scope: "device"` no son parte del contrato. El
-panel ignora claves desconocidas, pero hacen que el record se autodescriba para
-cualquier otro que lo lea. `scope: "device"` importa si en algún momento se
-activa el sync entre máquinas: los records de alcance de dispositivo se suman
-entre máquinas sincronizadas, en vez de tomar el valor más ancho.
+### Qué muestra cada UI
 
-```bash
-lemoria omarchy record --print    # inspeccionar sin escribir
-lemoria omarchy where             # el directorio que el panel vigila
-```
-
-### Qué muestra el panel y qué no
-
-El panel **agrega por modelo y por día**. Una sola pestaña para todo Lemoria.
-
-| Lo ves en el panel | Lo ves en `lemoria agent status` |
-|---|---|
-| Tokens por día, últimos 7 días | Tokens acumulados por subagente |
-| Tokens por modelo (split input / output / cache) | Modelo efectivo por subagente |
-| Sesiones y prompts de hoy | Sesiones y costo real por subagente |
-| Días activos acumulados | Sesiones vivas por subagente |
-| — | Agentes `builtin` de opencode |
-
-Dos cosas que **el panel no puede dar**, y no es culpa del record:
-
-- **Desglose por subagente.** El contrato no tiene un campo de agente; hay un
-  registro y una pestaña por proveedor, no por subagente.
-- **Costo.** El contrato no tiene campo de costo, así que Lemoria lo deja fuera
-  de la pestaña. El costo real vive en `lemoria agent status --json`.
-
-Por eso el desglose por agente se queda en el CLI en lugar de prometer una UI que
-el panel no puede dibujar.
+| `omarchy.agents` | `lemoria.usage` | CLI |
+|---|---|---|
+| Tokens por día | Total siempre visible en barra | Todo en texto/JSON |
+| Tokens por modelo | Hoy, 7 días y presupuesto | Ideal sin Omarchy |
+| Sesiones y prompts de hoy | Tabla de todos los agentes | Debug/automatización |
+| Días activos | Modelo dominante y `(+N more)` | `agent status` detallado |
 
 ### Escritura atómica
 
@@ -444,10 +432,12 @@ Corre sola en `lemoria init`.
   `LEMORIA_OPENCODE_AGENTS_DIR`. Con la variable apuntando a un directorio
   incompleto, `agent model` sincronizaría solo esos archivos y desactivaría el
   resto; un `lemoria agent sync` a secas lo corrige.
-- **`modelUsage` es histórico y la suma de sus buckets no cuadra con `totalTokens`.** El panel solo tiene cuatro buckets y no hay campo para razonamiento, así que la diferencia son los tokens de razonamiento (0,06% del total). Para el acumulado exacto por modelo está `lemoria agent status`.
+- **`modelUsage` sigue limitado por el contrato de Omarchy.** No tiene campo para razonamiento, pero el record conserva `totalTokens` y `agents[]` para el plugin propio, y el CLI usa `ModelBucket.tokens` para totales exactos.
 - **La nota `agents.md` del vault no incluye el modelo.** `export_agents()`
   escribe nombre, rol y descripción. Como los agentes se registran por proyecto
   y los modelos se heredan del invocador, la vista por agente con su modelo
   efectivo vive en `lemoria agent status`, no en Obsidian.
-- **El panel no distingue subagentes ni muestra costo.** Es su contrato, no el
-  record.
+- **`omarchy.agents` no distingue subagentes ni muestra costo.** Es su contrato,
+  no el record. El plugin `lemoria.usage` sí muestra la tabla por agente, pero
+  el costo sigue siendo poco útil cuando opencode reporta `0.0` para
+  proveedores por suscripción.

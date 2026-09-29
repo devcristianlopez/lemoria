@@ -472,6 +472,31 @@ class TestOmarchyRecord:
         record["recentDays"] = record["recentDays"][:3]
         assert any("7 entries" in p for p in validate_record(record))
 
+    def test_record_carries_budget_and_agents_for_our_panel(self, opencode_db):
+        from lemoria.budget import Budget
+
+        record = build_record(OpenCodeTelemetry(opencode_db).read(), Budget(monthly_tokens=1_000))
+        assert record["budget"]["funded"] == 1_000
+        assert record["budget"]["used"] == record["monthTokens"]
+        assert record["balance"]["remaining"] == 1_000 - record["monthTokens"]
+
+        agents = {agent["agent"]: agent for agent in record["agents"]}
+        assert agents["orchestrator"]["tokens"] > 0
+        assert agents["orchestrator"]["todayTokens"] >= 0
+        assert agents["orchestrator"]["model"] == "opencode/big-pickle"
+        assert "opencode/big-pickle" in agents["orchestrator"]["models"]
+
+    def test_record_keeps_agents_that_have_activity_but_zero_tokens(self, opencode_db):
+        from lemoria.opencode_telemetry import AgentUsage
+
+        telemetry = OpenCodeTelemetry(opencode_db).read()
+        telemetry.by_agent["zero-agent"] = AgentUsage(
+            name="zero-agent", sessions=1, prompts=2, tokens=0
+        )
+        record = build_record(telemetry)
+        names = [agent["agent"] for agent in record["agents"]]
+        assert "zero-agent" in names
+
     def test_write_is_atomic_and_leaves_no_temp_files(self, tmp_path, opencode_db):
         destination = tmp_path / "usage" / "lemoria.json"
         record = build_record(OpenCodeTelemetry(opencode_db).read())
@@ -530,6 +555,36 @@ class TestTimerUnits:
         assert service.read_text()
 
 
+class TestPluginInstall:
+    def test_installs_the_bundled_user_plugin(self, tmp_path):
+        from lemoria.omarchy import install_plugin
+
+        destination = install_plugin(tmp_path / "plugins" / "lemoria.usage")
+        assert destination.joinpath("manifest.json").exists()
+        assert destination.joinpath("Panel.qml").exists()
+        assert destination.joinpath("Record.qml").exists()
+
+    def test_reinstall_removes_stale_files(self, tmp_path):
+        from lemoria.omarchy import install_plugin
+
+        destination = install_plugin(tmp_path / "plugins" / "lemoria.usage")
+        destination.joinpath("old.qml").write_text("stale", encoding="utf-8")
+        install_plugin(destination)
+        assert not destination.joinpath("old.qml").exists()
+
+    def test_uninstall_removes_only_the_plugin(self, tmp_path):
+        from lemoria.omarchy import install_plugin, uninstall_plugin
+
+        root = tmp_path / "plugins"
+        destination = install_plugin(root / "lemoria.usage")
+        other = root / "other.plugin"
+        other.mkdir()
+        assert uninstall_plugin(destination) is True
+        assert not destination.exists()
+        assert other.exists()
+        assert uninstall_plugin(destination) is False
+
+
 class TestUninstall:
     """Uninstall has to remove exactly what install wrote, and nothing else."""
 
@@ -553,6 +608,7 @@ class TestUninstall:
         monkeypatch.setattr(subprocess, "run", lambda *a, **kw: calls.append(a))
         monkeypatch.setattr("lemoria.omarchy.default_unit_dir", lambda: tmp_path / "systemd")
         monkeypatch.setattr("lemoria.omarchy.default_record_dir", lambda: tmp_path / "usage")
+        monkeypatch.setattr("lemoria.omarchy.default_plugin_dir", lambda: tmp_path / "plugins")
         self.systemd_calls = calls
 
     def test_touches_neither_the_real_units_nor_the_real_record(self, tmp_path):
@@ -565,9 +621,11 @@ class TestUninstall:
 
         real_record = Path.home() / ".local/state/omarchy/agents/usage/lemoria.json"
         real_units = Path.home() / ".config/systemd/user"
+        real_plugins = Path.home() / ".config/omarchy/plugins"
 
         assert omarchy_module.default_record_dir() != real_record.parent
         assert omarchy_module.default_unit_dir() != real_units
+        assert omarchy_module.default_plugin_dir() != real_plugins
 
     def test_removes_the_units_it_installed(self, tmp_path, monkeypatch):
         from click.testing import CliRunner
