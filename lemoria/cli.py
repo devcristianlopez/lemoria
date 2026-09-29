@@ -511,16 +511,66 @@ def omarchy_install(interval: str, enable: bool):
         click.echo("\nsystemctl not found; enable the timer manually.", err=True)
         return
     try:
+        # Stop before reloading, always. A daemon-reload under a running timer
+        # can leave systemd holding a stale record of when the service last
+        # exited, which makes the OnUnitActiveSec elapse compute to zero: the
+        # timer then sits in "elapsed" forever, still reporting enabled and
+        # never firing again. Stopping first drops that record. It costs
+        # nothing when the timer was already stopped.
+        subprocess.run(["systemctl", "--user", "stop", "lemoria-usage.timer"], check=False)
         subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
         subprocess.run(["systemctl", "--user", "enable", "--now", "lemoria-usage.timer"], check=True)
     except subprocess.CalledProcessError as error:
         click.echo(f"\ncould not enable the timer: {error}", err=True)
         return
+
+    # Verify the timer actually has a next run scheduled, rather than trusting
+    # "enabled". A timer can report active with nothing queued, which looks
+    # fine until you notice the record stopped updating.
+    if not _timer_armed():
+        subprocess.run(["systemctl", "--user", "start", "lemoria-usage.service"], check=False)
+        if _timer_armed():
+            click.echo("\nTimer was installed but not scheduled; re-armed it.")
+        else:
+            click.echo(
+                "\n! The timer is enabled but has no next run scheduled. Try:\n"
+                "    systemctl --user stop lemoria-usage.timer\n"
+                "    systemctl --user start lemoria-usage.service\n"
+                "    systemctl --user start lemoria-usage.timer",
+                err=True,
+            )
+            return
+
     click.echo("\nTimer enabled. Next runs:")
     subprocess.run(
         ["systemctl", "--user", "list-timers", "lemoria-usage.timer", "--no-pager"],
         check=False,
     )
+
+
+def _timer_armed() -> bool:
+    """Whether systemd has a next elapse queued for the timer.
+
+    SubState is the only reliable signal here. `list-timers` and the
+    TimersMonotonic dump both keep reporting a next elapse for a stopped or
+    broken timer, because they describe the persisted config rather than the
+    live schedule. SubState does not:
+
+      waiting  armed, fires on the next elapse
+      dead     not started
+      elapsed  the bug this guards against: unit is active, nothing is queued,
+               and it never fires again
+    """
+    import shutil as _shutil
+    import subprocess
+
+    if not _shutil.which("systemctl"):
+        return False
+    out = subprocess.run(
+        ["systemctl", "--user", "show", "lemoria-usage.timer", "-p", "SubState", "--value"],
+        capture_output=True, text=True, check=False,
+    ).stdout.strip()
+    return out == "waiting"
 
 
 @omarchy.command("uninstall")

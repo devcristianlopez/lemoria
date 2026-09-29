@@ -3,6 +3,7 @@
 import json
 import sqlite3
 import time
+from pathlib import Path
 
 import pytest
 import yaml
@@ -428,18 +429,40 @@ class TestUninstall:
     """Uninstall has to remove exactly what install wrote, and nothing else."""
 
     @pytest.fixture(autouse=True)
-    def no_real_systemd(self, monkeypatch):
-        """Never let a test disable the developer's real timer.
+    def sandbox(self, tmp_path, monkeypatch):
+        """Keep `uninstall` away from the developer's real install.
 
-        `uninstall` shells out to `systemctl --user disable --now`, which acts
-        on the live user session no matter which directory the test redirected
-        the unit files to. Stub it so the command is exercised without side
-        effects on the machine running the suite.
+        The command has two ways out of the tmp_path the test hands it: it
+        shells out to `systemctl --user disable --now` (which acts on the live
+        session regardless of redirects) and it deletes the record file. Both
+        must be neutralised, or running the suite disables the real timer and
+        removes the real record.
+
+        Redirecting *both* directories by default, rather than per test, is the
+        point: a test that forgets to patch one of them then still cannot reach
+        the developer's machine.
         """
         import subprocess
 
         calls = []
         monkeypatch.setattr(subprocess, "run", lambda *a, **kw: calls.append(a))
+        monkeypatch.setattr("lemoria.omarchy.default_unit_dir", lambda: tmp_path / "systemd")
+        monkeypatch.setattr("lemoria.omarchy.default_record_dir", lambda: tmp_path / "usage")
+        self.systemd_calls = calls
+
+    def test_touches_neither_the_real_units_nor_the_real_record(self, tmp_path):
+        """The guard above is what keeps the suite non-destructive.
+
+        If this fails, the fixture stopped covering a path and the suite is
+        again one `pytest` away from deleting the panel's record.
+        """
+        from lemoria import omarchy as omarchy_module
+
+        real_record = Path.home() / ".local/state/omarchy/agents/usage/lemoria.json"
+        real_units = Path.home() / ".config/systemd/user"
+
+        assert omarchy_module.default_record_dir() != real_record.parent
+        assert omarchy_module.default_unit_dir() != real_units
 
     def test_removes_the_units_it_installed(self, tmp_path, monkeypatch):
         from click.testing import CliRunner
@@ -455,6 +478,7 @@ class TestUninstall:
         result = CliRunner().invoke(cli, ["omarchy", "uninstall"])
         assert result.exit_code == 0
         assert not units.joinpath("lemoria-usage.timer").exists()
+        assert self.systemd_calls, "uninstall should have asked systemd to stop the timer"
         assert not units.joinpath("lemoria-usage.service").exists()
 
     def test_is_idempotent_on_a_machine_that_never_installed(self, tmp_path, monkeypatch):
@@ -462,8 +486,6 @@ class TestUninstall:
 
         from lemoria.cli import cli
 
-        monkeypatch.setattr("lemoria.omarchy.default_unit_dir", lambda: tmp_path / "absent")
-        monkeypatch.setattr("lemoria.omarchy.default_record_dir", lambda: tmp_path / "absent2")
         result = CliRunner().invoke(cli, ["omarchy", "uninstall"])
         assert result.exit_code == 0
         assert "Not present" in result.output
@@ -484,6 +506,35 @@ class TestUninstall:
         result = CliRunner().invoke(cli, ["omarchy", "uninstall", "--keep-record"])
         assert result.exit_code == 0
         assert records.joinpath("lemoria.json").exists()
+
+
+class TestTimerArmed:
+    """`_timer_armed` has to separate armed from the state that never fires.
+
+    Both `list-timers` and the TimersMonotonic dump keep reporting a pending
+    elapse for a stopped or broken timer, so they cannot be used here. These
+    tests pin the one signal that does discriminate.
+    """
+
+    @pytest.mark.parametrize("substate, expected", [
+        ("waiting", True),   # armed, fires on the next elapse
+        ("dead", False),     # not started
+        ("elapsed", False),  # active but nothing queued: the bug
+    ])
+    def test_reads_substate(self, monkeypatch, substate, expected):
+        import subprocess
+
+        class Result:
+            stdout = substate + "\n"
+
+        monkeypatch.setattr(subprocess, "run", lambda *a, **kw: Result())
+        from lemoria.cli import _timer_armed
+        assert _timer_armed() is expected
+
+    def test_absent_systemctl_is_not_armed(self, monkeypatch):
+        import lemoria.cli
+        monkeypatch.setattr("shutil.which", lambda name: None)
+        assert lemoria.cli._timer_armed() is False
 
 
 class FakeAgent:

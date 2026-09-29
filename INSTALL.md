@@ -183,8 +183,20 @@ lemoria omarchy where          # dónde busca el panel los records
 
 No instala nada en `/usr/share/omarchy`: escribe un record JSON en el directorio
 que el panel ya vigila, que es la vía que el propio plugin documenta. Se
-deshace con `lemoria omarchy uninstall` y `systemctl --user disable --now
-lemoria-usage.timer`.
+deshace con `lemoria omarchy uninstall`.
+
+Si el panel deja de actualizar, el timer suele estar *activo pero sin disparo
+programado*: `systemctl --user list-timers` muestra `-` en la columna NEXT
+aunque diga `active`. Es el estado `elapsed`, y se arregla así:
+
+```bash
+systemctl --user stop lemoria-usage.timer
+systemctl --user start lemoria-usage.service   # rearma el ancla del timer
+systemctl --user start lemoria-usage.timer
+```
+
+`lemoria omarchy install` ahora verifica eso solo al terminar, y repara el
+timer si encuentra el estado roto.
 
 ## Consumo de opencode (todos los casos)
 
