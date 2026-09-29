@@ -25,6 +25,7 @@ Panel {
   readonly property color surface: Color.popups.background
   readonly property color track: Style.selectedFillFor(foreground, Color.accent)
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
+  readonly property int rightGap: Style.space(6)
 
   readonly property string stateHome: Quickshell.env("XDG_STATE_HOME")
     || (Quickshell.env("HOME") + "/.local/state")
@@ -72,12 +73,15 @@ Panel {
   // Bar.qml sizes a plugin slot from the root item's implicit size. Without
   // this contract the widget is registered and present in shell.json, but its
   // slot collapses to 0x0 and the user sees no Lemoria panel.
-  implicitWidth: button.implicitWidth
+  implicitWidth: button.implicitWidth + rightGap
   implicitHeight: button.implicitHeight
 
   BarIconButton {
     id: button
-    anchors.fill: parent
+    anchors.left: parent.left
+    anchors.verticalCenter: parent.verticalCenter
+    width: implicitWidth
+    height: parent.height
     bar: root.bar
     // The all-time total, always on the bar. It is the number the user asked
     // to see without clicking anything, so it never hides.

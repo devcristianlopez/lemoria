@@ -676,8 +676,12 @@ class TestPluginInstall:
         from lemoria.omarchy import plugin_source_dir
 
         panel = plugin_source_dir().joinpath("Panel.qml").read_text(encoding="utf-8")
-        assert "implicitWidth: button.implicitWidth" in panel
+        bar_button = panel.split("BarIconButton {", 1)[1].split("KeyboardPanel {", 1)[0]
+        assert "implicitWidth: button.implicitWidth + rightGap" in panel
         assert "implicitHeight: button.implicitHeight" in panel
+        assert "readonly property int rightGap: Style.space(6)" in panel
+        assert "anchors.fill: parent" not in bar_button
+        assert "width: implicitWidth" in bar_button
         assert 'text: usage.hasUsage ? root.compact(root.record.totalTokens) : "0"' in panel
 
     def test_reinstall_removes_stale_files(self, tmp_path):

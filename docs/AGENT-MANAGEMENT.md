@@ -383,7 +383,9 @@ escribe, y el comando decide si llama a `systemctl --user enable --now`. Con
 El bug más confuso es que todo esté instalado pero el slot mida `0x0`: Omarchy
 registra el plugin, pero la barra no reserva espacio. El `Panel.qml` de Lemoria
 ahora expone `implicitWidth`/`implicitHeight` desde el botón y el texto de barra
-cae a `0` cuando todavía no hay uso real. Por eso el comportamiento esperado es:
+cae a `0` cuando todavía no hay uso real. El mismo slot reserva su propio margen
+derecho para no quedar pegado al icono siguiente de la barra (Bluetooth, etc.)
+sin tocar `omarchy.agents`. Por eso el comportamiento esperado es:
 
 - con uso: se ve el total histórico compacto (`12K`, `293M`, etc.);
 - sin uso: se ve `0` y el popup muestra "Lemoria usage" con el estado vacío o
