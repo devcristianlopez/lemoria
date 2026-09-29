@@ -1,16 +1,20 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import ClassVar
+
 from sqlalchemy.orm import Session
+
+from database.enums import FlowStepStatus
+from database.models.decision import Decision
+from database.models.flow_step import FlowStep
 from database.models.prd import PRD
 from database.models.spec import Spec
 from database.models.task import Task
-from database.models.decision import Decision
-from database.models.flow_step import FlowStep
-from database.enums import FlowStepStatus
+
 from .orchestrator import Orchestrator
 
 
 class FlowEngine:
-    STEPS = [
+    STEPS: ClassVar[list[str]] = [
         "project", "conversation", "prd", "tasks",
         "implement", "test", "review",
         "commit", "document", "vault_sync", "consolidate", "complete"
@@ -99,7 +103,7 @@ class FlowEngine:
         """Record that a step is starting."""
         fs = self._get_or_create_step(flow_id, step)
         fs.status = FlowStepStatus.RUNNING
-        fs.started_at = datetime.now(timezone.utc)
+        fs.started_at = datetime.now(UTC)
         self.session.commit()
         return fs
 
@@ -107,7 +111,7 @@ class FlowEngine:
         """Mark a step as completed. Creates step if it doesn't exist."""
         fs = self._get_or_create_step(flow_id, step)
         fs.status = FlowStepStatus.COMPLETED
-        fs.completed_at = datetime.now(timezone.utc)
+        fs.completed_at = datetime.now(UTC)
         if output:
             fs.output = output
         self.session.commit()
@@ -117,7 +121,7 @@ class FlowEngine:
         """Mark a step as failed. Creates step if it doesn't exist."""
         fs = self._get_or_create_step(flow_id, step)
         fs.status = FlowStepStatus.FAILED
-        fs.completed_at = datetime.now(timezone.utc)
+        fs.completed_at = datetime.now(UTC)
         fs.output = error
         self.session.commit()
         return fs

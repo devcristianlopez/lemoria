@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
-from database.models.conversation import Conversation, Message
+
 from database.models.context import Context
+from database.models.conversation import Conversation, Message
 
 
 class MemoryService:

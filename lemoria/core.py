@@ -1,11 +1,11 @@
 from .config import settings
-from .database import init_db, get_session
-from .project import ProjectService
+from .database import get_session, init_db
+from .flow import FlowEngine
+from .git_service import GitService
 from .memory import MemoryService
 from .orchestrator import Orchestrator
-from .flow import FlowEngine
+from .project import ProjectService
 from .vault import VaultService
-from .git_service import GitService
 
 
 class Lemoria:
@@ -27,9 +27,10 @@ class Lemoria:
 
     def restore_from_vault(self, project_id: str, project_name: str) -> dict:
         """Restore project data from vault markdown files back to the database."""
+        from database.enums import FlowStepStatus
         from database.models.decision import Decision
         from database.models.flow_step import FlowStep
-        from database.enums import FlowStepStatus
+
         from .vault import VaultService
 
         # Mirror VaultService.restore_project so read and write agree on the path.
