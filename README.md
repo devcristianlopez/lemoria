@@ -304,6 +304,8 @@ lemoria omarchy where             # dónde busca el panel los records
 
 El panel **agrega por modelo y por día**: una sola pestaña para todo Lemoria, sin desglose por subagente y sin cifra de costo. Eso no se quita desde el contrato del panel — el panel no tiene campo de costo. Por eso el desglose por agente vive en el CLI.
 
+"TOKENS BY MODEL" es el **acumulado histórico**, no la última semana: es lo que el manifest del propio plugin llama *all-time model breakdown*. La última semana tiene su propia sección, "TOKENS BY DAY".
+
 El record se escribe de forma atómica (archivo temporal + rename) para que el watcher del panel nunca lea un documento a medias. `ready` es `false` mientras no haya consumo registrado, y el panel esconde la pestaña hasta que hay algo que mostrar.
 
 ### Timer de actualización
@@ -311,7 +313,7 @@ El record se escribe de forma atómica (archivo temporal + rename) para que el w
 El panel refresca sus propios collectors cada 15 min, pero solo conoce los suyos: `omarchy-agent-usage-update` escribe un record por collector `omarchy-agent-usage-*` y nunca toca el nuestro. Para que la pestaña de Lemoria se mantenga al día hace falta un timer propio, de **usuario** (systemd `--user`):
 
 ```bash
-lemoria omarchy install                  # cada 5 min, y lo activa
+lemoria omarchy install                  # cada 1 min, y lo activa
 lemoria omarchy install --interval 30min # otra frecuencia
 lemoria omarchy install --no-enable      # solo escribe las units, no las activa
 ```

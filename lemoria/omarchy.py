@@ -77,15 +77,15 @@ def build_record(telemetry: Telemetry) -> dict:
         "recentDays": telemetry.recent_days,
         "totalPrompts": telemetry.total_prompts,
         "totalSessions": telemetry.total_sessions,
-        # Not part of the panel's contract; the panel ignores unknown keys, but
-        # they make the record self-describing for anything else that reads it.
-        "totalTokens": telemetry.total_tokens,
-        "totalCost": telemetry.total_cost,
         "activeDays": len(telemetry.active_dates),
         "activeDates": telemetry.active_dates,
         "modelUsage": {
             model: bucket.as_contract() for model, bucket in telemetry.by_model.items()
         },
+        # Not part of the panel's contract: the panel ignores unknown keys, but
+        # they make the record self-describing for anything else that reads it.
+        "totalTokens": telemetry.total_tokens,
+        "totalCost": telemetry.total_cost,
     }
 
 
@@ -167,7 +167,7 @@ Description=Refresh the Omarchy agents panel
 
 [Timer]
 OnBootSec=1min
-OnUnitActiveSec=5min
+OnUnitActiveSec=1min
 Persistent=true
 Unit=lemoria-usage.service
 
@@ -191,7 +191,7 @@ def find_executable() -> str:
     return sys.executable
 
 
-def install_timer(unit_dir: Path | None = None, interval: str = "5min") -> tuple[Path, Path]:
+def install_timer(unit_dir: Path | None = None, interval: str = "1min") -> tuple[Path, Path]:
     """Write the user-level units that keep the panel record fresh.
 
     Returns (service_path, timer_path). Enabling the timer is left to the
@@ -203,7 +203,7 @@ def install_timer(unit_dir: Path | None = None, interval: str = "5min") -> tuple
     timer = directory / "lemoria-usage.timer"
     service.write_text(SERVICE_UNIT.format(executable=find_executable()), encoding="utf-8")
     timer.write_text(
-        TIMER_UNIT.replace("OnUnitActiveSec=5min", f"OnUnitActiveSec={interval}"),
+        TIMER_UNIT.replace("OnUnitActiveSec=1min", f"OnUnitActiveSec={interval}"),
         encoding="utf-8",
     )
     return service, timer

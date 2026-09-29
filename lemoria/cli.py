@@ -27,6 +27,7 @@ def _resolve_id(session, model, prefix: str) -> str | None:
 
 
 @click.group()
+@click.version_option(package_name="lemoria", prog_name="lemoria")
 def cli():
     pass
 
@@ -324,6 +325,121 @@ def model_cmd(name: str, model: str | None, variant: str | None, clear: bool):
     app.close()
 
 
+@cli.command("usage")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON instead of a table")
+def usage_cmd(as_json: bool):
+    """Show opencode token usage: all-time total, by model, by agent, last 7 days.
+
+    Everything the Omarchy panel draws, plus the per-agent and cost breakdown
+    the panel's contract has no field for. On a machine without Omarchy this
+    is the whole view.
+    """
+    import json as _json
+
+    from .opencode_telemetry import OpenCodeTelemetry
+
+    telemetry = OpenCodeTelemetry().read()
+    if not telemetry.available:
+        if as_json:
+            click.echo(_json.dumps({"available": False, "reason": telemetry.reason}, indent=2))
+        else:
+            click.echo(f"No telemetry: {telemetry.reason}", err=True)
+        # Non-zero: the command was asked for numbers and could not produce
+        # any, which is a failure worth catching in a script.
+        raise SystemExit(1)
+
+    def human(count: int) -> str:
+        """Token counts reach hundreds of millions; digits stop being readable."""
+        for unit, size in (("G", 1_000_000_000), ("M", 1_000_000), ("K", 1_000)):
+            if count >= size:
+                return f"{count / size:.1f}{unit}"
+        return str(count)
+
+    if as_json:
+        click.echo(_json.dumps({
+            "available": True,
+            "total": {
+                "tokens": telemetry.total_tokens,
+                "sessions": telemetry.total_sessions,
+                "prompts": telemetry.total_prompts,
+                "cost": telemetry.total_cost,
+                "activeDays": len(telemetry.active_dates),
+                "firstDay": telemetry.active_dates[0] if telemetry.active_dates else None,
+                "lastDay": telemetry.active_dates[-1] if telemetry.active_dates else None,
+            },
+            "today": {
+                "tokens": telemetry.today_tokens,
+                "sessions": telemetry.today_sessions,
+                "prompts": telemetry.today_prompts,
+            },
+            "byModel": [
+                {
+                    "model": model,
+                    "tokens": (
+                        bucket.input_tokens + bucket.output_tokens
+                        + bucket.cache_read + bucket.cache_write
+                    ),
+                    "inputTokens": bucket.input_tokens,
+                    "outputTokens": bucket.output_tokens,
+                    "cacheReadInputTokens": bucket.cache_read,
+                    "reasoningTokens": bucket.reasoning,
+                }
+                for model, bucket in sorted(
+                    telemetry.by_model.items(),
+                    key=lambda kv: -(
+                        kv[1].input_tokens + kv[1].output_tokens
+                        + kv[1].cache_read + kv[1].cache_write
+                    ),
+                )
+            ],
+            "byAgent": [
+                {
+                    "agent": name,
+                    "tokens": entry.tokens,
+                    "sessions": entry.sessions,
+                    "activeSessions": entry.active_sessions,
+                    "cost": entry.cost,
+                    "model": entry.model,
+                }
+                for name, entry in sorted(
+                    telemetry.by_agent.items(), key=lambda kv: -kv[1].tokens
+                )
+            ],
+            "recentDays": telemetry.recent_days,
+        }, indent=2))
+        return
+
+    span = ""
+    if telemetry.active_dates:
+        span = f"  ({telemetry.active_dates[0]} → {telemetry.active_dates[-1]})"
+    click.echo(f"\nTotal   {human(telemetry.total_tokens)} tokens{span}")
+    click.echo(f"        {telemetry.total_sessions} sessions · {telemetry.total_prompts} prompts"
+               f" · ${telemetry.total_cost:.2f} · {len(telemetry.active_dates)} active days")
+    click.echo(f"Today   {human(telemetry.today_tokens)} tokens"
+               f" · {telemetry.today_sessions} sessions · {telemetry.today_prompts} prompts\n")
+
+    click.echo("By model (all-time)")
+    for model, bucket in sorted(
+        telemetry.by_model.items(),
+        key=lambda kv: -(
+            kv[1].input_tokens + kv[1].output_tokens
+            + kv[1].cache_read + kv[1].cache_write
+        ),
+    ):
+        total = bucket.input_tokens + bucket.output_tokens + bucket.cache_read + bucket.cache_write
+        click.echo(f"  {model:44} {human(total):>9}  in {human(bucket.input_tokens):>8}"
+                   f"  out {human(bucket.output_tokens):>7}  cache {human(bucket.cache_read):>8}")
+
+    agents = [entry for entry in telemetry.by_agent.values() if entry.tokens]
+    if agents:
+        click.echo("\nBy agent (all-time)")
+        for entry in sorted(agents, key=lambda e: -e.tokens):
+            live = f"  {entry.active_sessions} live" if entry.active_sessions else ""
+            click.echo(f"  {entry.name:24} {human(entry.tokens):>9}  "
+                       f"{entry.sessions} sessions{live}")
+    click.echo("")
+
+
 @cli.group()
 def omarchy():
     """Integrate with the Omarchy desktop shell."""
@@ -359,7 +475,7 @@ def omarchy_record(output: str | None, print_only: bool):
         click.echo(
             f"  {record['totalSessions']} sessions, "
             f"{record['totalPrompts']} prompts, "
-            f"{record['totalTokens']:,} tokens, "
+            f"{record['totalTokens']:,} tokens acumulados, "
             f"${record['totalCost']:.2f}"
         )
     else:
@@ -367,7 +483,7 @@ def omarchy_record(output: str | None, print_only: bool):
 
 
 @omarchy.command("install")
-@click.option("--interval", default="5min", help="How often the panel should refresh (e.g. 5min, 1h)")
+@click.option("--interval", default="1min", help="How often the panel should refresh (e.g. 1min, 5min, 1h)")
 @click.option("--enable", is_flag=True, default=True, help="Enable and start the timer (--no-enable to only write)")
 def omarchy_install(interval: str, enable: bool):
     """Install the user-level timer that keeps the panel record fresh."""
@@ -405,6 +521,52 @@ def omarchy_install(interval: str, enable: bool):
         ["systemctl", "--user", "list-timers", "lemoria-usage.timer", "--no-pager"],
         check=False,
     )
+
+
+@omarchy.command("uninstall")
+@click.option("--keep-record", is_flag=True, default=False, help="Leave the record in place (the panel keeps its last tab)")
+def omarchy_uninstall(keep_record: bool):
+    """Remove the user-level timer and the record it published.
+
+    Everything written lives under the user's own home: two systemd units and
+    one JSON file. Nothing under /usr/share/omarchy is ever touched, so there
+    is nothing for omarchy update to miss.
+    """
+    import shutil as _shutil
+    import subprocess
+
+    from .omarchy import default_record_dir, default_unit_dir
+
+    units = [
+        default_unit_dir() / "lemoria-usage.service",
+        default_unit_dir() / "lemoria-usage.timer",
+    ]
+
+    if _shutil.which("systemctl"):
+        # Stop first: deleting a unit that systemd still has loaded leaves a
+        # timer running from an in-memory copy of the old file.
+        subprocess.run(["systemctl", "--user", "disable", "--now", "lemoria-usage.timer"],
+                       check=False, capture_output=True)
+        subprocess.run(["systemctl", "--user", "daemon-reload"], check=False, capture_output=True)
+
+    for unit in units:
+        if unit.exists():
+            unit.unlink()
+            click.echo(f"Removed {unit}")
+        else:
+            click.echo(f"Not present: {unit}")
+
+    record = default_record_dir() / "lemoria.json"
+    if keep_record:
+        click.echo(f"\nKept the record: {record}")
+        click.echo("The panel will keep showing its last values until they age out.")
+    elif record.exists():
+        record.unlink()
+        click.echo(f"Removed {record}")
+    else:
+        click.echo(f"Not present: {record}")
+
+    click.echo("\nUninstalled. Reinstall with: lemoria omarchy install")
 
 
 @omarchy.command("where")

@@ -23,14 +23,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Bucket keys must match the panel's contract exactly; it reads them by name.
-_MODEL_BUCKET = {
-    "input_tokens": "inputTokens",
-    "output_tokens": "outputTokens",
-    "cache_read": "cacheReadInputTokens",
-    "cache_write": "cacheCreationInputTokens",
-}
-
 _SESSION_COLUMNS = {
     "id", "agent", "model", "cost", "time_created", "time_updated",
     "parent_id", "tokens_input", "tokens_output", "tokens_reasoning",
@@ -44,22 +36,19 @@ ACTIVE_WINDOW_SECONDS = 300
 
 @dataclass
 class ModelBucket:
+    """One model's totals, in the four buckets the panel's contract names.
+
+    ``reasoning`` is tracked because the total reported to the CLI counts it,
+    but the panel has no field for it: its contract is four buckets, so the
+    panel's own sum is lower than `total_tokens` by exactly the reasoning
+    tokens. Widening the contract is Omarchy's call, not ours.
+    """
+
     input_tokens: int = 0
     output_tokens: int = 0
     cache_read: int = 0
     cache_write: int = 0
     reasoning: int = 0
-    sessions: int = 0
-
-    @property
-    def total(self) -> int:
-        return (
-            self.input_tokens
-            + self.output_tokens
-            + self.cache_read
-            + self.cache_write
-            + self.reasoning
-        )
 
     def as_contract(self) -> dict:
         """Shape the Omarchy panel expects for `modelUsage`."""
@@ -253,15 +242,18 @@ class OpenCodeTelemetry:
             if day
         ]
 
-        # Per model and per agent. Grouping in SQL keeps this a single pass
-        # rather than walking every session row in Python.
-        for model, i, o, r, cr, cw, cost, sessions in conn.execute(
+        # Per model, all-time, and per agent. The panel's own manifest calls
+        # this section the "all-time model breakdown", so a date filter here
+        # would hide most of the history from the one view built to show it.
+        # The 7-day window already has its own section ("tokens by day").
+        # Grouping in SQL keeps this a single pass rather than walking every
+        # session row in Python.
+        for model, i, o, r, cr, cw in conn.execute(
             "SELECT model,"
             " COALESCE(SUM(tokens_input),0), COALESCE(SUM(tokens_output),0),"
             " COALESCE(SUM(tokens_reasoning),0), COALESCE(SUM(tokens_cache_read),0),"
-            " COALESCE(SUM(tokens_cache_write),0), COALESCE(SUM(cost),0), COUNT(*)"
-            " FROM session WHERE time_created >= ? GROUP BY model",
-            (week_ago,),
+            " COALESCE(SUM(tokens_cache_write),0)"
+            " FROM session GROUP BY model",
         ):
             key = _model_id(model)
             bucket = out.by_model.setdefault(key, ModelBucket())
@@ -270,7 +262,6 @@ class OpenCodeTelemetry:
             bucket.reasoning += r
             bucket.cache_read += cr
             bucket.cache_write += cw
-            bucket.sessions += sessions
 
         # Today's split is a separate aggregate. Testing MIN(time_created)
         # against the day boundary looks like it would work, but a model used

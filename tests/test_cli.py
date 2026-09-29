@@ -1,11 +1,35 @@
 """Tests for CLI commands."""
 
-from lemoria.cli import cli
 from click.testing import CliRunner
+
+from lemoria.cli import cli
 
 
 class TestCLI:
     """Test CLI command existence and help output."""
+
+    def test_version_comes_from_the_installed_metadata(self):
+        """`__version__` is read from the package metadata, not a literal.
+
+        A hardcoded copy is exactly how the two drifted apart (0.1.0 here
+        against 0.2.0 in pyproject) — nothing read the literal, so nothing
+        caught the disagreement.
+        """
+        import tomllib
+        from pathlib import Path as _Path
+
+        from lemoria import __version__
+
+        pyproject = tomllib.loads(
+            _Path(__file__).resolve().parents[1].joinpath("pyproject.toml").read_text()
+        )
+        assert __version__ == pyproject["project"]["version"]
+
+    def test_version_flag_prints_it(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["--version"])
+        assert result.exit_code == 0
+        assert "lemoria" in result.output
 
     def test_flow_help(self):
         """Should show flow subcommands."""

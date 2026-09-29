@@ -74,6 +74,14 @@ def opencode_db(tmp_path):
                 json.dumps({"id": "zzz-stale", "providerID": "opencode", "variant": "low"}),
                 0.0, None, now - 1000, now - 86_400_000, 1, 1,
             ),
+            # 30 days old, on a model of its own. A date filter on the
+            # per-model aggregate would drop it; the panel's own manifest
+            # calls that section the all-time breakdown, so it must survive.
+            (
+                "s5", "orchestrator",
+                json.dumps({"id": "ancient", "providerID": "opencode"}),
+                0.0, None, now - 2_592_000_000, now - 2_592_000_000, 7, 3,
+            ),
         ],
     )
     conn.executemany(
@@ -212,8 +220,8 @@ class TestTelemetry:
     def test_reads_totals_from_the_fixture(self, opencode_db):
         telemetry = OpenCodeTelemetry(opencode_db).read()
         assert telemetry.available
-        assert telemetry.total_sessions == 4
-        assert telemetry.total_tokens == 702
+        assert telemetry.total_sessions == 5
+        assert telemetry.total_tokens == 712
         assert telemetry.total_prompts == 2
         assert telemetry.total_cost == pytest.approx(0.25)
 
@@ -250,6 +258,67 @@ class TestTelemetry:
         assert opencode_db.stat().st_mtime_ns == before
 
 
+class TestUsageCommand:
+    """`lemoria usage` is the whole view on a machine with no Omarchy panel."""
+
+    def test_reports_totals_models_and_agents(self, opencode_db, monkeypatch):
+        import json
+
+        from click.testing import CliRunner
+
+        from lemoria.cli import cli
+
+        monkeypatch.setattr(
+            "lemoria.opencode_telemetry.default_db_path", lambda: opencode_db
+        )
+        result = CliRunner().invoke(cli, ["usage", "--json"])
+        assert result.exit_code == 0
+        payload = json.loads(result.output)
+        assert payload["available"] is True
+        assert payload["total"]["tokens"] == 712
+        assert payload["total"]["sessions"] == 5
+        # s5 is 30 days old and must reach the all-time per-model breakdown.
+        assert any(m["model"] == "opencode/ancient" for m in payload["byModel"])
+        assert {a["agent"] for a in payload["byAgent"]} >= {"orchestrator", "review-agent"}
+
+    def test_models_are_ordered_heaviest_first(self, opencode_db, monkeypatch):
+        import json
+
+        from click.testing import CliRunner
+
+        from lemoria.cli import cli
+
+        monkeypatch.setattr(
+            "lemoria.opencode_telemetry.default_db_path", lambda: opencode_db
+        )
+        payload = json.loads(CliRunner().invoke(cli, ["usage", "--json"]).output)
+        totals = [m["tokens"] for m in payload["byModel"]]
+        assert totals == sorted(totals, reverse=True)
+
+    def test_missing_database_fails_loudly(self, tmp_path, monkeypatch):
+        from click.testing import CliRunner
+
+        from lemoria.cli import cli
+
+        monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "absent"))
+        result = CliRunner().invoke(cli, ["usage"])
+        assert result.exit_code == 1
+        assert "No telemetry" in result.output
+
+    def test_human_table_does_not_dump_raw_digit_strings(self, opencode_db, monkeypatch):
+        from click.testing import CliRunner
+
+        from lemoria.cli import cli
+
+        monkeypatch.setattr(
+            "lemoria.opencode_telemetry.default_db_path", lambda: opencode_db
+        )
+        result = CliRunner().invoke(cli, ["usage"])
+        assert result.exit_code == 0
+        assert "By model" in result.output
+        assert "By agent" in result.output
+
+
 class TestOmarchyRecord:
     def test_record_satisfies_the_panel_contract(self, opencode_db):
         record = build_record(OpenCodeTelemetry(opencode_db).read())
@@ -257,6 +326,14 @@ class TestOmarchyRecord:
         assert record["id"] == "lemoria"
         assert record["schemaVersion"] == 1
         assert record["scope"] == "device"
+
+    def test_model_usage_is_all_time_not_a_seven_day_window(self, opencode_db):
+        """The panel calls this section the all-time breakdown, so the per-model
+        aggregate must not be clipped to the week the daily chart covers."""
+        record = build_record(OpenCodeTelemetry(opencode_db).read())
+        # s5 is 30 days old: absent under any 7-day filter on the aggregate.
+        assert record["modelUsage"]["opencode/ancient"]["inputTokens"] == 7
+        assert record["modelUsage"]["opencode/ancient"]["outputTokens"] == 3
 
     def test_model_buckets_use_the_names_the_panel_reads(self, opencode_db):
         record = build_record(OpenCodeTelemetry(opencode_db).read())
@@ -345,6 +422,68 @@ class TestTimerUnits:
         assert not list(tmp_path.glob("timers.target.wants"))
         assert "WantedBy=timers.target" in timer.read_text()
         assert service.read_text()
+
+
+class TestUninstall:
+    """Uninstall has to remove exactly what install wrote, and nothing else."""
+
+    @pytest.fixture(autouse=True)
+    def no_real_systemd(self, monkeypatch):
+        """Never let a test disable the developer's real timer.
+
+        `uninstall` shells out to `systemctl --user disable --now`, which acts
+        on the live user session no matter which directory the test redirected
+        the unit files to. Stub it so the command is exercised without side
+        effects on the machine running the suite.
+        """
+        import subprocess
+
+        calls = []
+        monkeypatch.setattr(subprocess, "run", lambda *a, **kw: calls.append(a))
+
+    def test_removes_the_units_it_installed(self, tmp_path, monkeypatch):
+        from click.testing import CliRunner
+
+        from lemoria.cli import cli
+        from lemoria.omarchy import install_timer
+
+        units = tmp_path / "systemd"
+        install_timer(units)
+        assert units.joinpath("lemoria-usage.timer").exists()
+
+        monkeypatch.setattr("lemoria.omarchy.default_unit_dir", lambda: units)
+        result = CliRunner().invoke(cli, ["omarchy", "uninstall"])
+        assert result.exit_code == 0
+        assert not units.joinpath("lemoria-usage.timer").exists()
+        assert not units.joinpath("lemoria-usage.service").exists()
+
+    def test_is_idempotent_on_a_machine_that_never_installed(self, tmp_path, monkeypatch):
+        from click.testing import CliRunner
+
+        from lemoria.cli import cli
+
+        monkeypatch.setattr("lemoria.omarchy.default_unit_dir", lambda: tmp_path / "absent")
+        monkeypatch.setattr("lemoria.omarchy.default_record_dir", lambda: tmp_path / "absent2")
+        result = CliRunner().invoke(cli, ["omarchy", "uninstall"])
+        assert result.exit_code == 0
+        assert "Not present" in result.output
+
+    def test_keep_record_leaves_the_panel_file(self, tmp_path, monkeypatch):
+        from click.testing import CliRunner
+
+        from lemoria.cli import cli
+        from lemoria.omarchy import build_record, write_record
+        from lemoria.opencode_telemetry import OpenCodeTelemetry
+
+        records = tmp_path / "usage"
+        write_record(build_record(OpenCodeTelemetry(tmp_path / "absent.db").read()),
+                     records / "lemoria.json")
+
+        monkeypatch.setattr("lemoria.omarchy.default_unit_dir", lambda: tmp_path / "units")
+        monkeypatch.setattr("lemoria.omarchy.default_record_dir", lambda: records)
+        result = CliRunner().invoke(cli, ["omarchy", "uninstall", "--keep-record"])
+        assert result.exit_code == 0
+        assert records.joinpath("lemoria.json").exists()
 
 
 class FakeAgent:

@@ -23,10 +23,14 @@
 ## Requisitos
 
 - **Python** >= 3.11 + pip
-- **Docker** + **Docker Compose**
+- **PostgreSQL** >= 14 — o Docker con Docker Compose, si no tienes uno
 - **OpenCode** (CLI)
 - **Obsidian** (opcional)
 - **GitHub CLI `gh`** (opcional, para PRs automáticos)
+
+Docker **no** es obligatorio. Si ya tenés un PostgreSQL corriendo (en Arch es lo
+normal), el instalador lo detecta y lo deja como está: no administra servidores
+que ya estaban andando. Si no hay ninguno, lo levanta con Docker.
 
 ## Instalación (una sola vez)
 
@@ -48,27 +52,40 @@ Elige **1) Global**.
 
 | Paso | Acción |
 |------|--------|
-| 1 | Verifica Python, Docker |
+| 1 | Verifica Python y cómo arrives a PostgreSQL (nativo o Docker) |
 | 2 | Crea `.env` |
-| 3 | Levanta PostgreSQL en Docker |
-| 4 | Instala `lemoria` como comando global (`pip install --user`) |
+| 3 | Verifica las credenciales, o levanta PostgreSQL en Docker si no hay ninguno |
+| 4 | Instala `lemoria` como comando global (`pip install --user`, con venv propio como alternativa) |
 | 5 | Inicializa la base de datos |
-| 6 | Copia agentes y skills a `~/.config/opencode/` |
+| 6 | Copia agentes y skills a `~/.config/opencode/`, con `default_agent: orchestrator` |
 | 7 | Configura Context7 MCP (documentación en tiempo real para librerías) |
-| 8 | Crea `~/.config/opencode/opencode.json` con `default_agent: orchestrator` |
+| 8 | Detecta tu entorno: registra los agentes, ofrece el panel de Omarchy y avisa si no hay opencode |
+| 9 | Resumen con lo que quedó instalado |
+
+El paso 8 es el que decide integrations según la máquina: el panel de Omarchy
+solo se ofrece si estás en Omarchy, y la telemetría solo se activa si existe un
+`opencode.db`. Ninguna de las dos es obligatoria para instalar Lemoria.
 
 ### Después de instalar
 
 ```bash
 # Verifica que lemoria funciona (desde cualquier directorio)
+lemoria --version
 lemoria --help
 
-# Verifica que PostgreSQL está corriendo
-docker ps | grep lemoria-db
+# Los agentes quedaron registrados
+lemoria agent list
+
+# Consumo de opencode (si ya lo usaste)
+lemoria usage
 
 # El repo lemoria/ ya no hace falta, puedes borrarlo:
 # rm -rf ~/lemoria
 ```
+
+> Si borraste el repo, `lemoria agent sync` y `agent model` van a seguir
+> funcionando: leen y escriben los `.md` de donde estén, y el modo global los
+> deja en `~/.config/opencode/agents/`.
 
 ## Cómo crear un proyecto
 
@@ -153,9 +170,50 @@ lemoria decision log <project-id> -t "usar JWT" -d "stateless"
 lemoria agent list
 ```
 
+## Panel de Omarchy (solo si usás Omarchy)
+
+Si estás en Omarchy, el instalador te ofrece publicar el consumo de opencode en
+su panel de agentes:
+
+```bash
+lemoria omarchy install        # escribe el record + timer de usuario, cada 1 min
+lemoria omarchy record --print # ver el record sin escribirlo
+lemoria omarchy where          # dónde busca el panel los records
+```
+
+No instala nada en `/usr/share/omarchy`: escribe un record JSON en el directorio
+que el panel ya vigila, que es la vía que el propio plugin documenta. Se
+deshace con `lemoria omarchy uninstall` y `systemctl --user disable --now
+lemoria-usage.timer`.
+
+## Consumo de opencode (todos los casos)
+
+Con o sin Omarchy:
+
+```bash
+lemoria usage          # total, por modelo, por agente, últimos 7 días
+lemoria usage --json   # lo mismo, estructurado
+```
+
+El panel de Omarchy agrega todo en una sola pestaña: tokens por día, tokens por
+modelo (histórico completo) y días activos. **No** muestra el desglose por
+subagente ni el costo real, porque su contrato no tiene esos campos. Eso vive
+en el CLI.
+
+## Fijar el modelo de un agente (opcional)
+
+Por defecto los agentes **heredan** el modelo de quien los invoca, y podés
+cambiarlo cuando quieras:
+
+```bash
+lemoria agent model                                        # ver los modelos
+lemoria agent model implementation-agent <modelo> -v high   # fijar modelo y effort
+lemoria agent model implementation-agent --clear           # volver a heredar
+```
+
 ## Notas
 
-- PostgreSQL corre en Docker con `restart: unless-stopped` (siempre activo)
+- Si usás Docker, PostgreSQL corre con `restart: unless-stopped` (siempre activo)
 - Sin `gh` (GitHub CLI) el github-agent usa git manual
 - El vault para Obsidian se configura en `.env` (`LEMORIA_VAULT_PATH`) y por
   defecto queda en `~/.lemoria/vault`, **fuera de cualquier repositorio git**.

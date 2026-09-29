@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lemoria — Memory OS for AI Development</title>
+  <meta name="description" content="Spec-driven development memory for AI agents: 8 OpenCode agents, PostgreSQL traceability, opencode usage telemetry.">
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -509,6 +513,9 @@
     .install-term .line .ps1 { color: var(--green); font-weight: 700; flex-shrink: 0; }
     .install-term .line .cmd { color: var(--text); }
     .install-term .line .arg { color: var(--subtext0); }
+    .install-term .line.out { color: var(--subtext0); }
+    .install-term .line.out .k { color: var(--text); }
+    .install-term .line.out .n { color: var(--green); font-weight: 600; }
 
     /* ── Footer ──────────────────────────────────────── */
     footer {
@@ -575,6 +582,7 @@
         <li><a href="#features" data-i18n="nav.features">Features</a></li>
         <li><a href="#agents" data-i18n="nav.agents">Agentes</a></li>
         <li><a href="#sdd" data-i18n="nav.sdd">SDD Flow</a></li>
+        <li><a href="#telemetry" data-i18n="nav.telemetry">Telemetría</a></li>
         <li><a href="#start" data-i18n="nav.install">Instalación</a></li>
         <li class="nav-gh"><a href="https://github.com/devcristianlopez/lemoria" target="_blank" data-i18n="nav.github">GitHub</a></li>
         <li>
@@ -675,7 +683,7 @@
         </div>
         <div class="feat-card fade-in">
           <div class="num">[10]</div>
-          <h3 data-i18n="feat.10.title">41 Tests + CI Automático</h3>
+          <h3 data-i18n="feat.10.title">109 Tests + CI Automático</h3>
           <p data-i18n="feat.10.desc">Suite con pytest en SQLite in-memory + CI en GitHub Actions con matrix Python 3.11/3.12/3.13.</p>
         </div>
         <div class="feat-card fade-in">
@@ -687,6 +695,21 @@
           <div class="num">[12]</div>
           <h3 data-i18n="feat.12.title">Context7 MCP</h3>
           <p data-i18n="feat.12.desc">Documentación en tiempo real de librerías y frameworks vía MCP server.</p>
+        </div>
+        <div class="feat-card fade-in">
+          <div class="num">[13]</div>
+          <h3 data-i18n="feat.13.title">Telemetría de opencode</h3>
+          <p data-i18n="feat.13.desc">Lee <code>opencode.db</code> en modo read-only: sesiones, tokens y costo por agente. <code>lemoria usage</code> te da el total histórico, el desglose por modelo y por subagente.</p>
+        </div>
+        <div class="feat-card fade-in">
+          <div class="num">[14]</div>
+          <h3 data-i18n="feat.14.title">Panel de Omarchy</h3>
+          <p data-i18n="feat.14.desc">Publica el consumo en el panel de agentes de Omarchy como un record JSON, con un timer propio que lo refresca cada minuto. No toca <code>/usr/share/omarchy</code>.</p>
+        </div>
+        <div class="feat-card fade-in">
+          <div class="num">[15]</div>
+          <h3 data-i18n="feat.15.title">Modelos por agente</h3>
+          <p data-i18n="feat.15.desc">Fija modelo y reasoning effort por subagente. Por defecto heredan el de quien los invoca, y se cambian cuando quieras.</p>
         </div>
       </div>
     </div>
@@ -771,6 +794,60 @@
     </div>
   </section>
 
+  <!-- Telemetry -->
+  <section id="telemetry">
+    <div class="container">
+      <div class="section-header">
+        <div class="cmd"><code>$ lemoria usage</code> <span class="flag">--json</span></div>
+        <h2 data-i18n="tele.title">Tu consumo, de verdad</h2>
+        <p data-i18n="tele.desc">Lemoria lee <code>opencode.db</code> en modo read-only y convierte el consumo disperso en una sola lectura: cuánto llevas, en qué modelos y qué agente lo gastó.</p>
+      </div>
+
+      <div class="term-frame install-term fade-in">
+        <div class="term-titlebar">
+          <div class="term-dots"><span class="d-red"></span><span class="d-yellow"></span><span class="d-green"></span></div>
+          <span class="title">user@host — lemoria usage</span>
+        </div>
+        <div style="padding: 16px 20px; background: var(--bg);">
+          <div class="line"><span class="ps1">$</span><span class="cmd">lemoria usage</span></div>
+          <div class="line out" style="margin-top: 10px;"><span class="k">Total</span> <span class="n">273.8M tokens</span> <span>(2026-08-17 → 2026-09-28)</span></div>
+          <div class="line out"><span class="k">&nbsp;</span> <span>101 sessions · 4187 prompts · 11 active days</span></div>
+          <div class="line out" style="margin-top: 10px;"><span class="k">By model (all-time)</span></div>
+          <div class="line out"><span class="k">opencode/big-pickle</span> <span class="n">232.8M</span> <span>in 9.5M · out 220.8M · cache 2.6M</span></div>
+          <div class="line out"><span class="k">nvidia/…nemotron-3.5-lightning</span> <span class="n">40.8M</span> <span>in 2.0M · out 38.6M</span></div>
+          <div class="line out" style="margin-top: 10px;"><span class="k">By agent (all-time)</span></div>
+          <div class="line out"><span class="k">orchestrator</span> <span class="n">160.3M</span> <span>8 sessions</span></div>
+          <div class="line out"><span class="k">build</span> <span class="n">46.2M</span> <span>5 sessions</span></div>
+          <div class="line out"><span class="k">implementation-agent</span> <span class="n">35.7M</span> <span>36 sessions</span></div>
+        </div>
+      </div>
+
+      <ul class="start-list" style="margin-top: 28px;">
+        <li class="fade-in">
+          <span class="num">panel</span>
+          <div class="content">
+            <h3 data-i18n="tele.panel.title">En Omarchy, en el panel</h3>
+            <p data-i18n="tele.panel.desc">Si usas Omarchy, Lemoria publica el consumo en su panel de agentes: tokens por día y por modelo, con el histórico completo. Un timer propio lo refresca cada minuto y nunca toca <code>/usr/share/omarchy</code>.</p>
+          </div>
+        </li>
+        <li class="fade-in">
+          <span class="num">gap</span>
+          <div class="content">
+            <h3 data-i18n="tele.gap.title">Lo que el panel no tiene</h3>
+            <p data-i18n="tele.gap.desc">El panel agrupa todo en una pestaña: no hay campo de costo ni de subagente en su contrato. Por eso el desglose por agente y el costo real viven en el CLI, no en la UI.</p>
+          </div>
+        </li>
+        <li class="fade-in">
+          <span class="num">ro</span>
+          <div class="content">
+            <h3 data-i18n="tele.ro.title">Nunca bloquea a opencode</h3>
+            <p data-i18n="tele.ro.desc">Conexión read-only y cada agregado pushed a SQL. Lemoria lee miles de sesiones sin dejar un archivo de bloqueo ni frenar una sesión en curso.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
   <!-- How to start -->
   <section id="start">
     <div class="container">
@@ -828,6 +905,7 @@
         <li><a href="https://github.com/devcristianlopez/lemoria" target="_blank" data-i18n="nav.github">GitHub</a></li>
         <li><a href="#features" data-i18n="nav.features">Features</a></li>
         <li><a href="#agents" data-i18n="nav.agents">Agentes</a></li>
+        <li><a href="#telemetry" data-i18n="nav.telemetry">Telemetría</a></li>
         <li><a href="#start" data-i18n="nav.install">Instalación</a></li>
       </ul>
     </div>
@@ -837,10 +915,11 @@
     // ── Translations ──────────────────────────────────
     const i18n = {
       es: {
-        'nav.features': 'Features',
+        'nav.features': 'Características',
         'nav.agents': 'Agentes',
         'nav.sdd': 'SDD Flow',
         'nav.install': 'Instalación',
+        'nav.telemetry': 'Telemetría',
         'nav.github': 'GitHub',
         'lang.toggle': 'ES / EN',
         'hero.title': 'Memory OS para tu <span class="accent">desarrollo con IA</span><span class="cursor"></span>',
@@ -871,12 +950,26 @@
         'feat.08.desc': 'Exporta DB a markdown con wikilinks y restaura DB desde notas. Sin pérdida de datos.',
         'feat.09.title': 'Enums + CheckConstraints',
         'feat.09.desc': '8 enums tipados con restricciones a nivel DB. Sin strings mágicos.',
-        'feat.10.title': '41 Tests + CI Automático',
+        'feat.10.title': '109 Tests + CI Automático',
         'feat.10.desc': 'Suite con pytest en SQLite in-memory + CI en GitHub Actions con matrix Python 3.11/3.12/3.13.',
         'feat.11.title': '7 Skills Modulares',
         'feat.11.desc': 'Skills especializadas: frontend, backend, database, testing, code-review, git-workflow, documentation.',
         'feat.12.title': 'Context7 MCP',
         'feat.12.desc': 'Documentación en tiempo real de librerías y frameworks vía MCP server.',
+        'feat.13.title': 'Telemetría de opencode',
+        'feat.13.desc': 'Lee opencode.db en modo read-only: sesiones, tokens y costo por agente. `lemoria usage` te da el total histórico, el desglose por modelo y por subagente.',
+        'feat.14.title': 'Panel de Omarchy',
+        'feat.14.desc': 'Publica el consumo en el panel de agentes de Omarchy como un record JSON, con un timer propio que lo refresca cada minuto. No toca /usr/share/omarchy.',
+        'feat.15.title': 'Modelos por agente',
+        'feat.15.desc': 'Fija modelo y reasoning effort por subagente. Por defecto heredan el de quien los invoca, y se cambian cuando quieras.',
+        'tele.title': 'Tu consumo, de verdad',
+        'tele.desc': 'Lemoria lee `opencode.db` en modo read-only y convierte el consumo disperso en una sola lectura: cuánto llevas, en qué modelos y qué agente lo gastó.',
+        'tele.panel.title': 'En Omarchy, en el panel',
+        'tele.panel.desc': 'Si usas Omarchy, Lemoria publica el consumo en su panel de agentes: tokens por día y por modelo, con el histórico completo. Un timer propio lo refresca cada minuto y nunca toca `/usr/share/omarchy`.',
+        'tele.gap.title': 'Lo que el panel no tiene',
+        'tele.gap.desc': 'El panel agrupa todo en una pestaña: no hay campo de costo ni de subagente en su contrato. Por eso el desglose por agente y el costo real viven en el CLI, no en la UI.',
+        'tele.ro.title': 'Nunca bloquea a opencode',
+        'tele.ro.desc': 'Conexión read-only y cada agregado pushed a SQL. Lemoria lee miles de sesiones sin dejar un archivo de bloqueo ni frenar una sesión en curso.',
         'agents.title': 'Los 8 agentes',
         'agents.desc': 'Cada agente tiene un rol específico, permisos ajustados y recibe solo el contexto que necesita.',
         'agents.orchestrator.title': 'Orquestador',
@@ -943,6 +1036,7 @@
         'nav.agents': 'Agents',
         'nav.sdd': 'SDD Flow',
         'nav.install': 'Install',
+        'nav.telemetry': 'Telemetry',
         'nav.github': 'GitHub',
         'lang.toggle': 'ES / EN',
         'hero.title': 'Memory OS for your <span class="accent">AI development</span><span class="cursor"></span>',
@@ -973,12 +1067,26 @@
         'feat.08.desc': 'Export DB to markdown with wikilinks and restore DB from notes. No data loss.',
         'feat.09.title': 'Enums + CheckConstraints',
         'feat.09.desc': '8 typed enums with DB-level constraints. No magic strings.',
-        'feat.10.title': '41 Tests + Automated CI',
+        'feat.10.title': '109 Tests + Automated CI',
         'feat.10.desc': 'Test suite with pytest on SQLite in-memory + CI on GitHub Actions with Python 3.11/3.12/3.13 matrix.',
         'feat.11.title': '7 Modular Skills',
         'feat.11.desc': 'Specialized skills: frontend, backend, database, testing, code-review, git-workflow, documentation.',
         'feat.12.title': 'Context7 MCP',
         'feat.12.desc': 'Real-time documentation for libraries and frameworks via MCP server.',
+        'feat.13.title': 'opencode Telemetry',
+        'feat.13.desc': 'Reads opencode.db read-only: sessions, tokens and cost per agent. `lemoria usage` gives you the all-time total, the per-model and per-subagent breakdown.',
+        'feat.14.title': 'Omarchy Panel',
+        'feat.14.desc': 'Publishes usage to the Omarchy agents panel as a JSON record, with its own timer refreshing it every minute. Never touches /usr/share/omarchy.',
+        'feat.15.title': 'Per-agent Models',
+        'feat.15.desc': 'Pin a model and reasoning effort per subagent. By default they inherit the caller\'s model, and you change it whenever you want.',
+        'tele.title': 'Your usage, for real',
+        'tele.desc': 'Lemoria reads `opencode.db` read-only and turns scattered usage into a single read: how much you have spent, on which models, and which agent spent it.',
+        'tele.panel.title': 'On Omarchy, on the panel',
+        'tele.panel.desc': 'If you use Omarchy, Lemoria publishes usage to its agents panel: tokens per day and per model, with the all-time history. Its own timer refreshes it every minute and never touches `/usr/share/omarchy`.',
+        'tele.gap.title': 'What the panel cannot show',
+        'tele.gap.desc': 'The panel collapses everything into one tab: its contract has no cost field and no subagent field. That is why the per-agent breakdown and real cost live in the CLI, not in the UI.',
+        'tele.ro.title': 'Never blocks opencode',
+        'tele.ro.desc': 'Read-only connection and every aggregate pushed down to SQL. Lemoria reads thousands of sessions without leaving a lock file or stalling a session in progress.',
         'agents.title': 'The 8 Agents',
         'agents.desc': 'Each agent has a specific role, limited permissions, and receives only the context it needs.',
         'agents.orchestrator.title': 'Orchestrator',

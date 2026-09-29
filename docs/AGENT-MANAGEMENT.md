@@ -268,7 +268,7 @@ Claves que el panel lee de forma obligatoria:
 | `todayTotalTokens` | tokens de hoy | hoy |
 | `todayTokensByModel` | tokens de hoy por modelo | hoy |
 | `recentDays` | 7 entradas `{date, messageCount}` | 7 días |
-| `modelUsage` | buckets `inputTokens` / `outputTokens` / `cacheReadInputTokens` / `cacheCreationInputTokens` | 7 días |
+| `modelUsage` | buckets `inputTokens` / `outputTokens` / `cacheReadInputTokens` / `cacheCreationInputTokens` | histórico |
 | `totalPrompts` / `totalSessions` | conteos assistant y sesiones | histórico |
 | `activeDays` / `activeDates` | fechas con uso | histórico |
 | `limits` / `tierLabel` | `[]` y `""` | — |
@@ -280,6 +280,15 @@ reportar. El panel dibuja la pestaña sin el medidor principal.
 `recentDays[].messageCount` se alimenta con **tokens**, pese al nombre. No es un
 error: `Panel.qml` lo renderiza con `formatTokenCount(day.messageCount)` y lo
 etiqueta `· N tokens`.
+
+`modelUsage` es **histórico, no una ventana de 7 días**. El manifest del propio
+plugin llama a esa sección el "all-time model breakdown", así que recortarla
+escondía justamente el dato que existe para mostrar. Los 7 días ya tienen su
+sección propia: "TOKENS BY DAY" (`recentDays`).
+
+La suma de los buckets es menor que `totalTokens` por exactamente los tokens de
+razonamiento: el contrato del panel tiene cuatro buckets y no tiene campo para
+razonamiento. Hoy son ~157 mil sobre 265 millones (0,06%).
 
 `totalCost`, `totalTokens` y `scope: "device"` no son parte del contrato. El
 panel ignora claves desconocidas, pero hacen que el record se autodescriba para
@@ -332,7 +341,7 @@ sobrescribe los que no son suyos** — el nuestro sobrevive intacto, pero tampoc
 se refresca. De ahí el timer propio.
 
 ```bash
-lemoria omarchy install                  # 5 min, escribe y activa
+lemoria omarchy install                  # 1 min, escribe y activa
 lemoria omarchy install --interval 30min
 lemoria omarchy install --no-enable      # solo escribe las units
 ```
@@ -399,7 +408,7 @@ systemctl --user daemon-reload
 | `lemoria omarchy record` | Escribe el record del panel |
 | `lemoria omarchy record --print` | Lo muestra sin escribir |
 | `lemoria omarchy record -o PATH` | Lo escribe en otro directorio |
-| `lemoria omarchy install` | Instala y activa el timer de usuario |
+| `lemoria omarchy install` | Instala y activa el timer de usuario (cada 1 min) |
 | `lemoria omarchy where` | Ruta que el panel vigila |
 
 ### Configuración
@@ -435,7 +444,7 @@ Corre sola en `lemoria init`.
   `LEMORIA_OPENCODE_AGENTS_DIR`. Con la variable apuntando a un directorio
   incompleto, `agent model` sincronizaría solo esos archivos y desactivaría el
   resto; un `lemoria agent sync` a secas lo corrige.
-- **La ventana de `modelUsage` es de 7 días**, no histórica.
+- **`modelUsage` es histórico y la suma de sus buckets no cuadra con `totalTokens`.** El panel solo tiene cuatro buckets y no hay campo para razonamiento, así que la diferencia son los tokens de razonamiento (0,06% del total). Para el acumulado exacto por modelo está `lemoria agent status`.
 - **La nota `agents.md` del vault no incluye el modelo.** `export_agents()`
   escribe nombre, rol y descripción. Como los agentes se registran por proyecto
   y los modelos se heredan del invocador, la vista por agente con su modelo
