@@ -23,11 +23,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
-_SESSION_COLUMNS = {
-    "id", "agent", "model", "cost", "time_created", "time_updated",
-    "parent_id", "tokens_input", "tokens_output", "tokens_reasoning",
-    "tokens_cache_read", "tokens_cache_write",
-}
+# What the report still needs from `session`. It used to include the token
+# columns and time_created; those moved to `message`, which knows when the
+# tokens were spent rather than when the session began. Requiring them here
+# would reject a database that is perfectly readable.
+_SESSION_COLUMNS = {"agent", "cost", "parent_id", "time_updated"}
 
 # A session touched within this window counts as in flight. opencode has no
 # explicit "running" flag, so recency is the honest signal.
@@ -50,6 +50,19 @@ class ModelBucket:
     cache_write: int = 0
     reasoning: int = 0
 
+    @property
+    def tokens(self) -> int:
+        """Everything this bucket spent.
+
+        Written out by hand in three places, one of which forgot the
+        reasoning tokens, and the per-model line stopped adding up to the
+        total. One definition instead.
+        """
+        return (
+            self.input_tokens + self.output_tokens + self.reasoning
+            + self.cache_read + self.cache_write
+        )
+
     def as_contract(self) -> dict:
         """Shape the Omarchy panel expects for `modelUsage`."""
         return {
@@ -70,6 +83,12 @@ class AgentUsage:
     cost: float = 0.0
     model: str | None = None
     variant: str | None = None
+    prompts: int = 0
+    # Every model this agent has used, heaviest first. An agent is not pinned
+    # to one model: the orchestrator runs on whatever the user picked, and a
+    # subagent can be switched mid-session. Reporting a single "model" for an
+    # agent is how a wrong answer becomes invisible.
+    models: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -96,6 +115,23 @@ class Telemetry:
 def default_db_path() -> Path:
     data_home = os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share")
     return Path(data_home) / "opencode" / "opencode.db"
+
+
+# Token accounting lives on `message`, not on `session`. The session table only
+# carries a running total stamped with the session's *creation* time, which
+# makes a session that starts at 23:31 and runs past midnight report nothing at
+# all for the new day. Every message has its own timestamp and its own token
+# split, so attributing per message is both exact and cheap. The two agree
+# exactly in total: summing the message rows reproduces the session totals.
+_MESSAGE_TOKEN_SUM = (
+    "COALESCE(json_extract(m.data,'$.tokens.input'),0)"
+    " + COALESCE(json_extract(m.data,'$.tokens.output'),0)"
+    " + COALESCE(json_extract(m.data,'$.tokens.reasoning'),0)"
+    " + COALESCE(json_extract(m.data,'$.tokens.cache.read'),0)"
+    " + COALESCE(json_extract(m.data,'$.tokens.cache.write'),0)"
+)
+# Only assistant turns consume tokens; user rows carry zeroes.
+_ASSISTANT = "json_extract(m.data,'$.role') = 'assistant'"
 
 
 def _epoch_ms(days_ago: int = 0) -> int:
@@ -151,6 +187,19 @@ class OpenCodeTelemetry:
         return conn
 
     def _missing_columns(self, conn: sqlite3.Connection) -> set[str]:
+        """What this opencode build lacks for us to read it at all.
+
+        `message` is not optional any more: token accounting, the per-day
+        chart and the per-agent model split all come from it, because a
+        session row only carries a total stamped with the session's start.
+        A build without it gets the plain "schema changed" report instead of
+        a raw "no such table" from whichever query happened to run first.
+        """
+        tables = {row[0] for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )}
+        if "message" not in tables:
+            return {"message table"}
         have = {row[1] for row in conn.execute("PRAGMA table_info(session)")}
         return _SESSION_COLUMNS - have
 
@@ -182,44 +231,62 @@ class OpenCodeTelemetry:
         return telemetry
 
     def _read_into(self, conn: sqlite3.Connection, out: Telemetry) -> None:
-        # COALESCE every column, not just the outer SUM: one NULL would make
-        # the whole expression NULL for that row and SUM would skip it, losing
-        # that row's tokens with no visible error.
-        token_sum = (
-            "COALESCE(tokens_input,0) + COALESCE(tokens_output,0) "
-            "+ COALESCE(tokens_reasoning,0) + COALESCE(tokens_cache_read,0) "
-            "+ COALESCE(tokens_cache_write,0)"
-        )
+        # Session-level facts still come from `session`: it is the only place
+        # that knows how many sessions ran and which were subagent runs.
+        # Everything measured in *tokens* comes from `message` instead, because
+        # only a message knows when its tokens were spent and which model spent
+        # them. Reading tokens off `session` attributes a whole session to the
+        # day it started, so a session that crosses midnight reports nothing for
+        # the new day and a multi-day session dumps its whole total on day one.
+        # Cost is the one number still read off `session`, because opencode
+        # keeps it as a session-level rollup and the per-agent cost is summed
+        # from the same place. Tokens are the opposite case: the session only
+        # holds a total, so they come per message.
         today = _epoch_ms()
         week_ago = _epoch_ms(6)
         active_cutoff = int((time.time() - ACTIVE_WINDOW_SECONDS) * 1000)
 
         row = conn.execute(
-            f"SELECT COUNT(*), COALESCE(SUM({token_sum}), 0), COALESCE(SUM(cost), 0),"
-            f" COALESCE(SUM(CASE WHEN parent_id IS NOT NULL THEN 1 ELSE 0 END), 0)"
+            "SELECT COUNT(*),"
+            " COALESCE(SUM(CASE WHEN parent_id IS NOT NULL THEN 1 ELSE 0 END), 0),"
+            " COALESCE(SUM(cost), 0)"
             " FROM session"
         ).fetchone()
-        out.total_sessions, out.total_tokens, out.total_cost, out.subagent_sessions = row
+        out.total_sessions, out.subagent_sessions, out.total_cost = row
         out.total_prompts = self._count_prompts(conn)
 
+        # All-time tokens, summed per message.
+        out.total_tokens = conn.execute(
+            f"SELECT COALESCE(SUM({_MESSAGE_TOKEN_SUM}), 0)"
+            f" FROM message m WHERE {_ASSISTANT}"
+        ).fetchone()[0]
+
+        # Today, by the same measure. This is the number that used to read zero
+        # for anyone working past midnight.
         row = conn.execute(
-            f"SELECT COUNT(*), COALESCE(SUM({token_sum}), 0) FROM session"
-            " WHERE time_created >= ?",
+            f"SELECT COALESCE(SUM({_MESSAGE_TOKEN_SUM}), 0) FROM message m"
+            f" WHERE {_ASSISTANT} AND m.time_created >= ?",
             (today,),
         ).fetchone()
-        out.today_sessions, out.today_tokens = row
+        out.today_tokens = row[0]
         out.today_prompts = self._count_prompts(conn, since=today)
+        out.today_sessions = int(conn.execute(
+            "SELECT COUNT(DISTINCT session_id) FROM message"
+            " WHERE time_created >= ?",
+            (today,),
+        ).fetchone()[0])
 
         # Tokens per day, keyed by local date, for the panel's 7-day chart.
         days: dict[str, int] = {}
-        for created, tokens in conn.execute(
-            f"SELECT time_created, COALESCE({token_sum}, 0) FROM session"
-            " WHERE time_created IS NOT NULL AND time_created >= ?",
+        for day, tokens in conn.execute(
+            f"SELECT date(m.time_created / 1000, 'unixepoch', 'localtime'),"
+            f" COALESCE(SUM({_MESSAGE_TOKEN_SUM}), 0)"
+            f" FROM message m WHERE {_ASSISTANT} AND m.time_created >= ?"
+            f" GROUP BY 1",
             (week_ago,),
         ):
-            # Local calendar day, to match the panel. noqa: DTZ006
-            key = datetime.fromtimestamp(created / 1000).strftime("%Y-%m-%d")  # noqa: DTZ006
-            days[key] = days.get(key, 0) + tokens
+            if day:
+                days[day] = days.get(day, 0) + tokens
         out.recent_days = [
             {
                 "date": (datetime.now() - timedelta(days=offset)).strftime("%Y-%m-%d"),  # noqa: DTZ005
@@ -236,77 +303,103 @@ class OpenCodeTelemetry:
         out.active_dates = [
             day
             for (day,) in conn.execute(
-                "SELECT DISTINCT date(time_created / 1000, 'unixepoch', 'localtime')"
-                " FROM session ORDER BY 1"
+                f"SELECT DISTINCT date(m.time_created / 1000, 'unixepoch', 'localtime')"
+                f" FROM message m WHERE {_ASSISTANT} ORDER BY 1"
             )
             if day
         ]
 
-        # Per model, all-time, and per agent. The panel's own manifest calls
-        # this section the "all-time model breakdown", so a date filter here
-        # would hide most of the history from the one view built to show it.
-        # The 7-day window already has its own section ("tokens by day").
-        # Grouping in SQL keeps this a single pass rather than walking every
-        # session row in Python.
+        # Per model, all time. The panel's own manifest calls this section the
+        # "all-time model breakdown", so a date filter here would hide most of
+        # the history from the one view built to show it. The 7-day window
+        # already has its own section ("tokens by day").
         for model, i, o, r, cr, cw in conn.execute(
-            "SELECT model,"
-            " COALESCE(SUM(tokens_input),0), COALESCE(SUM(tokens_output),0),"
-            " COALESCE(SUM(tokens_reasoning),0), COALESCE(SUM(tokens_cache_read),0),"
-            " COALESCE(SUM(tokens_cache_write),0)"
-            " FROM session GROUP BY model",
+            f"SELECT json_extract(m.data,'$.providerID') || '/' || json_extract(m.data,'$.modelID'),"
+            f" COALESCE(SUM(json_extract(m.data,'$.tokens.input')),0),"
+            f" COALESCE(SUM(json_extract(m.data,'$.tokens.output')),0),"
+            f" COALESCE(SUM(json_extract(m.data,'$.tokens.reasoning')),0),"
+            f" COALESCE(SUM(json_extract(m.data,'$.tokens.cache.read')),0),"
+            f" COALESCE(SUM(json_extract(m.data,'$.tokens.cache.write')),0)"
+            f" FROM message m WHERE {_ASSISTANT} GROUP BY 1"
         ):
-            key = _model_id(model)
-            bucket = out.by_model.setdefault(key, ModelBucket())
+            if not model or "/" not in model:
+                continue
+            bucket = out.by_model.setdefault(model, ModelBucket())
             bucket.input_tokens += i
             bucket.output_tokens += o
             bucket.reasoning += r
             bucket.cache_read += cr
             bucket.cache_write += cw
+        # Drop models that never actually spent anything: they are rows the
+        # panel would draw as an empty bar.
+        out.by_model = {
+            model: bucket
+            for model, bucket in out.by_model.items()
+            if bucket.input_tokens or bucket.output_tokens
+            or bucket.reasoning or bucket.cache_read or bucket.cache_write
+        }
 
-        # Today's split is a separate aggregate. Testing MIN(time_created)
-        # against the day boundary looks like it would work, but a model used
-        # all week has its minimum before midnight and would be dropped.
+        # Today's split per model, same measure as the all-time one.
         for model, tokens in conn.execute(
-            f"SELECT model, COALESCE(SUM({token_sum}), 0) FROM session"
-            " WHERE time_created >= ? GROUP BY model",
+            f"SELECT json_extract(m.data,'$.providerID') || '/' || json_extract(m.data,'$.modelID'),"
+            f" COALESCE(SUM({_MESSAGE_TOKEN_SUM}), 0)"
+            f" FROM message m WHERE {_ASSISTANT} AND m.time_created >= ? GROUP BY 1",
             (today,),
         ):
-            out.today_by_model[_model_id(model)] = tokens
+            if model and "/" in model:
+                out.today_by_model[model] = tokens
 
-        for agent, model, i, o, r, cr, cw, cost, sessions, sub in conn.execute(
-            # The model of the most recently touched session, not MAX(model):
-            # MAX() over a JSON blob compares strings, so it will happily
-            # report a model the agent is not actually using.
+        # Per agent. Both halves come from different tables on purpose:
+        # `session` knows which runs were subagent runs and which are still
+        # live, `message` knows what each agent actually spent and on what.
+        for agent, sub, live, sessions, cost in conn.execute(
             "SELECT COALESCE(agent,'(none)'),"
-            " COALESCE((SELECT s2.model FROM session s2"
-            "   WHERE COALESCE(s2.agent,'(none)') = COALESCE(session.agent,'(none)')"
-            "   ORDER BY s2.time_updated DESC LIMIT 1),''),"
-            " COALESCE(SUM(tokens_input),0), COALESCE(SUM(tokens_output),0),"
-            " COALESCE(SUM(tokens_reasoning),0), COALESCE(SUM(tokens_cache_read),0),"
-            " COALESCE(SUM(tokens_cache_write),0), COALESCE(SUM(cost),0), COUNT(*),"
-            " COALESCE(SUM(CASE WHEN parent_id IS NOT NULL THEN 1 ELSE 0 END),0)"
-            " FROM session GROUP BY agent ORDER BY COUNT(*) DESC"
+            " COALESCE(SUM(CASE WHEN parent_id IS NOT NULL THEN 1 ELSE 0 END),0),"
+            f" COALESCE(SUM(CASE WHEN time_updated >= {active_cutoff} THEN 1 ELSE 0 END),0),"
+            " COUNT(*), COALESCE(SUM(cost),0)"
+            " FROM session GROUP BY agent"
         ):
             entry = out.by_agent.get(agent) or AgentUsage(name=agent)
-            entry.sessions += sessions
             entry.subagent_sessions += sub
-            entry.tokens += i + o + r + cr + cw
-            entry.cost += cost
-            entry.model = _model_id(model) if model else None
-            entry.variant = _model_variant(model) if model else None
+            entry.active_sessions += live
+            entry.sessions += sessions
+            entry.cost += cost or 0.0
             out.by_agent[agent] = entry
 
-        for agent, count, tokens in conn.execute(
-            f"SELECT COALESCE(agent,'(none)'), COUNT(*), COALESCE(SUM({token_sum}),0)"
-            # No parent_id filter on purpose: a subagent session always has a
-            # parent, so filtering to roots reported exactly zero live
-            # subagents -- the one number the user actually asked for.
-            " FROM session WHERE time_updated >= ? GROUP BY agent",
-            (active_cutoff,),
+        # Prompts per agent, as its own query. A correlated subquery reading
+        # session.agent would be the obvious way to write this, but that is not
+        # legal next to a GROUP BY: the column is neither grouped nor
+        # aggregated. Two queries merged here cost less than the workaround.
+        for agent, prompts in conn.execute(
+            f"SELECT COALESCE(json_extract(m.data,'$.agent'),'(none)'), COUNT(*)"
+            f" FROM message m WHERE {_ASSISTANT} GROUP BY 1"
         ):
             entry = out.by_agent.get(agent) or AgentUsage(name=agent)
-            entry.active_sessions += count
+            entry.prompts += prompts or 0
             out.by_agent[agent] = entry
+
+        # The model an agent is actually running, per agent and per model.
+        # Not MAX(model) over a JSON blob: that compares strings and will
+        # happily name a model the agent never used.
+        for agent, model, tokens in conn.execute(
+            f"SELECT COALESCE(json_extract(m.data,'$.agent'),'(none)'),"
+            f" json_extract(m.data,'$.providerID') || '/' || json_extract(m.data,'$.modelID'),"
+            f" COALESCE(SUM({_MESSAGE_TOKEN_SUM}), 0)"
+            f" FROM message m WHERE {_ASSISTANT} GROUP BY 1, 2"
+        ):
+            if not model or "/" not in model:
+                continue
+            entry = out.by_agent.setdefault(agent, AgentUsage(name=agent))
+            entry.models[model] = entry.models.get(model, 0) + tokens
+            entry.tokens += tokens
+
+        for entry in out.by_agent.values():
+            if entry.models:
+                # Heaviest first, so the headline model is the one that matters.
+                ordered = sorted(entry.models.items(), key=lambda kv: -kv[1])
+                entry.model = ordered[0][0]
+                entry.models = dict(ordered)
+            entry.variant = _model_variant(entry.model)
 
     @staticmethod
     def _count_prompts(conn: sqlite3.Connection, since: int | None = None) -> int:

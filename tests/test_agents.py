@@ -85,12 +85,48 @@ def opencode_db(tmp_path):
             ),
         ],
     )
+    # Messages carry the token accounting in the real database, so the fixture
+    # mirrors the session split onto them. A user turn is present too: only
+    # assistant rows have tokens, and the prompt count must not move when one
+    # is added.
+    def assistant(mid, sid, ts, provider, model_id, tokens, agent):
+        return (
+            mid, sid, ts, json.dumps({
+                "role": "assistant", "agent": agent,
+                "providerID": provider, "modelID": model_id,
+                "tokens": tokens, "cost": 0.0,
+            }),
+        )
+
     conn.executemany(
         "INSERT INTO message (id, session_id, time_created, data) VALUES (?,?,?,?)",
         [
-            ("m1", "s1", now, json.dumps({"role": "assistant"})),
-            ("m2", "s1", now, json.dumps({"role": "user"})),
-            ("m3", "s2", now, json.dumps({"role": "assistant"})),
+            # s1: 100 in + 50 out = 150, on big-pickle.
+            assistant("a1", "s1", now, "opencode", "big-pickle",
+                      {"input": 100, "output": 50, "reasoning": 7,
+                       "cache": {"read": 0, "write": 0}}, "orchestrator"),
+            ("u1", "s1", now, json.dumps({"role": "user", "agent": "orchestrator"})),
+            # s2: 200 + 20 = 220.
+            assistant("a2", "s2", now, "opencode", "big-pickle",
+                      {"input": 200, "output": 20, "reasoning": 0,
+                       "cache": {"read": 0, "write": 0}}, "review-agent"),
+            # s3: 300 + 30 = 330, a day old.
+            assistant("a3", "s3", now - 86_400_000, "opencode", "big-pickle",
+                      {"input": 300, "output": 30, "reasoning": 3,
+                       "cache": {"read": 0, "write": 0}}, "review-agent"),
+            # s4: 1 + 1 = 2, on a model that sorts last as a string. Any
+            # implementation that takes the alphabetically last model, or the
+            # one from the most recently *touched* session, is wrong here: the
+            # heaviest model is the honest answer.
+            assistant("a4", "s4", now - 1000, "opencode", "zzz-stale",
+                      {"input": 1, "output": 1, "reasoning": 0,
+                       "cache": {"read": 0, "write": 0}}, "orchestrator"),
+            # s5: 7 + 3 = 10, 30 days old, on a model of its own. A date filter
+            # on the per-model aggregate would drop it; the panel's own manifest
+            # calls that section the all-time breakdown, so it must survive.
+            assistant("a5", "s5", now - 2_592_000_000, "opencode", "ancient",
+                      {"input": 7, "output": 3, "reasoning": 0,
+                       "cache": {"read": 0, "write": 0}}, "orchestrator"),
         ],
     )
     conn.commit()
@@ -222,14 +258,83 @@ class TestTelemetry:
         telemetry = OpenCodeTelemetry(opencode_db).read()
         assert telemetry.available
         assert telemetry.total_sessions == 5
-        assert telemetry.total_tokens == 712
-        assert telemetry.total_prompts == 2
+        assert telemetry.total_tokens == 722
+        assert telemetry.total_prompts == 5  # one assistant turn per session
         assert telemetry.total_cost == pytest.approx(0.25)
 
     def test_splits_root_and_subagent_sessions(self, opencode_db):
         telemetry = OpenCodeTelemetry(opencode_db).read()
         assert telemetry.by_agent["review-agent"].subagent_sessions == 2
         assert telemetry.by_agent["orchestrator"].subagent_sessions == 0
+
+    def test_buckets_add_up_to_the_total(self, opencode_db):
+        """The per-model line stopped adding up to the total, quietly, because
+        the sum was written out by hand and one copy forgot the reasoning
+        tokens. Nothing crashed; the panel just showed a number that did not
+        match its own parts."""
+        telemetry = OpenCodeTelemetry(opencode_db).read()
+        by_model = sum(bucket.tokens for bucket in telemetry.by_model.values())
+        by_agent = sum(entry.tokens for entry in telemetry.by_agent.values())
+        assert by_model == telemetry.total_tokens
+        assert by_agent == telemetry.total_tokens
+
+    def test_a_session_spanning_midnight_counts_today(self, tmp_path):
+        """The bug this whole change exists for.
+
+        A session started at 23:31 keeps working after 00:00. It stamped
+        every token it ever spent with the date it *started*, so a long
+        overnight run reported 0 for today and put the whole amount on
+        yesterday. Tokens are attributed to the message that spent them, so
+        the half that happened after midnight lands on today.
+        """
+        midnight = time.time()
+        # Walk back to 23:31 of the previous day.
+        started = midnight - (midnight % 86_400_000) - 29 * 60_000
+        path = tmp_path / "overnight.db"
+        conn = sqlite3.connect(path)
+        conn.execute(
+            "CREATE TABLE session (id text PRIMARY KEY, agent text, model text,"
+            " cost real, parent_id text, time_created integer, time_updated integer)"
+        )
+        conn.execute(
+            "CREATE TABLE message (id text PRIMARY KEY, session_id text,"
+            " time_created integer, data text)"
+        )
+        now_ms = int(midnight * 1000)
+        conn.execute(
+            "INSERT INTO session VALUES (?,?,?,?,?,?,?)",
+            ("night", "orchestrator", '{"id":"m","providerID":"opencode"}',
+             0.0, None, int(started * 1000), now_ms),
+        )
+        conn.executemany(
+            "INSERT INTO message VALUES (?,?,?,?)",
+            [
+                # Before midnight.
+                ("before", "night", int(started * 1000) + 60_000, json.dumps({
+                    "role": "assistant", "agent": "orchestrator",
+                    "providerID": "opencode", "modelID": "m",
+                    "tokens": {"input": 1000, "output": 500,
+                               "cache": {"read": 0, "write": 0}},
+                })),
+                # After midnight, same session.
+                ("after", "night", now_ms, json.dumps({
+                    "role": "assistant", "agent": "orchestrator",
+                    "providerID": "opencode", "modelID": "m",
+                    "tokens": {"input": 200, "output": 100,
+                               "cache": {"read": 0, "write": 0}},
+                })),
+            ],
+        )
+        conn.commit()
+        conn.close()
+
+        telemetry = OpenCodeTelemetry(path).read()
+        assert telemetry.available
+        # Everything is still counted all-time.
+        assert telemetry.total_tokens == 1800
+        # But the post-midnight part is attributed to today, not yesterday.
+        assert telemetry.today_tokens == 300
+        assert telemetry.total_prompts == 2
 
     def test_recent_days_always_has_seven_entries(self, opencode_db):
         telemetry = OpenCodeTelemetry(opencode_db).read()
@@ -276,7 +381,7 @@ class TestUsageCommand:
         assert result.exit_code == 0
         payload = json.loads(result.output)
         assert payload["available"] is True
-        assert payload["total"]["tokens"] == 712
+        assert payload["total"]["tokens"] == 722
         assert payload["total"]["sessions"] == 5
         # s5 is 30 days old and must reach the all-time per-model breakdown.
         assert any(m["model"] == "opencode/ancient" for m in payload["byModel"])
@@ -665,32 +770,66 @@ class TestReportedModelAndActivity:
         telemetry = OpenCodeTelemetry(opencode_db).read()
         assert telemetry.by_agent["orchestrator"].active_sessions == 1
 
-    def test_null_token_columns_do_not_erase_a_row(self, tmp_path):
+    def test_null_token_fields_do_not_erase_a_message(self, tmp_path):
         """One NULL used to make the whole SUM expression NULL, and SUM skips
-        NULLs, so the row vanished with no error."""
+        NULLs, so the row vanished with no error.
+
+        The risk moved with the data: a message whose JSON omits `output` (or
+        the whole `cache` object) makes `json_extract` return NULL, and an
+        un-guarded SUM would drop that turn's tokens silently."""
         path = tmp_path / "nulls.db"
         conn = sqlite3.connect(path)
         conn.execute(
             "CREATE TABLE session (id text PRIMARY KEY, agent text, model text,"
-            " cost real, parent_id text, time_created integer, time_updated integer,"
-            " tokens_input integer, tokens_output integer, tokens_reasoning integer,"
-            " tokens_cache_read integer, tokens_cache_write integer)"
+            " cost real, parent_id text, time_created integer, time_updated integer)"
+        )
+        conn.execute(
+            "CREATE TABLE message (id text PRIMARY KEY, session_id text,"
+            " time_created integer, data text)"
         )
         now = int(time.time() * 1000)
-        conn.executemany(
+        conn.execute(
             "INSERT INTO session (id, agent, model, cost, parent_id, time_created,"
-            " time_updated, tokens_input, tokens_output) VALUES (?,?,?,?,?,?,?,?,?)",
+            " time_updated) VALUES (?,?,?,?,?,?,?)",
+            ("a", "review-agent", '{"id":"m","providerID":"opencode"}', 0.0, None, now, now),
+        )
+        conn.executemany(
+            "INSERT INTO message (id, session_id, time_created, data) VALUES (?,?,?,?)",
             [
-                ("a", "review-agent", '{"id":"m","providerID":"opencode"}', 0.0, None, now, now, 500, 50),
-                # tokens_output left NULL
-                ("b", "review-agent", '{"id":"m","providerID":"opencode"}', 0.0, None, now, now, 700, None),
+                ("m1", "a", now, json.dumps({
+                    "role": "assistant", "agent": "review-agent",
+                    "providerID": "opencode", "modelID": "m",
+                    "tokens": {"input": 500, "output": 50, "reasoning": 0,
+                               "cache": {"read": 0, "write": 0}},
+                })),
+                # `output` missing and no `cache` object at all: both paths must
+                # read as 0 instead of poisoning the sum.
+                ("m2", "a", now, json.dumps({
+                    "role": "assistant", "agent": "review-agent",
+                    "providerID": "opencode", "modelID": "m",
+                    "tokens": {"input": 700},
+                })),
             ],
         )
         conn.commit()
         conn.close()
         telemetry = OpenCodeTelemetry(path).read()
-        # 500+50 + 700+0: the second row must not disappear.
+        # 500+50 + 700+0: the second message must not disappear.
         assert telemetry.total_tokens == 1250
+        assert telemetry.by_model["opencode/m"].input_tokens == 1200
+
+    def test_a_database_without_messages_degrades_instead_of_raising(self, tmp_path):
+        """opencode owns this schema. A build that drops `message` should cost
+        us the report, not crash the timer that writes the panel record."""
+        path = tmp_path / "no-messages.db"
+        conn = sqlite3.connect(path)
+        conn.execute("CREATE TABLE session (id text PRIMARY KEY, agent text)")
+        conn.execute("INSERT INTO session (id, agent) VALUES ('a', 'build')")
+        conn.commit()
+        conn.close()
+        telemetry = OpenCodeTelemetry(path).read()
+        assert telemetry.available is False
+        assert "message table" in telemetry.reason
 
     def test_record_is_not_world_readable(self, tmp_path, opencode_db):
         """Omarchy's own collectors write 600. Usage counts are not secret,

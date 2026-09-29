@@ -355,6 +355,10 @@ def usage_cmd(as_json: bool):
                 return f"{count / size:.1f}{unit}"
         return str(count)
 
+    def short(model: str | None) -> str:
+        """`nvidia/nvidia/nemotron-3.5` is unreadable in a column."""
+        return (model or "?").rstrip("/").split("/")[-1]
+
     if as_json:
         click.echo(_json.dumps({
             "available": True,
@@ -375,10 +379,8 @@ def usage_cmd(as_json: bool):
             "byModel": [
                 {
                     "model": model,
-                    "tokens": (
-                        bucket.input_tokens + bucket.output_tokens
-                        + bucket.cache_read + bucket.cache_write
-                    ),
+                    "tokens": bucket.tokens,
+
                     "inputTokens": bucket.input_tokens,
                     "outputTokens": bucket.output_tokens,
                     "cacheReadInputTokens": bucket.cache_read,
@@ -386,10 +388,7 @@ def usage_cmd(as_json: bool):
                 }
                 for model, bucket in sorted(
                     telemetry.by_model.items(),
-                    key=lambda kv: -(
-                        kv[1].input_tokens + kv[1].output_tokens
-                        + kv[1].cache_read + kv[1].cache_write
-                    ),
+                    key=lambda kv: -kv[1].tokens,
                 )
             ],
             "byAgent": [
@@ -421,12 +420,9 @@ def usage_cmd(as_json: bool):
     click.echo("By model (all-time)")
     for model, bucket in sorted(
         telemetry.by_model.items(),
-        key=lambda kv: -(
-            kv[1].input_tokens + kv[1].output_tokens
-            + kv[1].cache_read + kv[1].cache_write
-        ),
+        key=lambda kv: -kv[1].tokens,
     ):
-        total = bucket.input_tokens + bucket.output_tokens + bucket.cache_read + bucket.cache_write
+        total = bucket.tokens
         click.echo(f"  {model:44} {human(total):>9}  in {human(bucket.input_tokens):>8}"
                    f"  out {human(bucket.output_tokens):>7}  cache {human(bucket.cache_read):>8}")
 
@@ -435,8 +431,20 @@ def usage_cmd(as_json: bool):
         click.echo("\nBy agent (all-time)")
         for entry in sorted(agents, key=lambda e: -e.tokens):
             live = f"  {entry.active_sessions} live" if entry.active_sessions else ""
+            # The model matters as much as the volume: an agent is not pinned to
+            # one, so show the heaviest and note the rest rather than implying
+            # a single one.
+            models = list(entry.models.items())
+            if len(models) > 1:
+                rest = f"  (+{len(models) - 1} more)"
+                models = models[:1]
+            else:
+                rest = ""
+            model = f"  {short(models[0][0])}" if models else ""
+            share = f" ({models[0][1] / entry.tokens:.0%})" if models else ""
             click.echo(f"  {entry.name:24} {human(entry.tokens):>9}  "
                        f"{entry.sessions} sessions{live}")
+            click.echo(f"  {'':24} {'':>9}  {model}{share}{rest}")
     click.echo("")
 
 
