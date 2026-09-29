@@ -198,10 +198,21 @@ opencode. Aporta sesiones, tokens y costo por agente sin pedirle nada a los
 agentes. Las columnas se detectan por feature detection: si opencode cambia su
 esquema, el reporte se degrada con un motivo legible en vez de fallar.
 
-### Omarchy Publisher (`omarchy.py`)
+### Omarchy Publisher (`omarchy.py`) y plugin `lemoria.usage`
 Traduce la telemetría al contrato JSON que el panel de agentes de Omarchy ya
-vigila, y opcionalmente instala un timer systemd de usuario que lo refresca.
-Es un *display consumer*: escribe atómicamente y nunca toca el plugin QML.
+vigila, instala un timer systemd de usuario que lo refresca, y copia el plugin
+QML propio de Lemoria a `~/.config/omarchy/plugins/lemoria.usage`. No toca
+`/usr/share/omarchy`: usa el directorio de plugins de usuario que el catálogo de
+Omarchy ya recorre.
+
+Hay dos consumidores del mismo record:
+
+- `omarchy.agents`, que solo lee el contrato nativo y omite claves desconocidas.
+- `lemoria.usage`, que lee claves extras (`agents`, `budget`, `monthTokens`) para
+  mostrar el total en la barra, presupuesto mensual y tabla por agente.
+
+La escritura del record sigue siendo atómica (tempfile + rename), para que ambos
+watchers reciban siempre un JSON completo.
 
 ### Enums y CheckConstraints
 8 enums tipados (`PRDStatus`, `TaskStatus`, `FlowStepStatus`, `DecisionStatus`, `ExecutionStatus`, `SpecStatus`, `CommitFileStatus`, `SolutionOutcome`) con `CheckConstraint` en 7 modelos para integridad de datos a nivel DB.
