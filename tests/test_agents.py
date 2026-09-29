@@ -671,18 +671,29 @@ class TestPluginInstall:
         assert destination.joinpath("Panel.qml").exists()
         assert destination.joinpath("Record.qml").exists()
 
-    def test_panel_root_exposes_a_bar_slot_size(self):
+    def test_panel_root_exposes_a_widget_button_bar_slot(self):
         """Omarchy sizes third-party bar widgets from the root implicit size."""
         from lemoria.omarchy import plugin_source_dir
 
         panel = plugin_source_dir().joinpath("Panel.qml").read_text(encoding="utf-8")
-        bar_button = panel.split("BarIconButton {", 1)[1].split("KeyboardPanel {", 1)[0]
-        assert "implicitWidth: button.implicitWidth + rightGap" in panel
+        widget_button = panel.split("WidgetButton {", 1)[1].split("KeyboardPanel {", 1)[0]
+        keyboard_panel = panel.split("KeyboardPanel {", 1)[1].split("PanelKeyCatcher {", 1)[0]
+        assert "readonly property real textMargin: 11.5" in panel
+        assert "implicitWidth: button.implicitWidth" in panel
         assert "implicitHeight: button.implicitHeight" in panel
-        assert "readonly property int rightGap: Style.space(6)" in panel
-        assert "anchors.fill: parent" not in bar_button
-        assert "width: implicitWidth" in bar_button
+        assert "id: button" in widget_button
+        assert "horizontalMargin: root.textMargin" in widget_button
+        assert "width: root.width > 0 ? root.width : implicitWidth" in widget_button
+        assert "height: root.height > 0 ? root.height : implicitHeight" in widget_button
+        assert "anchors.fill: parent" not in widget_button
         assert 'text: usage.hasUsage ? root.compact(root.record.totalTokens) : "0"' in panel
+        assert "onPressed: function(buttonCode)" in widget_button
+        assert "if (buttonCode === Qt.MiddleButton) root.toggle()" in widget_button
+        assert "else if (buttonCode === Qt.RightButton)" in widget_button
+        assert 'if (root.bar) root.bar.run("lemoria usage")' in widget_button
+        assert "else root.toggle()" in widget_button
+        assert "anchorItem: button" in keyboard_panel
+        assert "open: root.opened" in keyboard_panel
 
     def test_reinstall_removes_stale_files(self, tmp_path):
         from lemoria.omarchy import install_plugin

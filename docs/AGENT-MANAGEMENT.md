@@ -396,6 +396,7 @@ Si el panel sigue invisible, verificá de afuera hacia adentro:
 ```bash
 # 1. Está habilitado en la barra de Omarchy.
 omarchy plugin enable lemoria.usage --after omarchy.agents
+omarchy restart shell  # necesario para ver cambios de layout/márgenes del plugin
 
 # 2. El QML instalado es el plugin propio de Lemoria.
 test -f ~/.config/omarchy/plugins/lemoria.usage/Panel.qml
@@ -414,6 +415,11 @@ No diagnostiques el panel buscando `lemoria.json` en
 `~/.local/state/omarchy/agents/usage/`: ese directorio pertenece a
 `omarchy.agents`. Si hay un record legado allí, `lemoria omarchy install` lo
 borra para conservar aislados Claude/Codex/Fireworks.
+
+Si el plugin ya estaba habilitado y el archivo QML cambió, `rescanPlugins` puede
+detectar el plugin pero no refrescar visualmente márgenes o tamaño del botón. Para
+cambios de layout (por ejemplo la separación con Bluetooth), reiniciá la shell de
+Omarchy con `omarchy restart shell` después de actualizar el plugin.
 
 ### Deshacerlo
 

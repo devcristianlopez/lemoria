@@ -25,7 +25,10 @@ Panel {
   readonly property color surface: Color.popups.background
   readonly property color track: Style.selectedFillFor(foreground, Color.accent)
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
-  readonly property int rightGap: Style.space(6)
+  // Make the gap part of the clickable/rendered item itself. BarIconButton is
+  // intentionally a fixed icon slot, so adding a sibling spacer can still look
+  // collapsed in the shell row; WidgetButton sizes from its text plus margins.
+  readonly property real textMargin: 11.5
 
   readonly property string stateHome: Quickshell.env("XDG_STATE_HOME")
     || (Quickshell.env("HOME") + "/.local/state")
@@ -73,16 +76,18 @@ Panel {
   // Bar.qml sizes a plugin slot from the root item's implicit size. Without
   // this contract the widget is registered and present in shell.json, but its
   // slot collapses to 0x0 and the user sees no Lemoria panel.
-  implicitWidth: button.implicitWidth + rightGap
+  implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
-  BarIconButton {
+  WidgetButton {
     id: button
     anchors.left: parent.left
     anchors.verticalCenter: parent.verticalCenter
-    width: implicitWidth
-    height: parent.height
+    width: root.width > 0 ? root.width : implicitWidth
+    height: root.height > 0 ? root.height : implicitHeight
     bar: root.bar
+    fontSize: Style.bar.iconFont
+    horizontalMargin: root.textMargin
     // The all-time total, always on the bar. It is the number the user asked
     // to see without clicking anything, so it never hides.
     text: usage.hasUsage ? root.compact(root.record.totalTokens) : "0"

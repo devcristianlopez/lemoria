@@ -224,6 +224,11 @@ systemctl --user status lemoria-usage.timer
 systemctl --user list-timers lemoria-usage.timer --no-pager
 ```
 
+Para cambios visuales del plugin ya instalado (márgenes, separación con
+Bluetooth, tamaño del botón), ejecutá `omarchy restart shell` después de
+actualizarlo. Un rescan de plugins puede detectar archivos nuevos sin reconstruir
+la instancia visible de la barra.
+
 El record sigue siendo Lemoria-owned: no debe aparecer como
 `~/.local/state/omarchy/agents/usage/lemoria.json`. Si existe uno legado,
 `lemoria omarchy install --interval 1min` lo borra y reinstala el plugin propio.

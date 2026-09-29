@@ -329,6 +329,7 @@ systemctl --user list-timers lemoria-usage.timer --no-pager
 
 Con cero uso registrado el botón ya no colapsa: muestra `0` y al abrirlo enseña el estado vacío o el motivo (`opencode data unavailable`, etc.).
 Si no ves ni el `0`, el problema está en la activación del plugin o en la recarga de Omarchy, no en el record de uso.
+Después de actualizar el plugin, los cambios visuales de layout/márgenes pueden requerir `omarchy restart shell`; `rescanPlugins` no siempre refresca la instancia visible.
 
 Es reversible:
 

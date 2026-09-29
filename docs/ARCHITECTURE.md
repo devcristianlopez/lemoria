@@ -222,6 +222,9 @@ del botón como `implicitWidth`/`implicitHeight`; así la barra no colapsa el sl
 gap derecho dentro del plugin Lemoria para que su número no invada el icono
 siguiente (por ejemplo Bluetooth) sin modificar el panel nativo de Omarchy. En
 ese caso el botón muestra `0` y el popup explica el estado en vez de desaparecer.
+Como Omarchy puede conservar instancias visuales del plugin, un `rescanPlugins`
+no siempre alcanza para reflejar cambios de layout o márgenes ya instalados; tras
+actualizar `Panel.qml`, la verificación visual fiable es `omarchy restart shell`.
 
 ### Enums y CheckConstraints
 8 enums tipados (`PRDStatus`, `TaskStatus`, `FlowStepStatus`, `DecisionStatus`, `ExecutionStatus`, `SpecStatus`, `CommitFileStatus`, `SolutionOutcome`) con `CheckConstraint` en 7 modelos para integridad de datos a nivel DB.
