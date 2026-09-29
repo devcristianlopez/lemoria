@@ -244,7 +244,7 @@ Claude/Codex/Fireworks. QML no lee `opencode.db`: solo observa
 ```mermaid
 flowchart LR
   OC[("opencode.db")] -->|lectura de solo lectura| TEL[OpenCodeTelemetry]
-  BUD["~/.config/lemoria/budget.json"] --> REC[build_record]
+  BUD["~/.config/lemoria/budget.json (opcional)"] --> REC[build_record]
   TEL --> REC
   REC -->|temp + rename| DIR["~/.local/state/lemoria/omarchy/usage.json"]
   DIR -->|watcher| NEW[lemoria.usage]
@@ -279,7 +279,7 @@ Claves propias para `lemoria.usage`:
 |---|---|
 | `totalTokens` | total histórico exacto, incluyendo razonamiento |
 | `monthTokens` | tokens desde el día 1 local |
-| `budget` | `{funded, used, remaining, percent, status}` |
+| `budget` | `{funded, used, remaining, percent, status}` si hay presupuesto configurado |
 | `balance` | `{funded, remaining}` compatible con el medidor de Omarchy |
 | `agents[]` | nombre, total, hoy, sesiones, prompts, modelo dominante y reparto por modelo |
 
@@ -302,7 +302,7 @@ cuadran con el total.
 | Panel nativo `omarchy.agents` | `lemoria.usage` | CLI |
 |---|---|---|
 | Tokens por día | Total siempre visible en barra | Todo en texto/JSON |
-| Tokens por modelo | Hoy, 7 días y presupuesto | Ideal sin Omarchy |
+| Tokens por modelo | Hoy, 7 días y agentes consolidados | Ideal sin Omarchy |
 | Sesiones y prompts de hoy | Tabla de todos los agentes | Debug/automatización |
 | Días activos | Modelo dominante y `(+N more)` | `agent status` detallado |
 
@@ -320,7 +320,9 @@ documento completo.
 El panel nativo refresca solo sus propios collectors (`claude.json`,
 `codex.json`, `fireworks.json`). Lemoria no participa de ese directorio: su
 record privado vive en `~/.local/state/lemoria/omarchy/usage.json`. De ahí el
-timer propio.
+timer propio. Ese mismo tick sanea `codex.json` cuando el collector nativo falla
+intermitentemente con `account/read`, preservando el último límite bueno sin
+editar `/usr/share/omarchy`.
 
 ```bash
 lemoria omarchy install                  # 1 min, escribe y activa

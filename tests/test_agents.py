@@ -565,6 +565,93 @@ class TestTimerUnits:
         assert service.read_text()
 
 
+class TestCodexStabilizer:
+    def test_caches_good_limits_and_clears_stale_login_hint(self, tmp_path):
+        from lemoria.omarchy import stabilize_codex_record
+
+        record = tmp_path / "codex.json"
+        cache = tmp_path / "cache.json"
+        record.write_text(json.dumps({
+            "id": "codex",
+            "ready": True,
+            "todayTotalTokens": 100,
+            "totalPrompts": 2,
+            "usageStatusText": "",
+            "authHelpText": "Run `codex login` to authenticate.",
+            "tierLabel": "plus",
+            "limits": [{"label": "5h window", "percent": 0.5}],
+        }), encoding="utf-8")
+
+        changed, message = stabilize_codex_record(record, cache)
+        assert changed is True
+        assert "stabilized" in message
+        fixed = json.loads(record.read_text())
+        assert fixed["authHelpText"] == ""
+        assert json.loads(cache.read_text())["limits"] == fixed["limits"]
+
+    def test_restores_cached_limits_when_account_read_fails(self, tmp_path):
+        from lemoria.omarchy import stabilize_codex_record
+
+        record = tmp_path / "codex.json"
+        cache = tmp_path / "cache.json"
+        cache.write_text(json.dumps({
+            "schemaVersion": 1,
+            "limits": [{"label": "5h window", "percent": 0.62}],
+            "tierLabel": "plus",
+        }), encoding="utf-8")
+        record.write_text(json.dumps({
+            "id": "codex",
+            "ready": True,
+            "todayTotalTokens": 100,
+            "totalPrompts": 2,
+            "usageStatusText": "Codex limits unavailable",
+            "authHelpText": "account/read",
+            "tierLabel": "",
+            "limits": [],
+        }), encoding="utf-8")
+
+        changed, _ = stabilize_codex_record(record, cache)
+        fixed = json.loads(record.read_text())
+        assert changed is True
+        assert fixed["usageStatusText"] == ""
+        assert fixed["authHelpText"] == ""
+        assert fixed["tierLabel"] == "plus"
+        assert fixed["limits"] == [{"label": "5h window", "percent": 0.62}]
+
+    def test_missing_codex_record_is_a_noop(self, tmp_path):
+        from lemoria.omarchy import stabilize_codex_record
+
+        changed, message = stabilize_codex_record(tmp_path / "missing.json", tmp_path / "cache.json")
+        assert changed is False
+        assert "missing" in message
+
+    def test_account_read_without_usage_is_not_hidden(self, tmp_path):
+        from lemoria.omarchy import stabilize_codex_record
+
+        record = tmp_path / "codex.json"
+        record.write_text(json.dumps({
+            "id": "codex", "ready": False, "todayTotalTokens": 0,
+            "totalPrompts": 0, "usageStatusText": "Codex limits unavailable",
+            "authHelpText": "account/read", "limits": [],
+        }), encoding="utf-8")
+        changed, _ = stabilize_codex_record(record, tmp_path / "cache.json")
+        fixed = json.loads(record.read_text())
+        assert changed is False
+        assert fixed["authHelpText"] == "account/read"
+
+    def test_malformed_numeric_fields_do_not_crash(self, tmp_path):
+        from lemoria.omarchy import stabilize_codex_record
+
+        record = tmp_path / "codex.json"
+        record.write_text(json.dumps({
+            "id": "codex", "ready": True, "todayTotalTokens": "many",
+            "totalPrompts": {}, "todayPrompts": [], "usageStatusText": "",
+            "authHelpText": "account/read", "limits": [],
+        }), encoding="utf-8")
+        changed, _ = stabilize_codex_record(record, tmp_path / "cache.json")
+        assert changed is False
+
+
 class TestPluginInstall:
     def test_installs_the_bundled_user_plugin(self, tmp_path):
         from lemoria.omarchy import install_plugin

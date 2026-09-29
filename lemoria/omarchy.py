@@ -66,6 +66,124 @@ def remove_legacy_agents_record() -> bool:
     return False
 
 
+def native_agents_usage_dir() -> Path:
+    """The native Omarchy Agents panel directory. Read/patch with care."""
+    state_home = os.environ.get("XDG_STATE_HOME") or (Path.home() / ".local" / "state")
+    return Path(state_home) / "omarchy" / "agents" / "usage"
+
+
+def native_codex_record_path() -> Path:
+    return native_agents_usage_dir() / "codex.json"
+
+
+def codex_limits_cache_path() -> Path:
+    return default_record_dir() / "codex-limits.json"
+
+
+def _read_json(path: Path) -> dict | None:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _write_json_atomic(path: Path, payload: dict, mode: int = 0o600) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle, temp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    temp_path = Path(temp_name)
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8") as stream:
+            json.dump(payload, stream, separators=(",", ":"), sort_keys=True)
+            stream.write("\n")
+        temp_path.chmod(mode)
+        temp_path.replace(path)
+    except BaseException:
+        temp_path.unlink(missing_ok=True)
+        raise
+    return path
+
+
+def _codex_int(value) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _codex_has_usage(record: dict) -> bool:
+    return bool(record.get("ready")) and (
+        _codex_int(record.get("todayTotalTokens")) > 0
+        or _codex_int(record.get("totalPrompts")) > 0
+        or _codex_int(record.get("todayPrompts")) > 0
+    )
+
+
+def _codex_good_limits(record: dict) -> bool:
+    return (
+        isinstance(record.get("limits"), list)
+        and len(record["limits"]) > 0
+        and not str(record.get("usageStatusText") or "")
+    )
+
+
+def stabilize_codex_record(
+    record_path: Path | None = None,
+    cache_path: Path | None = None,
+) -> tuple[bool, str]:
+    """Hide Codex collector's intermittent `account/read` failure from the panel.
+
+    The native collector sometimes times out on the app-server RPC method
+    `account/read`. When that happens it writes `authHelpText: "account/read"`,
+    and the native panel flashes that implementation detail instead of usage. We
+    do not edit `/usr/share/omarchy`; we only sanitize the user-state JSON and
+    keep the last good limits/tier as a cache.
+    """
+    target = record_path or native_codex_record_path()
+    cache = cache_path or codex_limits_cache_path()
+    record = _read_json(target)
+    if record is None:
+        return False, "codex record missing"
+
+    changed = False
+    if _codex_good_limits(record):
+        cached = _read_json(cache) or {}
+        if (cached.get("limits"), cached.get("tierLabel")) != (
+            record.get("limits") or [],
+            record.get("tierLabel") or "",
+        ):
+            _write_json_atomic(cache, {
+                "schemaVersion": 1,
+                "updatedAt": datetime.now(UTC).isoformat(),
+                "limits": record.get("limits") or [],
+                "tierLabel": record.get("tierLabel") or "",
+            })
+
+    usage_status = str(record.get("usageStatusText") or "")
+    auth_help = str(record.get("authHelpText") or "")
+    has_usage = _codex_has_usage(record)
+
+    if usage_status == "Codex limits unavailable":
+        cached = _read_json(cache) or {}
+        if cached.get("limits"):
+            record["limits"] = cached["limits"]
+            record["tierLabel"] = cached.get("tierLabel") or record.get("tierLabel") or ""
+            record["usageStatusText"] = ""
+            changed = True
+
+    # These messages are auth/debug details, not useful usage data. When local
+    # usage exists, the panel should keep showing usage rather than flashing an
+    # RPC method name or a stale login hint.
+    if has_usage and auth_help in {"account/read", "Run `codex login` to authenticate."}:
+        record["authHelpText"] = ""
+        changed = True
+
+    if changed:
+        _write_json_atomic(target, record)
+        return True, "codex record stabilized"
+    return False, "codex record already stable"
+
+
 def default_plugin_dir() -> Path:
     """Where Omarchy's plugin catalog looks for user plugins."""
     return Path.home() / ".config" / "omarchy" / "plugins"

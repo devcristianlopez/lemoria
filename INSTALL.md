@@ -175,8 +175,8 @@ lemoria agent list
 Si estás en Omarchy, Lemoria instala un plugin propio además del record JSON:
 
 ```bash
+lemoria omarchy install      # plugin + record privado + timer de usuario, cada 1 min
 lemoria budget 500M          # opcional: presupuesto mensual en tokens
-lemoria omarchy install      # plugin + record + timer de usuario, cada 1 min
 lemoria omarchy record --print
 lemoria omarchy where
 ```
@@ -191,8 +191,10 @@ lemoria omarchy uninstall
 ```
 
 El widget muestra el total histórico siempre en la barra. Al abrirlo ves hoy,
-los últimos 7 días, presupuesto usado/restante y la tabla por agente con modelo
-dominante, tokens totales y tokens de hoy. Los que no usan Omarchy tienen lo
+los últimos 7 días y la tabla por agente con modelo dominante, tokens totales y
+tokens de hoy. El presupuesto aparece solo si lo configurás. El timer también
+sanea el bug intermitente de Codex cuando el collector nativo escribe
+`account/read`. Los que no usan Omarchy tienen lo
 mismo por CLI:
 
 ```bash

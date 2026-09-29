@@ -288,9 +288,8 @@ El `--json` incluye además los agentes propios de opencode (`build`, `plan`, �
 Omarchy ya trae un panel de agentes para Claude/Codex/Fireworks. Lemoria **no escribe en ese directorio**: instala un plugin propio, `lemoria.usage`, y lee un record privado en `~/.local/state/lemoria/omarchy/usage.json` para no tocar el panel nativo.
 
 ```bash
-lemoria budget 500M              # presupuesto mensual en tokens; reinicia el día 1
-lemoria budget                   # uso del mes, restante y estado
-lemoria omarchy install          # plugin + record + timer de usuario, cada 1 min
+lemoria omarchy install          # plugin + record privado + timer de usuario, cada 1 min
+lemoria budget 500M              # opcional: presupuesto mensual en tokens
 lemoria omarchy record --print   # inspeccionar el JSON sin escribir
 lemoria omarchy where            # dónde busca Omarchy los records
 ```
@@ -299,10 +298,10 @@ El widget propio deja el **total acumulado** siempre visible en la barra. Al abr
 
 - total histórico, sesiones, prompts y rango de fechas;
 - tokens de hoy y últimos 7 días;
-- presupuesto mensual en tokens, con `ok`/`warn` al 80%/`over`;
-- tabla con **todos los agentes**, total, tokens de hoy, sesiones, prompts y el modelo dominante con `(+N more)` cuando usó más de uno.
+- tabla con **todos los agentes**, total consolidado, tokens de hoy, sesiones, prompts y el modelo dominante con `(+N more)` cuando usó más de uno;
+- presupuesto mensual en tokens solo si lo configurás.
 
-El record del plugin es privado (`~/.local/state/lemoria/omarchy/usage.json`): `omarchy.agents` no lo ve, así que Claude/Codex/Fireworks quedan intactos.
+El record del plugin es privado (`~/.local/state/lemoria/omarchy/usage.json`): `omarchy.agents` no lo ve, así que Claude/Codex/Fireworks quedan intactos. El timer también sanea el `codex.json` nativo cuando el collector de Codex devuelve el error intermitente `account/read`.
 
 ### Timer de actualización
 

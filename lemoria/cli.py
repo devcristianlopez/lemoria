@@ -505,7 +505,7 @@ def budget_cmd(limit: str | None, clear: bool):
 def omarchy_record(output: str | None, print_only: bool):
     """Publish opencode usage for the Lemoria-owned Omarchy widget."""
     from .budget import Budget
-    from .omarchy import build_record, validate_record
+    from .omarchy import build_record, stabilize_codex_record, validate_record
     from .opencode_telemetry import OpenCodeTelemetry
 
     telemetry = OpenCodeTelemetry().read()
@@ -524,6 +524,9 @@ def omarchy_record(output: str | None, print_only: bool):
 
     destination = write_record(record, Path(output) if output else None)
     click.echo(f"Wrote {destination}")
+    codex_changed, codex_message = stabilize_codex_record()
+    if codex_changed:
+        click.echo(f"  {codex_message}")
     if telemetry.reason:
         click.echo(f"  ! {telemetry.reason}", err=True)
     if record["ready"]:
@@ -553,6 +556,7 @@ def omarchy_install(interval: str, enable: bool):
         install_plugin,
         install_timer,
         remove_legacy_agents_record,
+        stabilize_codex_record,
         write_record,
     )
     from .opencode_telemetry import OpenCodeTelemetry
@@ -570,13 +574,27 @@ def omarchy_install(interval: str, enable: bool):
     # Publish once now so the panel is populated before the first tick.
     destination = write_record(build_record(OpenCodeTelemetry().read(), Budget.load()))
     click.echo(f"Wrote {destination}")
+    codex_changed, codex_message = stabilize_codex_record()
+    if codex_changed:
+        click.echo(f"  {codex_message}")
 
     if not enable:
-        click.echo("\nTimer written but not enabled.")
+        click.echo("\nPlugin, record and timer written but not enabled.")
         return
 
     import shutil as _shutil
     import subprocess
+
+    if _shutil.which("omarchy"):
+        result = subprocess.run(
+            ["omarchy", "plugin", "enable", "lemoria.usage", "--after", "omarchy.agents"],
+            check=False, capture_output=True, text=True,
+        )
+        if result.returncode == 0:
+            click.echo("Enabled lemoria.usage in the Omarchy bar")
+        else:
+            click.echo("Could not enable lemoria.usage automatically; run:", err=True)
+            click.echo("    omarchy plugin enable lemoria.usage --after omarchy.agents", err=True)
 
     if not _shutil.which("systemctl"):
         click.echo("\nsystemctl not found; enable the timer manually.", err=True)

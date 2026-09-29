@@ -273,7 +273,26 @@ Panel {
 
           PanelSectionHeader {
             width: parent.width
-            text: "By agent"
+            text: "By agent · consolidated"
+          }
+
+          Text {
+            width: parent.width
+            text: "Totals include every model/provider an agent used; model is the dominant one."
+            color: root.dim
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+            wrapMode: Text.WordWrap
+          }
+
+          Row {
+            width: parent.width
+            spacing: Style.space(6)
+
+            Text { width: parent.width * 0.42; text: "agent"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+            Text { width: parent.width * 0.24; text: "total"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; horizontalAlignment: Text.AlignRight }
+            Text { width: parent.width * 0.18; text: "today"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; horizontalAlignment: Text.AlignRight }
+            Text { width: parent.width * 0.16; text: "share"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; horizontalAlignment: Text.AlignRight }
           }
 
           Repeater {
