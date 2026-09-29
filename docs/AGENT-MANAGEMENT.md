@@ -1,7 +1,7 @@
 # Gestión de agentes y telemetría
 
 Cómo Lemoria conoce a sus subagentes, cómo se cambia el modelo de cada uno y
-cómo se publica el consumo al panel de agentes de Omarchy.
+cómo se publica el consumo al widget propio de Omarchy sin tocar Codex.
 
 Tres ideas explican casi todo lo de esta página:
 
@@ -236,24 +236,19 @@ heredar.
 
 ### Record compatible + plugin propio
 
-Hay dos consumidores del mismo record:
-
-1. `omarchy.agents`, el panel de Omarchy. Lee solo su contrato conocido y por eso
-   ignora cualquier clave nueva.
-2. `lemoria.usage`, el plugin propio de Lemoria. Lee las claves extras para
-   mostrar total global, presupuesto y tabla por agente.
-
-El record sigue siendo el punto único de verdad: QML no lee `opencode.db`, solo
-observa `~/.local/state/omarchy/agents/usage/lemoria.json`.
+`lemoria.usage` tiene un record privado. No comparte el directorio de
+`omarchy.agents`, porque ese directorio es el contrato del panel nativo
+Claude/Codex/Fireworks. QML no lee `opencode.db`: solo observa
+`~/.local/state/lemoria/omarchy/usage.json`.
 
 ```mermaid
 flowchart LR
   OC[("opencode.db")] -->|lectura de solo lectura| TEL[OpenCodeTelemetry]
   BUD["~/.config/lemoria/budget.json"] --> REC[build_record]
   TEL --> REC
-  REC -->|temp + rename| DIR["~/.local/state/omarchy/agents/usage/lemoria.json"]
-  DIR -->|watcher| OLD[omarchy.agents]
+  REC -->|temp + rename| DIR["~/.local/state/lemoria/omarchy/usage.json"]
   DIR -->|watcher| NEW[lemoria.usage]
+  NATIVE["~/.local/state/omarchy/agents/usage/{claude,codex,fireworks}.json"] --> OLD[omarchy.agents]
   TEL --> CLI[lemoria usage]
 ```
 
@@ -263,7 +258,7 @@ directorio que el catálogo de Omarchy recorre para plugins de usuario. Nada baj
 
 ### El contrato del record
 
-Claves que `omarchy.agents` lee de forma obligatoria:
+Claves heredadas del contrato de `omarchy.agents` que conservamos por forma:
 
 | Clave | Origen en Lemoria | Ventana |
 |---|---|---|
@@ -278,7 +273,7 @@ Claves que `omarchy.agents` lee de forma obligatoria:
 | `activeDays` / `activeDates` | fechas con uso | histórico |
 | `limits` / `tierLabel` | `[]` y `""` | — |
 
-Claves extras para `lemoria.usage`:
+Claves propias para `lemoria.usage`:
 
 | Clave | Para qué |
 |---|---|
@@ -304,7 +299,7 @@ cuadran con el total.
 
 ### Qué muestra cada UI
 
-| `omarchy.agents` | `lemoria.usage` | CLI |
+| Panel nativo `omarchy.agents` | `lemoria.usage` | CLI |
 |---|---|---|
 | Tokens por día | Total siempre visible en barra | Todo en texto/JSON |
 | Tokens por modelo | Hoy, 7 días y presupuesto | Ideal sin Omarchy |
@@ -322,16 +317,15 @@ documento completo.
 
 ## El timer
 
-El panel refresca sus propios collectors cada `refreshIntervalSec` (900 s por
-defecto) llamando a `omarchy-agent-usage-update`. Ese script escribe un record
-por cada collector `omarchy-agent-usage-*` que encuentre y **no borra ni
-sobrescribe los que no son suyos** — el nuestro sobrevive intacto, pero tampoco
-se refresca. De ahí el timer propio.
+El panel nativo refresca solo sus propios collectors (`claude.json`,
+`codex.json`, `fireworks.json`). Lemoria no participa de ese directorio: su
+record privado vive en `~/.local/state/lemoria/omarchy/usage.json`. De ahí el
+timer propio.
 
 ```bash
 lemoria omarchy install                  # 1 min, escribe y activa
 lemoria omarchy install --interval 30min
-lemoria omarchy install --no-enable      # solo escribe las units
+lemoria omarchy install --no-enable      # solo escribe plugin, record privado y units
 ```
 
 Genera dos units de **usuario** (no de sistema, no necesitan root):
@@ -339,7 +333,7 @@ Genera dos units de **usuario** (no de sistema, no necesitan root):
 `~/.config/systemd/user/lemoria-usage.service`
 ```ini
 [Unit]
-Description=Publish lemoria opencode usage to the Omarchy panel
+Description=Publish lemoria opencode usage to the Lemoria Omarchy plugin
 
 [Service]
 Type=oneshot
@@ -349,7 +343,7 @@ ExecStart=/ruta/al/lemoria omarchy record
 `~/.config/systemd/user/lemoria-usage.timer`
 ```ini
 [Unit]
-Description=Refresh the Omarchy agents panel
+Description=Refresh the Lemoria usage widget
 
 [Timer]
 OnBootSec=1min
@@ -437,7 +431,6 @@ Corre sola en `lemoria init`.
   escribe nombre, rol y descripción. Como los agentes se registran por proyecto
   y los modelos se heredan del invocador, la vista por agente con su modelo
   efectivo vive en `lemoria agent status`, no en Obsidian.
-- **`omarchy.agents` no distingue subagentes ni muestra costo.** Es su contrato,
-  no el record. El plugin `lemoria.usage` sí muestra la tabla por agente, pero
-  el costo sigue siendo poco útil cuando opencode reporta `0.0` para
-  proveedores por suscripción.
+- **`omarchy.agents` queda aislado.** Lemoria no escribe records en su directorio
+  nativo; si aparece un `lemoria.json` legado allí, `lemoria omarchy install` lo
+  borra para no tocar Claude/Codex/Fireworks.

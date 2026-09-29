@@ -29,7 +29,7 @@ Instálalo **una sola vez** y todos tus proyectos —limpios, separados, sin con
 - 🎯 **SDD Flow completo** — 15 pasos: discovery → idea → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory update
 - 🤖 **8 agentes OpenCode** — Un orquestador que delega automáticamente a agentes especializados (implementation, frontend, DB, testing, GitHub, review, documentation)
 - 🧭 **Gestión de agentes** — Los subagentes viven en la DB, y su modelo se ve y se cambia por agente (`lemoria agent sync|model|status`)
-- 📊 **Telemetría de opencode** — Sesiones, tokens y costo por agente, y un record publicado al panel de agentes de Omarchy
+- 📊 **Telemetría de opencode** — Sesiones, tokens y costo por agente, con widget propio de Omarchy aislado de Codex/Claude/Fireworks
 - 🗃️ **Trazabilidad total** — Cada proyecto, PRD, tarea, decisión y flow step se persiste en PostgreSQL con relaciones y metadatos
 - 🐳 **PostgreSQL en Docker** — Base de datos aislada, reproducible, lista en segundos
 - 🔌 **CLI global** — `lemoria` disponible en cualquier terminal tras la instalación
@@ -221,7 +221,7 @@ Esto significa que **los agentes trabajan en inglés** (código, commits, docs),
 
 ## 🧭 Gestión de agentes y telemetría
 
-Lemoria no solo delega: también **registra** a sus subagentes, te deja **cambiar el modelo de cada uno** y publica el **consumo** al panel de agentes de Omarchy.
+Lemoria no solo delega: también **registra** a sus subagentes, te deja **cambiar el modelo de cada uno** y publica el **consumo** en su widget propio de Omarchy.
 
 ### El concepto clave: el modelo se hereda
 
@@ -285,7 +285,7 @@ El `--json` incluye además los agentes propios de opencode (`build`, `plan`, �
 
 ### El panel de Omarchy
 
-Omarchy ya trae un panel de agentes, pero su contrato no tiene dónde dibujar el **total global** ni el **modelo por agente**. Lemoria publica el record compatible que ese panel ya lee y además instala un plugin propio, `lemoria.usage`, en `~/.config/omarchy/plugins/` para mostrar lo que falta.
+Omarchy ya trae un panel de agentes para Claude/Codex/Fireworks. Lemoria **no escribe en ese directorio**: instala un plugin propio, `lemoria.usage`, y lee un record privado en `~/.local/state/lemoria/omarchy/usage.json` para no tocar el panel nativo.
 
 ```bash
 lemoria budget 500M              # presupuesto mensual en tokens; reinicia el día 1
@@ -302,7 +302,7 @@ El widget propio deja el **total acumulado** siempre visible en la barra. Al abr
 - presupuesto mensual en tokens, con `ok`/`warn` al 80%/`over`;
 - tabla con **todos los agentes**, total, tokens de hoy, sesiones, prompts y el modelo dominante con `(+N more)` cuando usó más de uno.
 
-El record sigue siendo compatible con `omarchy.agents`: las claves nuevas (`agents`, `budget`, `monthTokens`) son nuestras y el panel de Omarchy las ignora.
+El record del plugin es privado (`~/.local/state/lemoria/omarchy/usage.json`): `omarchy.agents` no lo ve, así que Claude/Codex/Fireworks quedan intactos.
 
 ### Timer de actualización
 
@@ -347,7 +347,7 @@ lemoria/
 │   ├── database.py           # Conexión, sesión y migración idempotente
 │   ├── agents.py             # Sync .opencode/agents/*.md → tabla agents
 │   ├── opencode_telemetry.py # Lectura de solo lectura del opencode.db
-│   ├── omarchy.py            # Record para el panel de agentes de Omarchy
+│   ├── omarchy.py            # Record privado + plugin lemoria.usage para Omarchy
 │   ├── flow.py               # Motor SDD + state machine (FlowEngine)
 │   ├── git_service.py        # Servicio de commits/pushes
 │   ├── memory.py             # Servicio de memoria (conversaciones)

@@ -506,6 +506,16 @@ class TestOmarchyRecord:
 
 
 class TestTimerUnits:
+    def test_default_record_is_private_not_the_native_agents_panel(self, monkeypatch, tmp_path):
+        from lemoria.omarchy import default_record_path, legacy_agents_record_path
+
+        monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
+        assert default_record_path() == tmp_path / "lemoria" / "omarchy" / "usage.json"
+        assert legacy_agents_record_path() == (
+            tmp_path / "omarchy" / "agents" / "usage" / "lemoria.json"
+        )
+        assert default_record_path().parent != legacy_agents_record_path().parent
+
     def test_writes_both_units(self, tmp_path):
         from lemoria.omarchy import install_timer
 

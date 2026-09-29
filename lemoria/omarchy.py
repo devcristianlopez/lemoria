@@ -1,16 +1,14 @@
-"""Publish Lemoria's opencode usage to the Omarchy agents panel.
+"""Publish Lemoria's opencode usage to Lemoria's own Omarchy plugin.
 
-Omarchy's agents panel is a display: it watches
-``$XDG_STATE_HOME/omarchy/agents/usage/*.json`` and draws whatever records
-appear there, regardless of who wrote them. The panel's own README documents
-this as the supported way to add a provider, so Lemoria writes a record
-instead of shipping a collector into ``/usr/share/omarchy/bin`` (read-only,
-and lost on the next ``omarchy update``).
+The native Omarchy agents panel owns
+``$XDG_STATE_HOME/omarchy/agents/usage/*.json`` for Claude/Codex/Fireworks. Do
+not write Lemoria there: adding a record to that directory adds a provider to
+the native panel and can perturb tabs the user did not ask us to touch.
 
-The contract below is what ``Main.qml``'s ``displayProvider()`` reads. Fields
-it does not know are ignored, but every field it does read is emitted with the
-exact name and type it expects, including the bucket keys under
-``modelUsage``.
+Lemoria writes a private record to
+``$XDG_STATE_HOME/lemoria/omarchy/usage.json``. The bundled user plugin
+``lemoria.usage`` watches that file and draws the all-time total, monthly
+budget, seven-day history and per-agent model table.
 """
 
 from __future__ import annotations
@@ -39,8 +37,33 @@ REQUIRED_KEYS = (
 
 
 def default_record_dir() -> Path:
+    """Private state read by the Lemoria-owned Omarchy plugin.
+
+    Do not write under ``omarchy/agents/usage`` here. That directory belongs to
+    Omarchy's native agents panel (Claude/Codex/Fireworks). Putting Lemoria's
+    record there adds a provider to that panel and can perturb tabs that we
+    promised not to touch.
+    """
     state_home = os.environ.get("XDG_STATE_HOME") or (Path.home() / ".local" / "state")
-    return Path(state_home) / "omarchy" / "agents" / "usage"
+    return Path(state_home) / "lemoria" / "omarchy"
+
+
+def default_record_path() -> Path:
+    return default_record_dir() / "usage.json"
+
+
+def legacy_agents_record_path() -> Path:
+    """Old path that made Lemoria appear inside Omarchy's native Agents panel."""
+    state_home = os.environ.get("XDG_STATE_HOME") or (Path.home() / ".local" / "state")
+    return Path(state_home) / "omarchy" / "agents" / "usage" / f"{AGENT_ID}.json"
+
+
+def remove_legacy_agents_record() -> bool:
+    legacy = legacy_agents_record_path()
+    if legacy.exists():
+        legacy.unlink()
+        return True
+    return False
 
 
 def default_plugin_dir() -> Path:
@@ -199,7 +222,7 @@ def write_record(record: dict, output: Path | None = None) -> Path:
     file would show up as a broken tab. A temp file in the same directory plus
     rename gives the watcher a complete document every time.
     """
-    destination = output or (default_record_dir() / f"{AGENT_ID}.json")
+    destination = output or default_record_path()
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     handle, temp_name = tempfile.mkstemp(
@@ -230,7 +253,7 @@ def publish(db_path: Path | str | None = None, output: Path | str | None = None)
 
 
 SERVICE_UNIT = """[Unit]
-Description=Publish lemoria opencode usage to the Omarchy panel
+Description=Publish lemoria opencode usage to the Lemoria Omarchy plugin
 
 [Service]
 Type=oneshot
@@ -238,7 +261,7 @@ ExecStart={executable} omarchy record
 """
 
 TIMER_UNIT = """[Unit]
-Description=Refresh the Omarchy agents panel
+Description=Refresh the Lemoria usage widget
 
 [Timer]
 OnBootSec=1min

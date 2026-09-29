@@ -28,7 +28,7 @@ Panel {
 
   readonly property string stateHome: Quickshell.env("XDG_STATE_HOME")
     || (Quickshell.env("HOME") + "/.local/state")
-  readonly property string recordPath: root.stateHome + "/omarchy/agents/usage/lemoria.json"
+  readonly property string recordPath: root.stateHome + "/lemoria/omarchy/usage.json"
 
   // Same ladder the collector uses: green under 80%, amber approaching, red
   // past. Amber is the one that matters -- it is the warning you can still act

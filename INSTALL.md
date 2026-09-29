@@ -182,8 +182,8 @@ lemoria omarchy where
 ```
 
 No toca `/usr/share/omarchy`. El plugin se copia a
-`~/.config/omarchy/plugins/lemoria.usage`, el record a
-`~/.local/state/omarchy/agents/usage/lemoria.json`, y el timer a
+`~/.config/omarchy/plugins/lemoria.usage`, el record privado a
+`~/.local/state/lemoria/omarchy/usage.json`, y el timer a
 `~/.config/systemd/user/lemoria-usage.{service,timer}`. Se deshace con:
 
 ```bash

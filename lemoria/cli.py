@@ -500,10 +500,10 @@ def budget_cmd(limit: str | None, clear: bool):
 
 
 @omarchy.command("record")
-@click.option("--output", "-o", default=None, help="Write here instead of the panel's directory")
+@click.option("--output", "-o", default=None, help="Write here instead of the private Lemoria panel record")
 @click.option("--print", "print_only", is_flag=True, default=False, help="Print the record, write nothing")
 def omarchy_record(output: str | None, print_only: bool):
-    """Publish opencode usage for the Omarchy agents panel."""
+    """Publish opencode usage for the Lemoria-owned Omarchy widget."""
     from .budget import Budget
     from .omarchy import build_record, validate_record
     from .opencode_telemetry import OpenCodeTelemetry
@@ -539,7 +539,7 @@ def omarchy_record(output: str | None, print_only: bool):
         )
         click.echo(f"  {spent}")
     else:
-        click.echo("  record is not ready; the panel will not show a tab")
+        click.echo("  record is not ready; the Lemoria widget will not show data")
 
 
 @omarchy.command("install")
@@ -548,8 +548,17 @@ def omarchy_record(output: str | None, print_only: bool):
 def omarchy_install(interval: str, enable: bool):
     """Install the user-level timer that keeps the panel record fresh."""
     from .budget import Budget
-    from .omarchy import build_record, install_plugin, install_timer, write_record
+    from .omarchy import (
+        build_record,
+        install_plugin,
+        install_timer,
+        remove_legacy_agents_record,
+        write_record,
+    )
     from .opencode_telemetry import OpenCodeTelemetry
+
+    if remove_legacy_agents_record():
+        click.echo("Removed legacy native-panel record for Lemoria")
 
     plugin = install_plugin()
     click.echo(f"Wrote {plugin}")
@@ -648,8 +657,9 @@ def omarchy_uninstall(keep_record: bool):
     import subprocess
 
     from .omarchy import (
-        default_record_dir,
+        default_record_path,
         default_unit_dir,
+        legacy_agents_record_path,
         plugin_destination_dir,
         uninstall_plugin,
     )
@@ -679,15 +689,20 @@ def omarchy_uninstall(keep_record: bool):
     else:
         click.echo(f"Not present: {plugin}")
 
-    record = default_record_dir() / "lemoria.json"
+    record = default_record_path()
+    legacy = legacy_agents_record_path()
     if keep_record:
         click.echo(f"\nKept the record: {record}")
-        click.echo("The panel will keep showing its last values until they age out.")
+        click.echo("The Lemoria panel will keep showing its last values until they age out.")
     elif record.exists():
         record.unlink()
         click.echo(f"Removed {record}")
     else:
         click.echo(f"Not present: {record}")
+
+    if legacy.exists():
+        legacy.unlink()
+        click.echo(f"Removed legacy native-panel record: {legacy}")
 
     click.echo("\nUninstalled. Reinstall with: lemoria omarchy install")
 
@@ -695,10 +710,11 @@ def omarchy_uninstall(keep_record: bool):
 @omarchy.command("where")
 def omarchy_where():
     """Show where the panel reads its records from."""
-    from .omarchy import default_record_dir
+    from .omarchy import default_record_dir, legacy_agents_record_path
 
     directory = default_record_dir()
-    click.echo(f"records: {directory}")
+    click.echo(f"lemoria panel records: {directory}")
+    click.echo(f"native agents legacy record: {legacy_agents_record_path()}")
     if directory.is_dir():
         for path in sorted(directory.glob("*.json")):
             click.echo(f"  {path.name:16} {path.stat().st_size:>7} bytes")

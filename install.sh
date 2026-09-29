@@ -325,18 +325,18 @@ fi
 PANEL_INSTALLED=false
 if $OMARCHY_AVAILABLE; then
     echo ""
-    echo "  Detectado Omarchy. Publicar el consumo en su panel de agentes"
-    echo "  (tokens por día y por modelo, histórico completo) más un timer"
-    echo "  de usuario que lo refresca cada minuto."
+    echo "  Detectado Omarchy. Instalar el widget propio de Lemoria"
+    echo "  (total en la barra, presupuesto, 7 días y agentes) más un timer"
+    echo "  de usuario que refresca su record privado cada minuto."
     echo ""
-    # Default yes: on Omarchy the panel is the whole point of this branch, and
-    # "no" should be the thing you have to ask for. It only writes a user-level
-    # record and timer, both reversible with `lemoria omarchy uninstall`.
+    # Default yes: on Omarchy the widget is the whole point of this branch, and
+    # "no" should be the thing you have to ask for. It only writes user-level
+    # files: plugin, private record and timer, reversible with uninstall.
     read -rp "  ¿Instalar el panel? [S/n]: " USE_PANEL
     if [ "${USE_PANEL:-s}" != "n" ] && [ "${USE_PANEL:-N}" != "N" ]; then
         if lemoria omarchy install 2>&1 | sed 's/^/    /'; then
             PANEL_INSTALLED=true
-            echo "  ✓ Panel de Omarchy conectado (se refresca cada 1 min)"
+            echo "  ✓ Widget Lemoria para Omarchy conectado (se refresca cada 1 min)"
         else
             echo "  ✗ No se pudo instalar el panel. Reintenta con: lemoria omarchy install"
         fi
