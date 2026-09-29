@@ -214,6 +214,13 @@ el panel nativo de Omarchy (Claude/Codex/Fireworks). Si existe un
 La escritura del record privado sigue siendo atómica (tempfile + rename), para
 que el watcher reciba siempre un JSON completo.
 
+La visibilidad del panel depende de dos contratos: la activación del plugin en
+Omarchy (`omarchy plugin enable lemoria.usage --after omarchy.agents`) y el tamaño
+implícito del root QML. `Panel.qml` expone el tamaño del botón como
+`implicitWidth`/`implicitHeight`; así la barra no colapsa el slot a `0x0` cuando
+el record todavía está vacío. En ese caso el botón muestra `0` y el popup explica
+el estado en vez de desaparecer.
+
 ### Enums y CheckConstraints
 8 enums tipados (`PRDStatus`, `TaskStatus`, `FlowStepStatus`, `DecisionStatus`, `ExecutionStatus`, `SpecStatus`, `CommitFileStatus`, `SolutionOutcome`) con `CheckConstraint` en 7 modelos para integridad de datos a nivel DB.
 

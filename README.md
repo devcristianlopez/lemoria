@@ -288,11 +288,15 @@ El `--json` incluye además los agentes propios de opencode (`build`, `plan`, �
 Omarchy ya trae un panel de agentes para Claude/Codex/Fireworks. Lemoria **no escribe en ese directorio**: instala un plugin propio, `lemoria.usage`, y lee un record privado en `~/.local/state/lemoria/omarchy/usage.json` para no tocar el panel nativo.
 
 ```bash
-lemoria omarchy install          # plugin + record privado + timer de usuario, cada 1 min
+lemoria omarchy install --interval 1min  # plugin + record privado + timer de usuario, lo activa
 lemoria budget 500M              # opcional: presupuesto mensual en tokens
 lemoria omarchy record --print   # inspeccionar el JSON sin escribir
 lemoria omarchy where            # dónde busca Omarchy los records
 ```
+
+`install` también intenta ejecutar `omarchy plugin enable lemoria.usage --after omarchy.agents`.
+Si Omarchy no está en `PATH` o el enable automático falla, corré ese comando manualmente y recargá la shell/barra de Omarchy.
+El plugin siempre queda bajo control de Lemoria: usa `~/.config/omarchy/plugins/lemoria.usage` y el record privado `~/.local/state/lemoria/omarchy/usage.json`, no el directorio nativo de `omarchy.agents`.
 
 El widget propio deja el **total acumulado** siempre visible en la barra. Al abrirlo muestra:
 
@@ -308,10 +312,23 @@ El record del plugin es privado (`~/.local/state/lemoria/omarchy/usage.json`): `
 `lemoria omarchy install` escribe el plugin, publica un record una vez y deja un timer de **usuario** (systemd `--user`) que refresca cada minuto:
 
 ```bash
-lemoria omarchy install                  # cada 1 min, y lo activa
+lemoria omarchy install --interval 1min  # cada 1 min, y lo activa
 lemoria omarchy install --interval 30min # otra frecuencia
 lemoria omarchy install --no-enable      # solo escribe plugin, record y units
 ```
+
+Si el panel no aparece, verificá en este orden:
+
+```bash
+omarchy plugin enable lemoria.usage --after omarchy.agents
+test -f ~/.config/omarchy/plugins/lemoria.usage/Panel.qml
+test -f ~/.local/state/lemoria/omarchy/usage.json || lemoria omarchy record
+systemctl --user status lemoria-usage.timer
+systemctl --user list-timers lemoria-usage.timer --no-pager
+```
+
+Con cero uso registrado el botón ya no colapsa: muestra `0` y al abrirlo enseña el estado vacío o el motivo (`opencode data unavailable`, etc.).
+Si no ves ni el `0`, el problema está en la activación del plugin o en la recarga de Omarchy, no en el record de uso.
 
 Es reversible:
 

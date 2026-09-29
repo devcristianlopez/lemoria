@@ -175,11 +175,19 @@ lemoria agent list
 Si estás en Omarchy, Lemoria instala un plugin propio además del record JSON:
 
 ```bash
-lemoria omarchy install      # plugin + record privado + timer de usuario, cada 1 min
+lemoria omarchy install --interval 1min  # plugin + record privado + timer de usuario, lo activa
 lemoria budget 500M          # opcional: presupuesto mensual en tokens
 lemoria omarchy record --print
 lemoria omarchy where
 ```
+
+Durante la instalación Lemoria intenta registrar el plugin en la barra con:
+
+```bash
+omarchy plugin enable lemoria.usage --after omarchy.agents
+```
+
+Si el comando no pudo ejecutarse automáticamente, corrélo a mano y recargá Omarchy.
 
 No toca `/usr/share/omarchy`. El plugin se copia a
 `~/.config/omarchy/plugins/lemoria.usage`, el record privado a
@@ -201,6 +209,24 @@ mismo por CLI:
 lemoria usage
 lemoria usage --json
 ```
+
+### Si el panel no se ve
+
+El widget debería mostrar `0` incluso antes de que haya consumo, y al abrirlo
+debería enseñar un estado vacío. Si no aparece ni ese `0`, revisá:
+
+```bash
+omarchy plugin enable lemoria.usage --after omarchy.agents
+test -f ~/.config/omarchy/plugins/lemoria.usage/Panel.qml
+lemoria omarchy where
+test -f ~/.local/state/lemoria/omarchy/usage.json || lemoria omarchy record
+systemctl --user status lemoria-usage.timer
+systemctl --user list-timers lemoria-usage.timer --no-pager
+```
+
+El record sigue siendo Lemoria-owned: no debe aparecer como
+`~/.local/state/omarchy/agents/usage/lemoria.json`. Si existe uno legado,
+`lemoria omarchy install --interval 1min` lo borra y reinstala el plugin propio.
 
 Si el panel deja de actualizar, el timer suele estar *activo pero sin disparo
 programado*: `systemctl --user list-timers` muestra `-` en la columna NEXT

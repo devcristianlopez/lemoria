@@ -671,6 +671,15 @@ class TestPluginInstall:
         assert destination.joinpath("Panel.qml").exists()
         assert destination.joinpath("Record.qml").exists()
 
+    def test_panel_root_exposes_a_bar_slot_size(self):
+        """Omarchy sizes third-party bar widgets from the root implicit size."""
+        from lemoria.omarchy import plugin_source_dir
+
+        panel = plugin_source_dir().joinpath("Panel.qml").read_text(encoding="utf-8")
+        assert "implicitWidth: button.implicitWidth" in panel
+        assert "implicitHeight: button.implicitHeight" in panel
+        assert 'text: usage.hasUsage ? root.compact(root.record.totalTokens) : "0"' in panel
+
     def test_reinstall_removes_stale_files(self, tmp_path):
         from lemoria.omarchy import install_plugin
 

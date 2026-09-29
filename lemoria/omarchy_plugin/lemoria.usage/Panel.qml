@@ -69,13 +69,19 @@ Panel {
     return max
   }
 
+  // Bar.qml sizes a plugin slot from the root item's implicit size. Without
+  // this contract the widget is registered and present in shell.json, but its
+  // slot collapses to 0x0 and the user sees no Lemoria panel.
+  implicitWidth: button.implicitWidth
+  implicitHeight: button.implicitHeight
+
   BarIconButton {
     id: button
     anchors.fill: parent
     bar: root.bar
     // The all-time total, always on the bar. It is the number the user asked
     // to see without clicking anything, so it never hides.
-    text: usage.hasUsage ? root.compact(root.record.totalTokens) : ""
+    text: usage.hasUsage ? root.compact(root.record.totalTokens) : "0"
     active: usage.alarming
     useActiveColor: true
     onPressed: function(buttonCode) {
@@ -119,6 +125,27 @@ Panel {
         id: column
         width: flick.width
         spacing: Style.space(12)
+
+        // --------------------------------------------------------- empty state
+        Column {
+          width: parent.width
+          spacing: Style.space(6)
+          visible: !usage.hasUsage
+
+          PanelSectionHeader {
+            width: parent.width
+            text: "Lemoria usage"
+          }
+
+          Text {
+            width: parent.width
+            text: root.record.authHelpText || "Waiting for opencode usage data."
+            color: root.dim
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.body
+            wrapMode: Text.WordWrap
+          }
+        }
 
         // ---------------------------------------------------- all-time total
         PanelHero {

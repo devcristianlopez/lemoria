@@ -256,6 +256,16 @@ El plugin se copia a `~/.config/omarchy/plugins/lemoria.usage`, que es el
 directorio que el catálogo de Omarchy recorre para plugins de usuario. Nada bajo
 `/usr/share/omarchy` se toca.
 
+`lemoria omarchy install --interval 1min` no solo copia el plugin: también lo
+habilita en la barra cuando el comando `omarchy` está disponible:
+
+```bash
+omarchy plugin enable lemoria.usage --after omarchy.agents
+```
+
+Si esa activación automática falla, el plugin y el record pueden existir pero no
+verse hasta correr ese comando manualmente y recargar la shell/barra.
+
 ### El contrato del record
 
 Claves heredadas del contrato de `omarchy.agents` que conservamos por forma:
@@ -325,7 +335,7 @@ intermitentemente con `account/read`, preservando el último límite bueno sin
 editar `/usr/share/omarchy`.
 
 ```bash
-lemoria omarchy install                  # 1 min, escribe y activa
+lemoria omarchy install --interval 1min  # 1 min, escribe y activa plugin + timer
 lemoria omarchy install --interval 30min
 lemoria omarchy install --no-enable      # solo escribe plugin, record privado y units
 ```
@@ -349,7 +359,7 @@ Description=Refresh the Lemoria usage widget
 
 [Timer]
 OnBootSec=1min
-OnUnitActiveSec=5min
+OnUnitActiveSec=1min
 Persistent=true
 Unit=lemoria-usage.service
 
@@ -365,6 +375,43 @@ de sesión.
 Escribir las units y activarlas son pasos separados: `install_timer()` solo
 escribe, y el comando decide si llama a `systemctl --user enable --now`. Con
 `--no-enable` no arranca nada.
+
+---
+
+## Troubleshooting: panel invisible
+
+El bug más confuso es que todo esté instalado pero el slot mida `0x0`: Omarchy
+registra el plugin, pero la barra no reserva espacio. El `Panel.qml` de Lemoria
+ahora expone `implicitWidth`/`implicitHeight` desde el botón y el texto de barra
+cae a `0` cuando todavía no hay uso real. Por eso el comportamiento esperado es:
+
+- con uso: se ve el total histórico compacto (`12K`, `293M`, etc.);
+- sin uso: se ve `0` y el popup muestra "Lemoria usage" con el estado vacío o
+  el motivo leído del record (`opencode data unavailable`, permisos, etc.).
+
+Si el panel sigue invisible, verificá de afuera hacia adentro:
+
+```bash
+# 1. Está habilitado en la barra de Omarchy.
+omarchy plugin enable lemoria.usage --after omarchy.agents
+
+# 2. El QML instalado es el plugin propio de Lemoria.
+test -f ~/.config/omarchy/plugins/lemoria.usage/Panel.qml
+test -f ~/.config/omarchy/plugins/lemoria.usage/Record.qml
+
+# 3. El record privado existe y puede regenerarse.
+lemoria omarchy where
+test -f ~/.local/state/lemoria/omarchy/usage.json || lemoria omarchy record
+
+# 4. El timer está activo y tiene un próximo disparo.
+systemctl --user status lemoria-usage.timer
+systemctl --user list-timers lemoria-usage.timer --no-pager
+```
+
+No diagnostiques el panel buscando `lemoria.json` en
+`~/.local/state/omarchy/agents/usage/`: ese directorio pertenece a
+`omarchy.agents`. Si hay un record legado allí, `lemoria omarchy install` lo
+borra para conservar aislados Claude/Codex/Fireworks.
 
 ### Deshacerlo
 
@@ -392,7 +439,7 @@ systemctl --user daemon-reload
 | `lemoria omarchy record` | Escribe el record del panel |
 | `lemoria omarchy record --print` | Lo muestra sin escribir |
 | `lemoria omarchy record -o PATH` | Lo escribe en otro directorio |
-| `lemoria omarchy install` | Instala y activa el timer de usuario (cada 1 min) |
+| `lemoria omarchy install --interval 1min` | Instala plugin, escribe record, habilita `lemoria.usage` y activa el timer |
 | `lemoria omarchy where` | Ruta que el panel vigila |
 
 ### Configuración
