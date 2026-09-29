@@ -23,6 +23,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from .budget import month_start_ms
+
 # What the report still needs from `session`. It used to include the token
 # columns and time_created; those moved to `message`, which knows when the
 # tokens were spent rather than when the session began. Requiring them here
@@ -84,6 +86,10 @@ class AgentUsage:
     model: str | None = None
     variant: str | None = None
     prompts: int = 0
+    # What this agent spent since midnight. Without it the panel can only show
+    # an all-time number per agent, which is not a number anyone acts on.
+    today_tokens: int = 0
+    today_prompts: int = 0
     # Every model this agent has used, heaviest first. An agent is not pinned
     # to one model: the orchestrator runs on whatever the user picked, and a
     # subagent can be switched mid-session. Reporting a single "model" for an
@@ -106,6 +112,9 @@ class Telemetry:
     today_prompts: int = 0
     today_tokens: int = 0
     today_by_model: dict = field(default_factory=dict)
+    # Since midnight on the 1st, local. The window a monthly budget is measured
+    # against, kept separate from "today": they reset on different days.
+    month_tokens: int = 0
     recent_days: list = field(default_factory=list)
     by_model: dict = field(default_factory=dict)
     by_agent: dict = field(default_factory=dict)
@@ -243,6 +252,7 @@ class OpenCodeTelemetry:
         # from the same place. Tokens are the opposite case: the session only
         # holds a total, so they come per message.
         today = _epoch_ms()
+        month = month_start_ms()
         week_ago = _epoch_ms(6)
         active_cutoff = int((time.time() - ACTIVE_WINDOW_SECONDS) * 1000)
 
@@ -270,6 +280,11 @@ class OpenCodeTelemetry:
         ).fetchone()
         out.today_tokens = row[0]
         out.today_prompts = self._count_prompts(conn, since=today)
+        out.month_tokens = conn.execute(
+            f"SELECT COALESCE(SUM({_MESSAGE_TOKEN_SUM}), 0)"
+            f" FROM message m WHERE {_ASSISTANT} AND m.time_created >= ?",
+            (month,),
+        ).fetchone()[0]
         out.today_sessions = int(conn.execute(
             "SELECT COUNT(DISTINCT session_id) FROM message"
             " WHERE time_created >= ?",
@@ -392,6 +407,18 @@ class OpenCodeTelemetry:
             entry = out.by_agent.setdefault(agent, AgentUsage(name=agent))
             entry.models[model] = entry.models.get(model, 0) + tokens
             entry.tokens += tokens
+
+        # Today, per agent: same measure as the all-time split, so the two
+        # columns of the panel's table are comparable.
+        for agent, tokens, prompts in conn.execute(
+            f"SELECT COALESCE(json_extract(m.data,'$.agent'),'(none)'),"
+            f" COALESCE(SUM({_MESSAGE_TOKEN_SUM}), 0), COUNT(*)"
+            f" FROM message m WHERE {_ASSISTANT} AND m.time_created >= ? GROUP BY 1",
+            (today,),
+        ):
+            entry = out.by_agent.setdefault(agent, AgentUsage(name=agent))
+            entry.today_tokens += tokens
+            entry.today_prompts += prompts
 
         for entry in out.by_agent.values():
             if entry.models:

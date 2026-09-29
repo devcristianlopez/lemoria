@@ -461,16 +461,55 @@ def omarchy():
     """Integrate with the Omarchy desktop shell."""
 
 
+@cli.command("budget")
+@click.argument("limit", required=False)
+@click.option("--clear", is_flag=True, default=False, help="Remove the budget")
+def budget_cmd(limit: str | None, clear: bool):
+    """Set, show or clear the monthly token budget.
+
+    The budget is measured in tokens because opencode reports zero cost for
+    every provider reached through a subscription; a dollar ceiling would sit
+    at zero and look broken. `lemoria budget 500M` resets on the 1st.
+    """
+    from .budget import Budget, format_limit, parse_limit
+    from .opencode_telemetry import OpenCodeTelemetry
+
+    if clear:
+        click.echo(f"Cleared {Budget().save()}")
+        return
+    if limit:
+        try:
+            tokens = parse_limit(limit)
+        except ValueError as exc:
+            raise click.BadParameter(str(exc)) from exc
+        target = Budget(monthly_tokens=tokens).save()
+        click.echo(f"Monthly budget: {format_limit(tokens)} tokens -> {target}")
+        return
+
+    current = Budget.load()
+    if current.monthly_tokens is None:
+        click.echo("No budget set. `lemoria budget 500M` to set one.")
+        return
+    state = current.state(OpenCodeTelemetry().read().month_tokens)
+    click.echo(
+        f"Monthly budget: {format_limit(current.monthly_tokens)} tokens\n"
+        f"  spent this month : {state['used']:,} ({state['percent']}%)\n"
+        f"  remaining        : {state['remaining']:,}\n"
+        f"  status           : {state['status']}"
+    )
+
+
 @omarchy.command("record")
 @click.option("--output", "-o", default=None, help="Write here instead of the panel's directory")
 @click.option("--print", "print_only", is_flag=True, default=False, help="Print the record, write nothing")
 def omarchy_record(output: str | None, print_only: bool):
     """Publish opencode usage for the Omarchy agents panel."""
+    from .budget import Budget
     from .omarchy import build_record, validate_record
     from .opencode_telemetry import OpenCodeTelemetry
 
     telemetry = OpenCodeTelemetry().read()
-    record = build_record(telemetry)
+    record = build_record(telemetry, Budget.load())
     problems = validate_record(record)
     if problems:
         for problem in problems:
@@ -488,12 +527,17 @@ def omarchy_record(output: str | None, print_only: bool):
     if telemetry.reason:
         click.echo(f"  ! {telemetry.reason}", err=True)
     if record["ready"]:
+        budget = record["budget"]
+        spent = f"{record['monthTokens']:,} tokens este mes"
+        if budget["funded"]:
+            spent += f" de {budget['funded']:,} ({budget['percent']}%, {budget['status']})"
         click.echo(
             f"  {record['totalSessions']} sessions, "
             f"{record['totalPrompts']} prompts, "
             f"{record['totalTokens']:,} tokens acumulados, "
             f"${record['totalCost']:.2f}"
         )
+        click.echo(f"  {spent}")
     else:
         click.echo("  record is not ready; the panel will not show a tab")
 

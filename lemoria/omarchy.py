@@ -23,6 +23,7 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
+from .budget import Budget
 from .opencode_telemetry import OpenCodeTelemetry, Telemetry
 
 AGENT_ID = "lemoria"
@@ -42,7 +43,12 @@ def default_record_dir() -> Path:
     return Path(state_home) / "omarchy" / "agents" / "usage"
 
 
-def build_record(telemetry: Telemetry) -> dict:
+# "No budget set" is what every existing caller means, and `NO_BUDGET` is
+# frozen, so handing it out as a default is safe.
+NO_BUDGET = Budget()
+
+
+def build_record(telemetry: Telemetry, budget: Budget = NO_BUDGET) -> dict:
     """Turn a Telemetry snapshot into the panel's record.
 
     ``ready`` is what makes the panel show a tab at all, and the panel hides a
@@ -60,13 +66,16 @@ def build_record(telemetry: Telemetry) -> dict:
         "ready": has_usage,
         "hasLocalStats": telemetry.available,
         "hasPromptStats": telemetry.available,
-        # Lemoria drives no subscription, so there is no plan, no limit
-        # window and no balance to report. Empty is the honest answer and the
-        # panel renders the tab without a hero meter.
         "tierLabel": "",
         "usageStatusText": "" if telemetry.available else "opencode data unavailable",
         "authHelpText": telemetry.reason,
         "limits": [],
+        # The budget meter. `balance` is the pair the panel's own meter reads;
+        # `budget` is the same answer with the detail a bar cannot show, and is
+        # what our own panel draws. Both are null when no budget is set, and
+        # neither invents a number.
+        "balance": budget.as_contract(telemetry.month_tokens),
+        "budget": budget.state(telemetry.month_tokens),
         # Device-scoped: this is one machine's opencode history, and the panel
         # sums device-scoped records across synced machines.
         "scope": "device",
@@ -82,9 +91,33 @@ def build_record(telemetry: Telemetry) -> dict:
         "modelUsage": {
             model: bucket.as_contract() for model, bucket in telemetry.by_model.items()
         },
+        # Per agent, heaviest first. Not in the panel's contract either, and
+        # this is the reason our own panel exists: there is nowhere in
+        # `omarchy.agents` to show which model an agent runs on, so the answer
+        # had no way to be displayed at all.
+        "agents": [
+            {
+                "agent": entry.name,
+                "tokens": entry.tokens,
+                "todayTokens": entry.today_tokens,
+                "prompts": entry.prompts,
+                "todayPrompts": entry.today_prompts,
+                "sessions": entry.sessions,
+                "activeSessions": entry.active_sessions,
+                "cost": entry.cost,
+                "model": entry.model,
+                "variant": entry.variant,
+                "models": entry.models,
+            }
+            for entry in sorted(
+                telemetry.by_agent.values(), key=lambda e: -e.tokens
+            )
+            if entry.tokens
+        ],
         # Not part of the panel's contract: the panel ignores unknown keys, but
         # they make the record self-describing for anything else that reads it.
         "totalTokens": telemetry.total_tokens,
+        "monthTokens": telemetry.month_tokens,
         "totalCost": telemetry.total_cost,
     }
 
