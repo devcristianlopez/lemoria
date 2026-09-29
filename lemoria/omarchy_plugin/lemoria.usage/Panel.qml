@@ -314,7 +314,7 @@ Panel {
 
           Text {
             width: parent.width
-            text: "Totals include every model/provider an agent used; model is the dominant one."
+            text: "Totals include every model/provider an agent used; model is current/configured. Observed usage is noted separately."
             color: root.dim
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
@@ -343,8 +343,31 @@ Panel {
               readonly property var entry: modelData
               readonly property int share: root.record.totalTokens
                 ? Math.round((entry.tokens / root.record.totalTokens) * 100) : 0
-              readonly property string headlineModel: entry.model
-                ? String(entry.model).split("/").pop() : "—"
+              readonly property string configuredModel: entry.model ? String(entry.model) : ""
+              readonly property string observedModel: entry.observedModel ? String(entry.observedModel) : ""
+              readonly property bool hasObservedModel: observedModel.length > 0
+              readonly property bool observedDiffers: hasObservedModel && observedModel !== configuredModel
+              readonly property string headlineModel: shortModel(configuredModel)
+              readonly property int modelCount: entry.models ? Object.keys(entry.models).length : 0
+              readonly property int observedTokens: hasObservedModel && entry.models
+                ? Number(entry.models[observedModel] || 0) : 0
+              readonly property int observedShare: entry.tokens && observedTokens
+                ? Math.round((observedTokens / entry.tokens) * 100) : 0
+
+              function shortModel(modelName) {
+                return modelName ? String(modelName).split("/").pop() : "—"
+              }
+
+              function observedSummary() {
+                if (!hasObservedModel || !entry.tokens) return ""
+
+                var pieces = []
+                if (observedShare > 0) pieces.push(observedShare + "%")
+                if (modelCount > 1) pieces.push("+" + (modelCount - 1) + " more")
+                if (pieces.length === 0) return ""
+
+                return "(" + pieces.join(", ") + ")"
+              }
 
               Row {
                 width: parent.width
@@ -384,10 +407,10 @@ Panel {
                 }
               }
 
-              // Model and share, on their own line. An agent is not pinned to
-              // one model, so this is the headline plus how much of the agent
-              // that headline actually covers -- "(97%)" is the difference
-              // between a fact and a summary that hides the rest.
+              // Model details, on their own line. The headline is the current
+              // configured/default model. Historical shares come from observed
+              // usage only; if that differs, keep it separate instead of
+              // implying the configured model produced those tokens.
               Row {
                 width: parent.width
                 spacing: Style.space(6)
@@ -400,16 +423,16 @@ Panel {
                   font.pixelSize: Style.font.bodySmall
                 }
                 Text {
-                  visible: row.entry.models && Object.keys(row.entry.models).length > 1
-                  text: {
-                    if (!row.entry.models) return ""
-                    var models = Object.keys(row.entry.models)
-                    if (models.length <= 1) return ""
-                    var top = Number(row.entry.models[row.entry.model] || 0)
-                    var shareOfTop = row.entry.tokens
-                      ? Math.round((top / row.entry.tokens) * 100) : 0
-                    return "(" + shareOfTop + "%, +" + (models.length - 1) + " more)"
-                  }
+                  visible: !row.observedDiffers && row.observedSummary().length > 0
+                  text: row.observedSummary()
+                  color: Qt.darker(root.dim, 1.3)
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.bodySmall
+                }
+                Text {
+                  visible: row.observedDiffers
+                  text: "obs " + row.shortModel(row.observedModel)
+                    + (row.observedSummary().length > 0 ? " " + row.observedSummary() : "")
                   color: Qt.darker(root.dim, 1.3)
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.bodySmall

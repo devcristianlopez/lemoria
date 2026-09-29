@@ -199,8 +199,10 @@ lemoria omarchy uninstall
 ```
 
 El widget muestra el total histórico siempre en la barra. Al abrirlo ves hoy,
-los últimos 7 días y la tabla por agente con modelo dominante, tokens totales y
-tokens de hoy. El presupuesto aparece solo si lo configurás. El timer también
+los últimos 7 días y la tabla de todos los agentes conocidos, incluso con cero
+uso. En cada fila, `model` es el modelo de display actual/configurado/default;
+el modelo inferido desde uso histórico aparece separado como `observedModel` / `obs ...`.
+El presupuesto aparece solo si lo configurás. El timer también
 sanea el bug intermitente de Codex cuando el collector nativo escribe
 `account/read`. Los que no usan Omarchy tienen lo
 mismo por CLI:

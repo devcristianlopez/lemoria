@@ -505,11 +505,17 @@ def budget_cmd(limit: str | None, clear: bool):
 def omarchy_record(output: str | None, print_only: bool):
     """Publish opencode usage for the Lemoria-owned Omarchy widget."""
     from .budget import Budget
-    from .omarchy import build_record, stabilize_codex_record, validate_record
+    from .omarchy import (
+        build_record,
+        current_default_model,
+        known_agents,
+        stabilize_codex_record,
+        validate_record,
+    )
     from .opencode_telemetry import OpenCodeTelemetry
 
     telemetry = OpenCodeTelemetry().read()
-    record = build_record(telemetry, Budget.load())
+    record = build_record(telemetry, Budget.load(), known_agents(), current_default_model())
     problems = validate_record(record)
     if problems:
         for problem in problems:
@@ -564,9 +570,11 @@ def omarchy_install(interval: str, enable: bool):
     from .budget import Budget
     from .omarchy import (
         build_record,
+        current_default_model,
         install_codex_stabilizer,
         install_plugin,
         install_timer,
+        known_agents,
         remove_legacy_agents_record,
         stabilize_codex_record,
         write_record,
@@ -588,7 +596,14 @@ def omarchy_install(interval: str, enable: bool):
     click.echo(f"Wrote {timer}")
 
     # Publish once now so the panel is populated before the first tick.
-    destination = write_record(build_record(OpenCodeTelemetry().read(), Budget.load()))
+    destination = write_record(
+        build_record(
+            OpenCodeTelemetry().read(),
+            Budget.load(),
+            known_agents(),
+            current_default_model(),
+        )
+    )
     click.echo(f"Wrote {destination}")
     codex_changed, codex_message = stabilize_codex_record()
     if codex_changed:

@@ -214,6 +214,13 @@ el panel nativo de Omarchy (Claude/Codex/Fireworks). Si existe un
 La escritura del record privado sigue siendo atómica (tempfile + rename), para
 que el watcher reciba siempre un JSON completo.
 
+El record incluye una fila por cada agente conocido, aunque todavía tenga cero
+sesiones. En `agents[]`, `model` es el modelo de display actual (pin
+configurado, default actual de OpenCode o fallback), no el modelo dominante de la
+telemetría. El histórico observado se conserva aparte en `observedModel`; el pin
+del `.md` en `configuredModel`; y `modelSource` indica si el valor viene de
+`configured`, `default`, `inherits-default`, `observed` o `unknown`.
+
 La visibilidad y separación visual del panel dependen de dos contratos: la
 activación del plugin en Omarchy (`omarchy plugin enable lemoria.usage --after
 omarchy.agents`) y el tamaño implícito del root QML. `Panel.qml` expone el tamaño

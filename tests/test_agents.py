@@ -486,6 +486,35 @@ class TestOmarchyRecord:
         assert agents["orchestrator"]["model"] == "opencode/big-pickle"
         assert "opencode/big-pickle" in agents["orchestrator"]["models"]
 
+    def test_record_prefers_configured_default_over_stale_observed_model(self, opencode_db):
+        from lemoria.omarchy import KnownAgent
+
+        record = build_record(
+            OpenCodeTelemetry(opencode_db).read(),
+            known={"orchestrator": KnownAgent("orchestrator")},
+            default_model="opencode/gpt-5.5",
+        )
+        agents = {agent["agent"]: agent for agent in record["agents"]}
+
+        assert agents["orchestrator"]["model"] == "opencode/gpt-5.5"
+        assert agents["orchestrator"]["observedModel"] == "opencode/big-pickle"
+        assert agents["orchestrator"]["modelSource"] == "default"
+
+    def test_record_includes_known_agents_without_usage(self, opencode_db):
+        from lemoria.omarchy import KnownAgent
+
+        record = build_record(
+            OpenCodeTelemetry(opencode_db).read(),
+            known={"db-agent": KnownAgent("db-agent")},
+            default_model="opencode/gpt-5.5",
+        )
+        agents = {agent["agent"]: agent for agent in record["agents"]}
+
+        assert agents["db-agent"]["tokens"] == 0
+        assert agents["db-agent"]["sessions"] == 0
+        assert agents["db-agent"]["model"] == "opencode/gpt-5.5"
+        assert agents["db-agent"]["modelSource"] == "inherits-default"
+
     def test_record_keeps_agents_that_have_activity_but_zero_tokens(self, opencode_db):
         from lemoria.opencode_telemetry import AgentUsage
 
@@ -687,6 +716,11 @@ class TestPluginInstall:
         assert "height: root.height > 0 ? root.height : implicitHeight" in widget_button
         assert "anchors.fill: parent" not in widget_button
         assert 'text: usage.hasUsage ? root.compact(root.record.totalTokens) : "0"' in panel
+        assert "model is current/configured" in panel
+        assert "readonly property string observedModel" in panel
+        assert "readonly property bool observedDiffers" in panel
+        assert "text: \"obs \" + row.shortModel(row.observedModel)" in panel
+        assert "Historical shares come from observed" in panel
         assert "onPressed: function(buttonCode)" in widget_button
         assert "if (buttonCode === Qt.MiddleButton) root.toggle()" in widget_button
         assert "else if (buttonCode === Qt.RightButton)" in widget_button
@@ -714,6 +748,32 @@ class TestPluginInstall:
         assert not destination.exists()
         assert other.exists()
         assert uninstall_plugin(destination) is False
+
+    def test_install_one_shot_record_uses_current_agent_metadata(self, tmp_path, opencode_db, monkeypatch):
+        from click.testing import CliRunner
+
+        from lemoria.cli import cli
+        from lemoria.omarchy import KnownAgent
+
+        record_dir = tmp_path / "usage"
+        monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+        monkeypatch.setattr("lemoria.opencode_telemetry.default_db_path", lambda: opencode_db)
+        monkeypatch.setattr("lemoria.omarchy.default_record_dir", lambda: record_dir)
+        monkeypatch.setattr("lemoria.omarchy.default_unit_dir", lambda: tmp_path / "systemd")
+        monkeypatch.setattr("lemoria.omarchy.default_plugin_dir", lambda: tmp_path / "plugins")
+        monkeypatch.setattr(
+            "lemoria.omarchy.known_agents",
+            lambda: {"db-agent": KnownAgent("db-agent")},
+        )
+        monkeypatch.setattr("lemoria.omarchy.current_default_model", lambda: "opencode/gpt-5.5")
+
+        result = CliRunner().invoke(cli, ["omarchy", "install", "--no-enable"])
+
+        assert result.exit_code == 0
+        payload = json.loads(record_dir.joinpath("usage.json").read_text(encoding="utf-8"))
+        agents = {agent["agent"]: agent for agent in payload["agents"]}
+        assert agents["db-agent"]["model"] == "opencode/gpt-5.5"
+        assert agents["db-agent"]["modelSource"] == "inherits-default"
 
 
 class TestUninstall:

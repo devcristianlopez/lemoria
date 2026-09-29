@@ -291,7 +291,14 @@ Claves propias para `lemoria.usage`:
 | `monthTokens` | tokens desde el día 1 local |
 | `budget` | `{funded, used, remaining, percent, status}` si hay presupuesto configurado |
 | `balance` | `{funded, remaining}` compatible con el medidor de Omarchy |
-| `agents[]` | nombre, total, hoy, sesiones, prompts, modelo dominante y reparto por modelo |
+| `agents[]` | nombre, total, hoy, sesiones, prompts, modelo de display actual/configurado/default, modelo observado histórico, fuente del modelo y reparto por modelo |
+
+En cada agente del record, `model` **no** significa "modelo dominante". Es el
+modelo que el panel debe mostrar ahora: el configurado en frontmatter, el default
+actual de OpenCode, o el mejor fallback disponible. `observedModel` queda
+separado para el dato histórico derivado de uso, `configuredModel` refleja el pin
+del `.md` cuando existe, y `modelSource` explica la procedencia (`configured`,
+`default`, `inherits-default`, `observed` o `unknown`).
 
 `recentDays[].messageCount` se alimenta con **tokens**, pese al nombre. No es un
 error: `Panel.qml` lo renderiza con `formatTokenCount(day.messageCount)` y lo
@@ -313,8 +320,8 @@ cuadran con el total.
 |---|---|---|
 | Tokens por día | Total siempre visible en barra | Todo en texto/JSON |
 | Tokens por modelo | Hoy, 7 días y agentes consolidados | Ideal sin Omarchy |
-| Sesiones y prompts de hoy | Tabla de todos los agentes | Debug/automatización |
-| Días activos | Modelo dominante y `(+N more)` | `agent status` detallado |
+| Sesiones y prompts de hoy | Tabla de todos los agentes conocidos, incluso sin uso | Debug/automatización |
+| Días activos | Modelo display + `obs ...` si difiere del histórico | `agent status` detallado |
 
 ### Escritura atómica
 
@@ -479,6 +486,9 @@ Corre sola en `lemoria init`.
   columna sigue mostrando el valor leído del último registro de ese agente. El
   campo `observedModel` del `--json` es el dato duro: lo que opencode
   realmente usó.
+- **En el record de Omarchy, `model` es display/configuración actual.** El
+  histórico derivado de uso vive en `observedModel`; no vuelvas a tratar `model`
+  como "modelo dominante".
 - **`--dir` solo existe en `sync`.** `agent model` siempre usa
   `LEMORIA_OPENCODE_AGENTS_DIR`. Con la variable apuntando a un directorio
   incompleto, `agent model` sincronizaría solo esos archivos y desactivaría el

@@ -302,7 +302,7 @@ El widget propio deja el **total acumulado** siempre visible en la barra. Al abr
 
 - total histórico, sesiones, prompts y rango de fechas;
 - tokens de hoy y últimos 7 días;
-- tabla con **todos los agentes**, total consolidado, tokens de hoy, sesiones, prompts y el modelo dominante con `(+N more)` cuando usó más de uno;
+- tabla con **todos los agentes conocidos**, aunque no tengan uso, total consolidado, tokens de hoy, sesiones, prompts y el modelo de display actual/configurado/default; si el modelo observado por telemetría histórica difiere, lo muestra aparte como `obs ...`;
 - presupuesto mensual en tokens solo si lo configurás.
 
 El record del plugin es privado (`~/.local/state/lemoria/omarchy/usage.json`): `omarchy.agents` no lo ve, así que Claude/Codex/Fireworks quedan intactos. El timer también sanea el `codex.json` nativo cuando el collector de Codex devuelve el error intermitente `account/read`.

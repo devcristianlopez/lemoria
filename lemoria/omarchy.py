@@ -18,11 +18,14 @@ import os
 import shutil
 import sys
 import tempfile
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from .agents import AgentSync
 from .budget import Budget
-from .opencode_telemetry import OpenCodeTelemetry, Telemetry
+from .config import settings
+from .opencode_telemetry import AgentUsage, OpenCodeTelemetry, Telemetry
 
 AGENT_ID = "lemoria"
 AGENT_NAME = "Lemoria"
@@ -34,6 +37,126 @@ REQUIRED_KEYS = (
     "recentDays", "totalPrompts", "totalSessions", "activeDays", "activeDates",
     "modelUsage", "limits", "tierLabel",
 )
+
+
+@dataclass(frozen=True)
+class KnownAgent:
+    """Static agent metadata read from opencode's current configuration."""
+
+    name: str
+    model: str | None = None
+    variant: str | None = None
+
+
+def _strip_jsonc(raw: str) -> str:
+    """Remove JSONC comments without touching comment-looking text in strings."""
+    out: list[str] = []
+    in_string = False
+    escaped = False
+    index = 0
+    while index < len(raw):
+        char = raw[index]
+        next_char = raw[index + 1] if index + 1 < len(raw) else ""
+        if in_string:
+            out.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            index += 1
+            continue
+        if char == '"':
+            in_string = True
+            out.append(char)
+            index += 1
+            continue
+        if char == "/" and next_char == "/":
+            index += 2
+            while index < len(raw) and raw[index] not in "\r\n":
+                index += 1
+            continue
+        if char == "/" and next_char == "*":
+            index += 2
+            while index + 1 < len(raw) and not (raw[index] == "*" and raw[index + 1] == "/"):
+                index += 1
+            index += 2
+            continue
+        out.append(char)
+        index += 1
+    return "".join(out)
+
+
+def _read_config(path: Path) -> dict:
+    try:
+        raw = path.read_text(encoding="utf-8")
+        value = json.loads(_strip_jsonc(raw))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _opencode_config_paths(cwd: Path | None = None) -> list[Path]:
+    """Return opencode configs from lowest to highest precedence."""
+    root = (cwd or Path.cwd()).resolve()
+    paths: list[Path] = []
+    global_dir = Path.home() / ".config" / "opencode"
+    paths.extend(global_dir / name for name in ("opencode.json", "opencode.jsonc"))
+
+    parents = list(root.parents)
+    for directory in reversed([root, *parents]):
+        paths.extend(directory / name for name in ("opencode.json", "opencode.jsonc"))
+    for directory in reversed([root, *parents]):
+        paths.extend(directory / ".opencode" / name for name in ("opencode.json", "opencode.jsonc"))
+    return [path for path in paths if path.is_file()]
+
+
+def current_default_model(cwd: Path | None = None) -> str | None:
+    """Best-effort default model using runtime hints first, then config files."""
+    for name in ("LEMORIA_OPENCODE_MODEL", "OPENCODE_MODEL", "OPENCODE_DEFAULT_MODEL"):
+        value = os.environ.get(name)
+        if value:
+            return value
+
+    model: str | None = None
+    for path in _opencode_config_paths(cwd):
+        configured = _read_config(path).get("model")
+        if isinstance(configured, str) and configured.strip():
+            model = configured.strip()
+    return model
+
+
+def known_agents(cwd: Path | None = None) -> dict[str, KnownAgent]:
+    """Agents known from markdown and opencode config, without requiring Lemoria DB."""
+    found: dict[str, KnownAgent] = {}
+    agent_dirs = [
+        Path.home() / ".config" / "opencode" / "agents",
+        settings.opencode_agents_dir,
+    ]
+    for directory in agent_dirs:
+        for definition in AgentSync(None, directory).discover():
+            found[definition.name] = KnownAgent(
+                name=definition.name,
+                model=definition.model,
+                variant=definition.variant,
+            )
+
+    for path in _opencode_config_paths(cwd):
+        agents = _read_config(path).get("agent")
+        if not isinstance(agents, dict):
+            continue
+        for name, config in agents.items():
+            if not isinstance(name, str):
+                continue
+            model = config.get("model") if isinstance(config, dict) else None
+            variant = config.get("variant") if isinstance(config, dict) else None
+            found[name] = KnownAgent(
+                name=name,
+                model=model if isinstance(model, str) and model else found.get(name, KnownAgent(name)).model,
+                variant=variant if isinstance(variant, str) and variant else found.get(name, KnownAgent(name)).variant,
+            )
+    return found
 
 
 def default_record_dir() -> Path:
@@ -229,7 +352,12 @@ def uninstall_plugin(destination: Path | None = None) -> bool:
 NO_BUDGET = Budget()
 
 
-def build_record(telemetry: Telemetry, budget: Budget = NO_BUDGET) -> dict:
+def build_record(
+    telemetry: Telemetry,
+    budget: Budget = NO_BUDGET,
+    known: dict[str, KnownAgent] | None = None,
+    default_model: str | None = None,
+) -> dict:
     """Turn a Telemetry snapshot into the panel's record.
 
     ``ready`` is what makes the panel show a tab at all, and the panel hides a
@@ -286,14 +414,16 @@ def build_record(telemetry: Telemetry, budget: Budget = NO_BUDGET) -> dict:
                 "sessions": entry.sessions,
                 "activeSessions": entry.active_sessions,
                 "cost": entry.cost,
-                "model": entry.model,
-                "variant": entry.variant,
+                "model": _display_model(entry.name, entry, known or {}, default_model),
+                "variant": _display_variant(entry.name, entry, known or {}),
+                "observedModel": entry.model,
+                "configuredModel": (known or {}).get(entry.name).model if entry.name in (known or {}) else None,
+                "modelSource": _model_source(entry.name, entry, known or {}, default_model),
                 "models": entry.models,
             }
             for entry in sorted(
-                telemetry.by_agent.values(), key=lambda e: -e.tokens
+                _agent_entries(telemetry, known or {}).values(), key=lambda e: (-e.tokens, e.name)
             )
-            if entry.tokens or entry.sessions or entry.prompts
         ],
         # Not part of the panel's contract: the panel ignores unknown keys, but
         # they make the record self-describing for anything else that reads it.
@@ -301,6 +431,44 @@ def build_record(telemetry: Telemetry, budget: Budget = NO_BUDGET) -> dict:
         "monthTokens": telemetry.month_tokens,
         "totalCost": telemetry.total_cost,
     }
+
+
+def _agent_entries(telemetry: Telemetry, known: dict[str, KnownAgent]) -> dict[str, AgentUsage]:
+    entries = dict(telemetry.by_agent)
+    for name in known:
+        entries.setdefault(name, AgentUsage(name=name))
+    return entries
+
+
+def _display_model(name: str, entry: AgentUsage, known: dict[str, KnownAgent], default_model: str | None) -> str | None:
+    metadata = known.get(name)
+    if metadata and metadata.model:
+        return metadata.model
+    if default_model:
+        return default_model
+    return getattr(entry, "model", None)
+
+
+def _display_variant(name: str, entry: AgentUsage, known: dict[str, KnownAgent]) -> str | None:
+    metadata = known.get(name)
+    if metadata and metadata.variant:
+        return metadata.variant
+    return getattr(entry, "variant", None)
+
+
+def _model_source(name: str, entry: AgentUsage, known: dict[str, KnownAgent], default_model: str | None) -> str:
+    metadata = known.get(name)
+    if metadata and metadata.model:
+        return "configured"
+    if name == "orchestrator" and default_model:
+        return "default"
+    if metadata and default_model:
+        return "inherits-default"
+    if default_model:
+        return "default"
+    if getattr(entry, "model", None):
+        return "observed"
+    return "unknown"
 
 
 def validate_record(record: dict) -> list[str]:
@@ -366,7 +534,7 @@ def publish(db_path: Path | str | None = None, output: Path | str | None = None)
     from .budget import Budget
 
     telemetry = OpenCodeTelemetry(db_path).read()
-    record = build_record(telemetry, Budget.load())
+    record = build_record(telemetry, Budget.load(), known_agents(), current_default_model())
     return write_record(record, Path(output) if output else None), record
 
 
