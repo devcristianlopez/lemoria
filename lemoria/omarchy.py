@@ -391,6 +391,25 @@ Unit=lemoria-usage.service
 WantedBy=timers.target
 """
 
+CODEX_STABILIZE_SERVICE_UNIT = """[Unit]
+Description=Stabilize Omarchy Codex usage record
+
+[Service]
+Type=oneshot
+ExecStart={executable} omarchy stabilize-codex
+"""
+
+CODEX_STABILIZE_PATH_UNIT = """[Unit]
+Description=Watch Omarchy Codex usage record for intermittent account/read failures
+
+[Path]
+PathChanged={codex_record}
+Unit=lemoria-codex-stabilize.service
+
+[Install]
+WantedBy=default.target
+"""
+
 
 def default_unit_dir() -> Path:
     return Path.home() / ".config" / "systemd" / "user"
@@ -405,6 +424,23 @@ def find_executable() -> str:
     if candidate.exists():
         return str(candidate)
     return sys.executable
+
+
+def install_codex_stabilizer(unit_dir: Path | None = None) -> tuple[Path, Path]:
+    """Write user units that sanitize Codex immediately after native updates."""
+    directory = unit_dir or default_unit_dir()
+    directory.mkdir(parents=True, exist_ok=True)
+    service = directory / "lemoria-codex-stabilize.service"
+    path = directory / "lemoria-codex-stabilize.path"
+    service.write_text(
+        CODEX_STABILIZE_SERVICE_UNIT.format(executable=find_executable()),
+        encoding="utf-8",
+    )
+    path.write_text(
+        CODEX_STABILIZE_PATH_UNIT.format(codex_record=native_codex_record_path()),
+        encoding="utf-8",
+    )
+    return service, path
 
 
 def install_timer(unit_dir: Path | None = None, interval: str = "1min") -> tuple[Path, Path]:

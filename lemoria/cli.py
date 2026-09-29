@@ -545,6 +545,17 @@ def omarchy_record(output: str | None, print_only: bool):
         click.echo("  record is not ready; the Lemoria widget will not show data")
 
 
+@omarchy.command("stabilize-codex")
+def omarchy_stabilize_codex():
+    """Sanitize the native Codex usage record after Omarchy rewrites it."""
+    from .omarchy import stabilize_codex_record
+
+    changed, message = stabilize_codex_record()
+    click.echo(message)
+    if not changed and "missing" in message:
+        raise click.ClickException(message)
+
+
 @omarchy.command("install")
 @click.option("--interval", default="1min", help="How often the panel should refresh (e.g. 1min, 5min, 1h)")
 @click.option("--enable/--no-enable", default=True, help="Enable and start the timer (--no-enable to only write)")
@@ -553,6 +564,7 @@ def omarchy_install(interval: str, enable: bool):
     from .budget import Budget
     from .omarchy import (
         build_record,
+        install_codex_stabilizer,
         install_plugin,
         install_timer,
         remove_legacy_agents_record,
@@ -566,6 +578,10 @@ def omarchy_install(interval: str, enable: bool):
 
     plugin = install_plugin()
     click.echo(f"Wrote {plugin}")
+
+    codex_service, codex_path = install_codex_stabilizer()
+    click.echo(f"Wrote {codex_service}")
+    click.echo(f"Wrote {codex_path}")
 
     service, timer = install_timer(interval=interval)
     click.echo(f"Wrote {service}")
@@ -607,7 +623,9 @@ def omarchy_install(interval: str, enable: bool):
         # never firing again. Stopping first drops that record. It costs
         # nothing when the timer was already stopped.
         subprocess.run(["systemctl", "--user", "stop", "lemoria-usage.timer"], check=False)
+        subprocess.run(["systemctl", "--user", "stop", "lemoria-codex-stabilize.path"], check=False)
         subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
+        subprocess.run(["systemctl", "--user", "enable", "--now", "lemoria-codex-stabilize.path"], check=True)
         subprocess.run(["systemctl", "--user", "enable", "--now", "lemoria-usage.timer"], check=True)
     except subprocess.CalledProcessError as error:
         click.echo(f"\ncould not enable the timer: {error}", err=True)
@@ -685,12 +703,16 @@ def omarchy_uninstall(keep_record: bool):
     units = [
         default_unit_dir() / "lemoria-usage.service",
         default_unit_dir() / "lemoria-usage.timer",
+        default_unit_dir() / "lemoria-codex-stabilize.service",
+        default_unit_dir() / "lemoria-codex-stabilize.path",
     ]
 
     if _shutil.which("systemctl"):
         # Stop first: deleting a unit that systemd still has loaded leaves a
         # timer running from an in-memory copy of the old file.
         subprocess.run(["systemctl", "--user", "disable", "--now", "lemoria-usage.timer"],
+                       check=False, capture_output=True)
+        subprocess.run(["systemctl", "--user", "disable", "--now", "lemoria-codex-stabilize.path"],
                        check=False, capture_output=True)
         subprocess.run(["systemctl", "--user", "daemon-reload"], check=False, capture_output=True)
 

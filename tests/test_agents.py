@@ -539,6 +539,16 @@ class TestTimerUnits:
         _, timer = install_timer(tmp_path, interval="15min")
         assert "OnUnitActiveSec=15min" in timer.read_text()
 
+    def test_codex_stabilizer_units_watch_the_native_codex_record(self, tmp_path, monkeypatch):
+        from lemoria.omarchy import install_codex_stabilizer
+
+        monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+        service, path = install_codex_stabilizer(tmp_path)
+        assert service.name == "lemoria-codex-stabilize.service"
+        assert path.name == "lemoria-codex-stabilize.path"
+        assert "omarchy stabilize-codex" in service.read_text()
+        assert str(tmp_path / "state" / "omarchy" / "agents" / "usage" / "codex.json") in path.read_text()
+
     def test_creates_the_directory(self, tmp_path):
         from lemoria.omarchy import install_timer
 
