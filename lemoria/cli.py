@@ -325,6 +325,11 @@ def model_cmd(name: str, model: str | None, variant: str | None, clear: bool):
     app.close()
 
 
+def _plural(count: int, word: str) -> str:
+    """`1 session`, not `1 sessions`. These counts land on one line."""
+    return f"{count} {word}" if count == 1 else f"{count} {word}s"
+
+
 @cli.command("usage")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON instead of a table")
 def usage_cmd(as_json: bool):
@@ -412,10 +417,13 @@ def usage_cmd(as_json: bool):
     if telemetry.active_dates:
         span = f"  ({telemetry.active_dates[0]} → {telemetry.active_dates[-1]})"
     click.echo(f"\nTotal   {human(telemetry.total_tokens)} tokens{span}")
-    click.echo(f"        {telemetry.total_sessions} sessions · {telemetry.total_prompts} prompts"
-               f" · ${telemetry.total_cost:.2f} · {len(telemetry.active_dates)} active days")
+    click.echo(f"        {_plural(telemetry.total_sessions, 'session')}"
+               f" · {_plural(telemetry.total_prompts, 'prompt')}"
+               f" · ${telemetry.total_cost:.2f}"
+               f" · {_plural(len(telemetry.active_dates), 'active day')}")
     click.echo(f"Today   {human(telemetry.today_tokens)} tokens"
-               f" · {telemetry.today_sessions} sessions · {telemetry.today_prompts} prompts\n")
+               f" · {_plural(telemetry.today_sessions, 'session')}"
+               f" · {_plural(telemetry.today_prompts, 'prompt')}\n")
 
     click.echo("By model (all-time)")
     for model, bucket in sorted(
