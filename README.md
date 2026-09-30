@@ -12,7 +12,7 @@
     <a href="https://img.shields.io/github/last-commit/devcristianlopez/lemoria" target="_blank"><img src="https://img.shields.io/github/last-commit/devcristianlopez/lemoria?style=flat-square" alt="Last Commit" /></a>
     <a href="https://img.shields.io/github/repo-size/devcristianlopez/lemoria" target="_blank"><img src="https://img.shields.io/github/repo-size/devcristianlopez/lemoria?style=flat-square" alt="Repo Size" /></a>
     <a href="https://img.shields.io/github/actions/workflow/status/devcristianlopez/lemoria/ci.yml?style=flat-square&logo=githubactions" target="_blank"><img src="https://img.shields.io/github/actions/workflow/status/devcristianlopez/lemoria/ci.yml?style=flat-square&logo=githubactions" alt="CI" /></a>
-    <a href="https://img.shields.io/badge/tests-51-brightgreen?style=flat-square&label=tests" target="_blank"><img src="https://img.shields.io/badge/tests-51-brightgreen?style=flat-square&label=tests" alt="Tests" /></a>
+    <a href="https://img.shields.io/badge/tests-221-brightgreen?style=flat-square&label=tests" target="_blank"><img src="https://img.shields.io/badge/tests-221-brightgreen?style=flat-square&label=tests" alt="Tests" /></a>
   </p>
 </p>
 
@@ -31,13 +31,13 @@ Instálalo **una sola vez** y todos tus proyectos —limpios, separados, sin con
 - 🧭 **Gestión de agentes** — Los subagentes viven en la DB, y su modelo se ve y se cambia por agente (`lemoria agent sync|model|status`)
 - 📊 **Telemetría de opencode** — Sesiones, tokens y costo por agente, con widget propio de Omarchy aislado de Codex/Claude/Fireworks
 - 🗃️ **Trazabilidad total** — Cada proyecto, PRD, tarea, decisión y flow step se persiste en PostgreSQL con relaciones y metadatos
-- 🐳 **PostgreSQL en Docker** — Base de datos aislada, reproducible, lista en segundos
+- 🐘 **PostgreSQL nativo o en Docker** — Usa el servidor que ya tengas andando; Docker es la alternativa, no el requisito
 - 🔌 **CLI global** — `lemoria` disponible en cualquier terminal tras la instalación
 - 📂 **Proyectos independientes** — Cada proyecto vive en su propia carpeta, sin contaminación cruzada
 - 📚 **Obsidian vault** — Sincronización bidireccional opcional: exporta a markdown y restaura la DB desde el vault (memoria privada, guardada fuera de repos git).
 - 📋 **Decisiones registradas** — Cada cambio importante queda documentado como ADR antes de implementar
 - 🔄 **State machine** — Cada paso del flujo se registra en `flow_steps`, permitiendo retomar sesiones tras pérdida de contexto
-- 🧪 **51 tests automatizados** — pytest con SQLite in-memory, CI en GitHub Actions (Python 3.11/3.12/3.13)
+- 🧪 **221 tests automatizados** — pytest con SQLite in-memory, CI en GitHub Actions (Python 3.11/3.12/3.13)
 - 🏷️ **8 enums tipados** — Todos los status con `CheckConstraint` en DB para integridad a nivel de base de datos
 - 📡 **Context7 MCP** — Documentación en tiempo real de librerías y frameworks vía MCP server
 
@@ -60,6 +60,13 @@ opencode
 ```
 
 > **Nota:** Después de instalar, el repositorio `lemoria/` es prescindible. Los agentes quedan en `~/.config/opencode/agents/` y el comando `lemoria` está disponible globalmente.
+
+**Requisitos:** Python >= 3.11, [uv](https://docs.astral.sh/uv/) y PostgreSQL >= 14
+(nativo del sistema o Docker — da igual cuál). Docker no es obligatorio y `pip`
+tampoco: el instalador usa `uv` primero, y por eso funciona en Arch con
+Python 3.14 sin pelear con PEP 668. Si venís de otra distro y querés el detalle,
+[`INSTALL.md`](INSTALL.md) explica por qué `pip install` falla ahí y cómo
+desbloquearlo sin romper el sistema.
 
 Comandos esenciales:
 
@@ -392,17 +399,22 @@ lemoria/
 ├── .opencode/
 │   ├── agents/               # Definiciones de los 8 agentes
 │   └── skills/               # 7 skills Lemoria (frontend, backend, database, etc.)
-├── tests/                    # 51 tests (pytest, SQLite in-memory)
+├── tests/                    # 221 tests (pytest, SQLite in-memory)
 │   ├── conftest.py
-│   ├── test_cli.py           # 10 tests
+│   ├── test_agents.py        # 86 tests — modelos, pin/unpin, telemetría por agente
+│   ├── test_installer.py     # 69 tests — decisiones de installer/lib.sh en un PATH falso
+│   ├── test_vault.py         # 20 tests
+│   ├── test_cli.py           # 15 tests
 │   ├── test_flow.py          # 14 tests
 │   ├── test_project.py       # 7 tests
-│   └── test_vault.py         # 20 tests
+│   └── test_budget.py        # 5 tests
 ├── .github/
 │   └── workflows/
 │       └── ci.yml            # GitHub Actions: matrix 3.11/3.12/3.13, PostgreSQL, ruff, Codecov
-├── docker-compose.yml        # PostgreSQL 16
+├── docker-compose.yml        # PostgreSQL 16 (alternativa al servidor nativo)
 ├── install.sh                # Instalación automatizada (con Context7 opcional)
+├── installer/
+│   └── lib.sh                # Decisiones del instalador, separadas para testearlas
 ├── pyproject.toml            # Configuración del proyecto + pytest
 ├── opencode.jsonc            # Configuración de OpenCode
 ├── INSTALL.md                # Guía de instalación detallada
@@ -419,7 +431,7 @@ lemoria/
 | **Lenguaje** | [Python 3.11+](https://www.python.org/) |
 | **CLI** | [Click](https://click.palletsprojects.com/) |
 | **ORM** | [SQLAlchemy 2.0](https://www.sqlalchemy.org/) |
-| **Base de Datos** | [PostgreSQL 16](https://www.postgresql.org/) (Docker) |
+| **Base de Datos** | [PostgreSQL >= 14](https://www.postgresql.org/) (nativo o Docker; el compose del repo usa 16) |
 | **Migraciones** | [Alembic](https://alembic.sqlalchemy.org/) |
 | **Validación** | [Pydantic 2.0](https://docs.pydantic.dev/) |
 | **HTTP Client** | [HTTPX](https://www.python-httpx.org/) |
@@ -429,7 +441,7 @@ lemoria/
 | **Skills** | 7 skills modulares (frontend, backend, database, testing, code-review, git-workflow, documentation) |
 | **Documentación en tiempo real** | [Context7 MCP](https://context7.com) |
 | **Vault** | [Obsidian](https://obsidian.md/) (bidireccional) |
-| **Testing** | [pytest](https://pytest.org/) — 51 tests |
+| **Testing** | [pytest](https://pytest.org/) — 221 tests |
 | **Linting** | [Ruff](https://docs.astral.sh/ruff/) |
 | **CI/CD** | [GitHub Actions](https://github.com/features/actions) (matrix 3.11/3.12/3.13) |
 
@@ -453,13 +465,15 @@ lemoria/
 
 La instalación tarda **menos de 2 minutos** y es completamente automatizada:
 
-1. **Verifica requisitos** — Python 3.11+, Docker y Docker Compose
-2. **Inicia PostgreSQL** — Se levanta automáticamente con `docker compose up -d`
-3. **Instala el CLI** — `pip install -e .` registra el comando `lemoria`
+1. **Verifica requisitos** — Python 3.11+ y cómo llegás a PostgreSQL (nativo, Docker, o ninguno)
+2. **Resuelve la base** — Si algo ya responde en `localhost:5432` lo respeta y no lo toca; si no, levanta Docker. Sin ninguna de las dos, se detiene y te guía
+3. **Instala el CLI** — Prueba `uv` → venv propio → `pip`, en ese orden. El primero es el recomendado: aísla solo, sin `sudo` y sin tocar el intérprete del sistema
 4. **Configura agentes** — Elige modo **Global** (disponible en cualquier proyecto) o **Proyecto** (local)
 5. **Inicializa la DB** — `lemoria init` crea las tablas y el vault
 
-Para más detalles, consulta [INSTALL.md](INSTALL.md).
+Para más detalles —incluido por qué `pip install` falla en Arch con Python 3.14
+y por qué el instalador **no** te pide sumarte al grupo `docker`— consulta
+[INSTALL.md](INSTALL.md).
 
 ---
 

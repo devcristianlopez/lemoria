@@ -499,6 +499,9 @@
       padding: 1px 8px;
       border-radius: 4px;
     }
+    /* Los argumentos dentro de un comando van en el mismo tono que en los
+       bloques de terminal, para que un `code` no se lea como un bloque entero. */
+    .start-list .content p code .arg { color: var(--subtext0); }
 
     .install-term {
       margin-top: 28px;
@@ -516,6 +519,103 @@
     .install-term .line.out { color: var(--subtext0); }
     .install-term .line.out .k { color: var(--text); }
     .install-term .line.out .n { color: var(--green); font-weight: 600; }
+
+    /* Requisitos: mismo lenguaje visual que las cards de agentes, pero con las
+       listas de comandos en vez de prosa. */
+    .req-head { margin: 44px 0 18px; }
+    .req-head .cmd { font-size: .78rem; color: var(--subtext0); margin-bottom: 4px; }
+    .req-head .cmd code { color: var(--green); font-style: normal; }
+    .req-head .cmd .flag { color: var(--cyan); }
+    .req-head h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--yellow);
+      margin-bottom: 6px;
+    }
+    .req-head p { font-size: .8rem; color: var(--subtext0); max-width: 620px; }
+
+    .req-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .req-card {
+      background: var(--mantle);
+      border: 1px solid var(--surface1);
+      border-radius: 8px;
+      padding: 20px;
+      transition: all .2s;
+      /* Las listas de comandos son nowrap. Sin min-width:0, el mínimo implícito
+         del item de grid empuja el track más allá del viewport en pantallas
+         angostas y la página entera scrollea en horizontal. Con 0, cada lista
+         scrollea sola. */
+      min-width: 0;
+    }
+    .req-card:hover { border-color: var(--surface2); }
+    .req-card > h3 {
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .req-card > p { font-size: .78rem; color: var(--subtext0); line-height: 1.65; }
+    .req-card code {
+      font-family: inherit;
+      font-size: .75rem;
+      color: var(--yellow);
+      background: var(--surface0);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .req-chain { margin-top: 8px; color: var(--surface2); }
+
+    .req-opt { list-style: none; margin-top: 12px; }
+    .req-opt > li { border-top: 1px solid var(--surface1); padding-top: 12px; margin-top: 12px; }
+    .req-opt .tag {
+      display: inline-block;
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 6px;
+    }
+    .req-opt .tag.ok  { color: var(--green); }
+    .req-opt .tag.alt { color: var(--yellow); }
+    .req-opt .cmds { list-style: none; overflow-x: auto; }
+    .req-opt .cmds li {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-size: .76rem;
+      white-space: nowrap;
+    }
+    .req-opt .cmds .ps1 { color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .req-opt .cmds .cmd { color: var(--text); }
+    .req-opt .cmds .arg { color: var(--subtext0); }
+    .req-opt .cmds .out { color: var(--subtext0); }
+    .req-opt .cmds .out .k { color: var(--text); }
+    .req-opt .hint { font-size: .74rem; color: var(--overlay); margin-top: 8px; line-height: 1.6; }
+
+    .req-warn {
+      margin-top: 10px;
+      background: var(--surface0);
+      border-left: 3px solid var(--yellow);
+      border-radius: 0 6px 6px 0;
+      padding: 10px 12px;
+      font-size: .74rem;
+      color: var(--subtext0);
+      line-height: 1.6;
+    }
+    .req-warn b { color: var(--yellow); font-weight: 700; }
+    .req-warn code {
+      font-family: inherit;
+      font-size: .72rem;
+      color: var(--text);
+      background: var(--mantle);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
 
     /* ── Footer ──────────────────────────────────────── */
     footer {
@@ -563,6 +663,7 @@
       .feat-grid { grid-template-columns: 1fr; }
       .agent-grid { grid-template-columns: 1fr; }
       .flow-grid { grid-template-columns: repeat(2, 1fr); }
+      .req-grid { grid-template-columns: minmax(0, 1fr); }
       footer .container { flex-direction: column; text-align: center; }
     }
   </style>
@@ -852,9 +953,9 @@
   <section id="start">
     <div class="container">
       <div class="section-header">
-        <div class="cmd"><code>$ lemoria quickstart</code> <span class="flag">--guide</span></div>
+        <div class="cmd"><code>$ ./install.sh</code></div>
         <h2 data-i18n="install.title">Listo en 3 pasos</h2>
-        <p data-i18n="install.desc">Instala Lemoria, inicializa el proyecto y empieza a orquestar tu desarrollo con IA.</p>
+        <p data-i18n="install.desc">Clona, corre el instalador y abre OpenCode. El script resuelve la base de datos y el paquete de Python por vos.</p>
       </div>
       <ul class="start-list">
         <li class="fade-in">
@@ -867,15 +968,15 @@
         <li class="fade-in">
           <span class="num">step/2</span>
           <div class="content">
-            <h3 data-i18n="install.step2.title">Instala el paquete</h3>
-            <p><code>cd lemoria && pip install -e .</code></p>
+            <h3 data-i18n="install.step2.title">Corre el instalador</h3>
+            <p><code>./install.sh</code> <span data-i18n="install.step2.desc">— revisa tu máquina, resuelve PostgreSQL e instala el paquete con uv → venv → pip.</span></p>
           </div>
         </li>
         <li class="fade-in">
           <span class="num">step/3</span>
           <div class="content">
-            <h3 data-i18n="install.step3.title">Inicializa tu proyecto</h3>
-            <p><code>lemoria init</code> <span data-i18n="install.step3.desc">— configura la base de datos, los agentes y empieza a delegar.</span></p>
+            <h3 data-i18n="install.step3.title">Crea tu primer proyecto</h3>
+            <p><code>lemoria project create <span class="arg">"Mi proyecto"</span></code> <span data-i18n="install.step3.desc">— después abrí OpenCode y delegá con @orchestrator.</span></p>
           </div>
         </li>
       </ul>
@@ -888,10 +989,79 @@
         <div style="padding: 16px 20px; background: var(--bg);">
           <div class="line"><span class="ps1">$</span><span class="cmd">git clone https://github.com/devcristianlopez/lemoria.git</span></div>
           <div class="line"><span class="ps1">$</span><span class="cmd">cd lemoria</span></div>
-          <div class="line"><span class="ps1">$</span><span class="cmd">pip install -e .</span></div>
-          <div class="line" style="margin-top: 8px;"><span class="ps1">$</span><span class="cmd">lemoria init</span></div>
-          <div class="line"><span class="ps1">$</span><span class="cmd">lemoria project create <span class="arg">"Mi proyecto"</span> -d <span class="arg">"Descripción"</span></span></div>
+          <div class="line"><span class="ps1">$</span><span class="cmd">./install.sh</span></div>
+          <div class="line out" style="margin-top: 10px;"><span class="k">→ uv</span> <span class="n">uv 0.12.1</span> <span class="arg" data-i18n="install.term.uv">(primario)</span></div>
+          <div class="line out"><span class="k">→ postgres</span> <span class="n">localhost:5432</span> <span class="arg" data-i18n="install.term.pg">(ya respondía — no se tocó)</span></div>
+          <div class="line out"><span class="k" data-i18n="install.term.done">✓ Lemoria instalado vía:</span> <span class="n">uv</span></div>
+          <div class="line" style="margin-top: 10px;"><span class="ps1">$</span><span class="cmd">lemoria project create <span class="arg">"Mi proyecto"</span> -d <span class="arg">"Descripción"</span></span></div>
           <div class="line"><span class="ps1">$</span><span class="cmd">lemoria flow start <span class="arg">&lt;project-id&gt;</span> <span class="arg">"Mi idea"</span></span></div>
+          <div class="line"><span class="ps1">$</span><span class="cmd">opencode .</span></div>
+        </div>
+      </div>
+
+      <div class="req-head fade-in">
+        <div class="cmd"><code>$ ./install.sh</code> <span class="flag">[1/9] Verificando requisitos</span></div>
+        <h3 data-i18n="install.req.title">Lo que revisa antes de instalar</h3>
+        <p data-i18n="install.req.desc">El instalador no adivina: mira tu máquina y elige el camino más limpio que funcione. Esto es lo que decide.</p>
+      </div>
+
+      <div class="req-grid">
+        <div class="req-card fade-in">
+          <h3 data-i18n="install.pg.title">PostgreSQL</h3>
+          <p data-i18n="install.pg.desc">Tiene que responder algo en <code>localhost:5432</code>. Si tu servidor ya está corriendo, el instalador lo respeta y no lo toca: solo verifica que las credenciales de <code>.env</code> sirvan.</p>
+          <ul class="req-opt">
+            <li>
+              <span class="tag ok" data-i18n="install.pg.a.tag">A · recomendado</span>
+              <ul class="cmds">
+                <li><span class="ps1">$</span><span class="cmd">sudo pacman -S postgresql</span> <span class="arg"># Arch / Omarchy</span></li>
+                <li><span class="ps1">$</span><span class="cmd">sudo systemctl enable --now postgresql</span></li>
+                <li><span class="ps1">$</span><span class="cmd">sudo -u postgres psql -c <span class="arg">"CREATE USER lemoria WITH PASSWORD 'lemoria';"</span></span></li>
+                <li><span class="ps1">$</span><span class="cmd">sudo -u postgres createdb -O lemoria lemoria</span></li>
+              </ul>
+              <p class="hint" data-i18n="install.pg.a.hint">Debian/Ubuntu: <code>sudo apt install postgresql</code> · Fedora: <code>sudo dnf install postgresql</code> · macOS: <code>brew install postgresql</code></p>
+            </li>
+            <li>
+              <span class="tag alt" data-i18n="install.pg.b.tag">B · alternativa</span>
+              <ul class="cmds">
+                <li><span class="ps1">$</span><span class="cmd">sudo pacman -S docker docker-compose</span></li>
+                <li><span class="ps1">$</span><span class="cmd">sudo systemctl enable --now docker</span></li>
+                <li><span class="ps1">$</span><span class="cmd">docker compose up -d</span> <span class="arg" data-i18n="install.pg.b.auto">(lo levanta el instalador)</span></li>
+              </ul>
+              <div class="req-warn">
+                <b data-i18n="install.pg.b.warn">Sobre <code>sudo usermod -aG docker $USER</code>:</b>
+                <span data-i18n="install.pg.b.warn2">el grupo docker equivale a root <b>sin contraseña</b>. Tener acceso al socket del daemon permite montar <code>/</code>, editar <code>/etc/shadow</code> y correr contenedores privilegiados. Lemoria no lo recomienda: usá la vía A, que no pide ese privilegio.</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="req-card fade-in">
+          <h3 data-i18n="install.py.title">El paquete de Python</h3>
+          <p data-i18n="install.py.desc">Se prueban en orden y cada uno es más invasivo que el anterior. Solo se cae al siguiente si el anterior falló.</p>
+          <p class="req-chain"><code>uv</code> → <code>venv</code> → <code>pip</code></p>
+          <ul class="req-opt">
+            <li>
+              <span class="tag ok" data-i18n="install.py.1.tag">1 · uv</span>
+              <ul class="cmds">
+                <li><span class="ps1">$</span><span class="cmd">sudo pacman -S uv</span> <span class="arg"># Arch / Omarchy</span></li>
+                <li><span class="ps1">$</span><span class="cmd">uv tool install --editable <span class="arg">".[dev]"</span></span></li>
+              </ul>
+              <p class="hint" data-i18n="install.py.1.hint">Fuera de Arch, <code>uv</code> no está en los repos: se instala desde su propia documentación. No pide sudo ni toca el intérprete del sistema.</p>
+            </li>
+            <li>
+              <span class="tag alt" data-i18n="install.py.2.tag">2 · venv propio</span>
+              <ul class="cmds">
+                <li><span class="ps1">$</span><span class="cmd">python3 -m venv ~/.local/share/lemoria/venv</span></li>
+              </ul>
+            </li>
+            <li>
+              <span class="tag alt" data-i18n="install.py.3.tag">3 · pip (último recurso)</span>
+              <div class="req-warn">
+                <b data-i18n="install.py.3.warn">Por qué <code>pip install -e .</code> falla en Arch + Python 3.14:</b>
+                <span data-i18n="install.py.3.warn2">Arch separa <code>pip</code> del intérprete — <code>python3 -m pip</code> responde <code>No module named pip</code> — y PEP 668 marca el intérprete del sistema como <code>EXTERNALLY-MANAGED</code>. Romper eso con <code>--break-system-packages</code> desactiva la protección y puede arrastrar a otras herramientas.</span>
+              </div>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -1024,11 +1194,33 @@
         'sdd.step.13.label': 'State Machine',
         'sdd.step.13.desc': 'flow_steps en DB',
         'install.title': 'Listo en 3 pasos',
-        'install.desc': 'Instala Lemoria, inicializa el proyecto y empieza a orquestar tu desarrollo con IA.',
+        'install.desc': 'Clona, corre el instalador y abre OpenCode. El script resuelve la base de datos y el paquete de Python por vos.',
         'install.step1.title': 'Clona el repositorio',
-        'install.step2.title': 'Instala el paquete',
-        'install.step3.title': 'Inicializa tu proyecto',
-        'install.step3.desc': '— configura la base de datos, los agentes y empieza a delegar.',
+        'install.step2.title': 'Corre el instalador',
+        'install.step2.desc': '— revisa tu máquina, resuelve PostgreSQL e instala el paquete con uv → venv → pip.',
+        'install.step3.title': 'Crea tu primer proyecto',
+        'install.step3.desc': '— después abrí OpenCode y delegá con @orchestrator.',
+        'install.term.uv': '(primario)',
+        'install.term.pg': '(ya respondía — no se tocó)',
+        'install.term.done': '✓ Lemoria instalado vía:',
+        'install.req.title': 'Lo que revisa antes de instalar',
+        'install.req.desc': 'El instalador no adivina: mira tu máquina y elige el camino más limpio que funcione. Esto es lo que decide.',
+        'install.pg.title': 'PostgreSQL',
+        'install.pg.desc': 'Tiene que responder algo en <code>localhost:5432</code>. Si tu servidor ya está corriendo, el instalador lo respeta y no lo toca: solo verifica que las credenciales de <code>.env</code> sirvan.',
+        'install.pg.a.tag': 'A · recomendado',
+        'install.pg.a.hint': 'Debian/Ubuntu: <code>sudo apt install postgresql</code> · Fedora: <code>sudo dnf install postgresql</code> · macOS: <code>brew install postgresql</code>',
+        'install.pg.b.tag': 'B · alternativa',
+        'install.pg.b.auto': '(lo levanta el instalador)',
+        'install.pg.b.warn': 'Sobre <code>sudo usermod -aG docker $USER</code>:',
+        'install.pg.b.warn2': 'el grupo docker equivale a root <b>sin contraseña</b>. Tener acceso al socket del daemon permite montar <code>/</code>, editar <code>/etc/shadow</code> y correr contenedores privilegiados. Lemoria no lo recomienda: usá la vía A, que no pide ese privilegio.',
+        'install.py.title': 'El paquete de Python',
+        'install.py.desc': 'Se prueban en orden y cada uno es más invasivo que el anterior. Solo se cae al siguiente si el anterior falló.',
+        'install.py.1.tag': '1 · uv',
+        'install.py.1.hint': 'Fuera de Arch, <code>uv</code> no está en los repos: se instala desde su propia documentación. No pide sudo ni toca el intérprete del sistema.',
+        'install.py.2.tag': '2 · venv propio',
+        'install.py.3.tag': '3 · pip (último recurso)',
+        'install.py.3.warn': 'Por qué <code>pip install -e .</code> falla en Arch + Python 3.14:',
+        'install.py.3.warn2': 'Arch separa <code>pip</code> del intérprete — <code>python3 -m pip</code> responde <code>No module named pip</code> — y PEP 668 marca el intérprete del sistema como <code>EXTERNALLY-MANAGED</code>. Romper eso con <code>--break-system-packages</code> desactiva la protección y puede arrastrar a otras herramientas.',
         'footer.license': '— MIT License',
       },
       en: {
@@ -1141,11 +1333,33 @@
         'sdd.step.13.label': 'State Machine',
         'sdd.step.13.desc': 'flow_steps in DB',
         'install.title': 'Ready in 3 steps',
-        'install.desc': 'Install Lemoria, initialize the project, and start orchestrating your AI development.',
+        'install.desc': 'Clone, run the installer, and open OpenCode. The script handles the database and the Python package for you.',
         'install.step1.title': 'Clone the repository',
-        'install.step2.title': 'Install the package',
-        'install.step3.title': 'Initialize your project',
-        'install.step3.desc': '— configures the database, agents, and starts delegating.',
+        'install.step2.title': 'Run the installer',
+        'install.step2.desc': '— it inspects your machine, resolves PostgreSQL, and installs the package with uv → venv → pip.',
+        'install.step3.title': 'Create your first project',
+        'install.step3.desc': '— then open OpenCode and delegate with @orchestrator.',
+        'install.term.uv': '(primary)',
+        'install.term.pg': '(already answering — left alone)',
+        'install.term.done': '✓ Lemoria installed via:',
+        'install.req.title': 'What it checks before installing',
+        'install.req.desc': 'The installer does not guess: it looks at your machine and picks the cleanest path that works. This is what it decides.',
+        'install.pg.title': 'PostgreSQL',
+        'install.pg.desc': 'Something has to answer on <code>localhost:5432</code>. If your server is already running, the installer respects it and leaves it alone: it only verifies that the <code>.env</code> credentials work.',
+        'install.pg.a.tag': 'A · recommended',
+        'install.pg.a.hint': 'Debian/Ubuntu: <code>sudo apt install postgresql</code> · Fedora: <code>sudo dnf install postgresql</code> · macOS: <code>brew install postgresql</code>',
+        'install.pg.b.tag': 'B · alternative',
+        'install.pg.b.auto': '(the installer brings it up)',
+        'install.pg.b.warn': 'About <code>sudo usermod -aG docker $USER</code>:',
+        'install.pg.b.warn2': 'the docker group is equivalent to root <b>without a password</b>. Access to the daemon socket lets you mount <code>/</code>, edit <code>/etc/shadow</code>, and run privileged containers. Lemoria does not recommend it: use path A, which asks for no such privilege.',
+        'install.py.title': 'The Python package',
+        'install.py.desc': 'They are tried in order, and each one is more invasive than the last. The next is only reached when the previous one failed.',
+        'install.py.1.tag': '1 · uv',
+        'install.py.1.hint': 'Outside Arch, <code>uv</code> is not in the repos: install it from its own documentation. It asks for no sudo and does not touch the system interpreter.',
+        'install.py.2.tag': '2 · own venv',
+        'install.py.3.tag': '3 · pip (last resort)',
+        'install.py.3.warn': 'Why <code>pip install -e .</code> fails on Arch + Python 3.14:',
+        'install.py.3.warn2': 'Arch separates <code>pip</code> from the interpreter — <code>python3 -m pip</code> answers <code>No module named pip</code> — and PEP 668 marks the system interpreter as <code>EXTERNALLY-MANAGED</code>. Breaking that with <code>--break-system-packages</code> disables the protection and can take other tools down with it.',
         'footer.license': '— MIT License',
       }
     };

@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Fase 1 — Core Memory (completada)
-- [x] PostgreSQL (Docker)
+- [x] PostgreSQL nativo o en Docker — si ya responde en el puerto configurado, se respeta y no se toca; Docker queda como alternativa, no como requisito
 - [x] Proyectos (CRUD)
 - [x] Conversaciones y mensajes
 - [x] PRDs y specs
@@ -16,7 +16,7 @@
 - [x] Delegación con contexto mínimo
 - [x] Flujo SDD completo (idea → memory update)
 - [x] CLI con Click (project, conv, flow, task, decision, agent)
-- [x] Instalación global (pip install --user)
+- [x] Instalación global (`uv` → venv propio → `pip`, en ese orden de preferencia)
 - [x] Mejores prácticas por agente (SOLID, FIRST, Diátaxis, etc.)
 
 ## Fase 3 — GitHub Intelligence (completada)
@@ -36,7 +36,7 @@
 
 ## Fase 4.5 — Ingeniería de Calidad (completada)
 - [x] 8 enums tipados con CheckConstraints en 7 modelos (integridad a nivel DB)
-- [x] 41 tests automatizados (pytest, SQLite in-memory)
+- [x] 221 tests automatizados (pytest, SQLite in-memory)
 - [x] CI en GitHub Actions (matrix Python 3.11/3.12/3.13, PostgreSQL, ruff, Codecov)
 - [x] FlowStep state machine (flow step CLI + orquestador resumible)
 - [x] CLI completo: spec, error, context commands
@@ -44,6 +44,7 @@
 - [x] 7 skills modulares (frontend, backend, database, testing, code-review, git-workflow, documentation)
 - [x] Context7 MCP server para documentación en tiempo real
 - [x] Instalador actualizado con Context7 opcional + 8 skills
+- [x] Instalador portable a Arch/Python 3.14 — cadena `uv` → venv → `pip`, detección de Docker en dos estados (`docker info` en vez de `docker compose version`), y guía de PostgreSQL nativo antes que Docker con advertencia de que el grupo `docker` equivale a root
 
 ## Fase 5 — Semantic Memory (pendiente)
 - [ ] pgvector extension

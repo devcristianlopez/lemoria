@@ -5,6 +5,13 @@ LEMORIA_DIR="$(cd "$(dirname "$0")" && pwd)"
 LEMORIA_VAULT_DIR="$HOME/.lemoria/vault"
 cd "$LEMORIA_DIR"
 
+# Las decisiones (qué base usar, qué instalador probar, qué paquete recomendar en
+# cada distro) viven en installer/lib.sh para poder testearlas: install.sh es lineal,
+# pide prompts y escribe en $HOME, así que no se puede correr dentro de un test.
+# Acá solo se cargan las funciones.
+# shellcheck source=installer/lib.sh
+source "$LEMORIA_DIR/installer/lib.sh"
+
 echo "========================================"
 echo "  Lemoria — Instalación automatizada"
 echo "========================================"
@@ -20,31 +27,35 @@ echo "  python3 : $(python3 --version)"
 # answers on the TCP port the app connects to -- pg_isready with no host only
 # checks the Unix socket, which says nothing about a container or a server
 # listening on TCP alone.
-DB_PORT="${LEMORIA_DB_PORT:-5432}"
-if command -v pg_isready >/dev/null 2>&1 && pg_isready -h localhost -p "$DB_PORT" -q 2>/dev/null; then
-    PG_READY=true
+DB_PORT="$(resolve_db_port)"
+detect_postgres
+# Docker lleva dos flags porque tiene dos formas distintas de fallar, y el
+# detalle de por qué el probe del daemon es 'docker info' y no
+# 'docker compose version' está en detect_docker(), en installer/lib.sh.
+detect_docker
+
+if $DOCKER_BINARIO; then
+    if $DOCKER_USABLE; then
+        echo "  docker   : $(docker --version 2>/dev/null || echo 'instalado') — daemon responde"
+    else
+        echo "  docker   : $(docker --version 2>/dev/null || echo 'instalado') — daemon NO responde"
+    fi
 else
-    PG_READY=false
-fi
-DOCKER_AVAILABLE=false
-if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-    DOCKER_AVAILABLE=true
+    echo "  docker   : no instalado (opcional)"
 fi
 
 if $PG_READY; then
     echo "  postgres: ya responde en localhost:$DB_PORT"
-elif $DOCKER_AVAILABLE; then
+elif $DOCKER_USABLE; then
     echo "  postgres: via Docker (aún no levantado)"
 else
+    # Llegar acá significa que no hay servidor. La guía explica las dos vías
+    # en vez de una línea suelta: la diferencia entre "no tenés Docker" y "tenés
+    # Docker y no lo podés usar" es justo lo que el usuario no puede ver solo.
     echo "  postgres: NO ENCONTRADO"
+    print_postgres_setup_guide
     echo ""
-    echo "  Lemoria necesita PostgreSQL. Instala uno de los dos:"
-    echo "    • Arch/Manjaro: sudo pacman -S postgresql && sudo systemctl enable --now postgresql"
-    echo "    • Docker:      instala Docker y vuelve a correr este script"
-    echo ""
-    # Llegar acá significa que tampoco hay Docker, así que no hay nada que
-    # intentar: preguntar "¿lo intentamos con Docker?" sería una pregunta falsa.
-    echo "Abortado. Instala PostgreSQL (o Docker) y vuelve a correr ./install.sh"
+    echo "Abortado. Instala PostgreSQL y vuelve a correr ./install.sh"
     exit 1
 fi
 
@@ -80,32 +91,6 @@ else
     echo "  .env ya existe, se mantiene"
 fi
 
-# Read one key out of .env. Deliberately NOT `source .env`: that executes
-# whatever is in the file, and an installer should not run code it just
-# copied from a repository. Parse the line instead.
-env_value() {
-    local key="$1" fallback="$2" line value
-    line="$(grep -E "^${key}=" .env 2>/dev/null | tail -1)" || true
-    if [ -z "$line" ]; then
-        printf '%s' "$fallback"
-        return
-    fi
-    value="${line#*=}"
-    # Strip matching surrounding quotes. Quoted values keep their inner spaces;
-    # unquoted ones lose an inline comment and get trimmed, so a trailing
-    # space in a password can't survive and break the connection silently.
-    case "$value" in
-        \"*\") value="${value#\"}"; value="${value%\"}" ;;
-        \'*\') value="${value#\'}"; value="${value%\'}" ;;
-        *)
-            value="${value%%[[:space:]]#*}"
-            value="${value#"${value%%[![:space:]]*}"}"
-            value="${value%"${value##*[![:space:]]}"}"
-            ;;
-    esac
-    printf '%s' "$value"
-}
-
 DB_USER="$(env_value LEMORIA_DB_USER lemoria)"
 DB_PASSWORD="$(env_value LEMORIA_DB_PASSWORD lemoria)"
 DB_NAME="$(env_value LEMORIA_DB_NAME lemoria)"
@@ -116,80 +101,49 @@ DB_NAME="${LEMORIA_DB_NAME:-$DB_NAME}"
 
 # ----- Docker Compose -----
 echo "[3/9] Configurando PostgreSQL..."
-if $PG_READY; then
-    # Algo ya responde en el puerto y no es asunto nuestro. El instalador no
-    # administra servidores que ya estaban corriendo: solo verifica que la
-    # credenciales de .env sirvan, y avisa con precisión si no.
-    if ! command -v psql >/dev/null 2>&1; then
-        echo "  PostgreSQL responde en localhost:$DB_PORT y no se tocó."
-        echo "  No encontré 'psql', así que no pude verificar las credenciales."
-        echo "  Si Lemoria falla al conectar, revisá LEMORIA_DB_* en .env."
-    elif PGPASSWORD="$DB_PASSWORD" psql \
-        -h localhost -p "$DB_PORT" \
-        -U "$DB_USER" -d "$DB_NAME" \
-        -tAc "SELECT 1" >/dev/null 2>&1; then
-        echo "  PostgreSQL ya responde en localhost:$DB_PORT — no se tocó"
-        echo "  Credenciales de .env válidas ($DB_USER@localhost/$DB_NAME)"
-    else
-        echo "  ! PostgreSQL responde en localhost:$DB_PORT pero las credenciales"
-        echo "    de .env no sirven. Ajusta LEMORIA_DB_* y reintenta, o crea la"
-        echo "    base a mano. El instalador no administra este servidor."
-    fi
-else
-    docker compose up -d
-    echo "  Esperando que PostgreSQL esté saludable..."
-    until docker compose exec db pg_isready -U lemoria >/dev/null 2>&1; do
-        sleep 1
-    done
-    echo "  PostgreSQL (Docker) listo"
-fi
+# provide_postgres() deja la base andando y anota en DB_PROVIDER de dónde salió,
+# para que el resumen final no tenga que adivinarlo.
+provide_postgres "$DB_PORT" "$DB_USER" "$DB_PASSWORD" "$DB_NAME" || exit 1
 
-# ----- Instalar Lemoria como comando global -----
 echo "[4/9] Instalando Lemoria como comando global..."
 
-install_with_pip() {
-    python3 -m pip install --user -q -e "$LEMORIA_DIR[dev]" 2>/dev/null || \
-    python3 -m pip install -q -e "$LEMORIA_DIR[dev]" 2>/dev/null
-}
-
-install_with_venv() {
-    local VENV_DIR="$HOME/.local/share/lemoria/venv"
-    echo "  Creando venv en $VENV_DIR ..."
-    python3 -m venv "$VENV_DIR" || {
-        echo "ERROR: no se pudo crear el venv. Instalá python3-venv:"
-        echo "  sudo apt install python3-venv python3-full"
-        return 1
-    }
-    echo "  Instalando dependencias en el venv..."
-    "$VENV_DIR/bin/pip" install -q -e "$LEMORIA_DIR[dev]" || {
-        echo "ERROR: falló la instalación en el venv."
-        return 1
-    }
-    mkdir -p "$HOME/.local/bin"
-    ln -sf "$VENV_DIR/bin/lemoria" "$HOME/.local/bin/lemoria"
-    echo "  ✓ Lemoria instalado en venv propio"
-    echo "  ✓ Comando disponible en ~/.local/bin/lemoria"
-}
-
-if install_with_pip; then
-    echo "  Dependencias instaladas (pip)"
-else
-    echo "  pip system-wide no disponible (entorno externamente gestionado / PEP 668)"
-    echo "  Usando venv propio como alternativa..."
-    if install_with_venv; then
-        echo "  Instalación en venv completada"
-    else
-        echo ""
-        echo "  ERROR: No se pudo instalar Lemoria."
-        echo "  Soluciones:"
-        echo "    1) Instalá python3-venv: sudo apt install python3-venv python3-full"
-        echo "    2) O usá pipx: sudo apt install pipx && pipx install lemoria"
-        echo "    3) O forzá la instalación: pip install --break-system-packages -e ."
-        exit 1
-    fi
+# uv → venv → pip, en ese orden. Cada uno de los tres vive en installer/lib.sh:
+# son los caminos que se prueban cuando los dos anteriores fallan.
+if ! choose_installer; then
+    echo ""
+    echo "  ERROR: no se pudo instalar Lemoria por ninguno de los tres caminos"
+    echo "  (uv → venv → pip). En orden de preferencia:"
+    echo ""
+    echo "    1) uv (recomendado, no pide sudo ni toca el sistema):"
+    echo "         $(uv_install_hint)"
+    echo "         uv tool install --editable \"$LEMORIA_DIR[dev]\""
+    echo ""
+    echo "    2) venv propio (si preferís no instalar uv):"
+    echo "         $(pkg_hint python python3-venv)"
+    echo "         python3 -m venv ~/.local/share/lemoria/venv"
+    echo "         ~/.local/share/lemoria/venv/bin/pip install -e \"$LEMORIA_DIR[dev]\""
+    echo ""
+    echo "    3) pipx (otra variante de aislamiento):"
+    echo "         $(pkg_hint python-pipx pipx)"
+    echo ""
+    echo "    Forzar sobre el intérprete del sistema solo como último recurso:"
+    echo "      pip install --break-system-packages -e ."
+    echo "      eso desactiva la protección PEP 668 y puede romper otras herramientas."
+    exit 1
 fi
 
+echo "  ✓ Lemoria instalado vía: $INSTALLER"
+
 LOCAL_BIN="$HOME/.local/bin"
+
+# El PATH tiene que cubrir los dos destinos posibles: ~/.local/bin para venv y
+# pip, y el directorio propio de uv cuando UV_TOOL_BIN_DIR lo apunta a otro
+# lado. El resto del script llama a `lemoria init` y `lemoria agent sync`, así
+# que si el ejecutable queda fuera del PATH el instalador se rompe igual.
+if [ -n "${UV_BIN_DIR:-}" ] && [ "$UV_BIN_DIR" != "$LOCAL_BIN" ]; then
+    export PATH="$PATH:$UV_BIN_DIR"
+fi
+
 if [[ ":$PATH:" != *":$LOCAL_BIN:"* ]]; then
     SHELL_CONFIG=""
     case "$SHELL" in
@@ -388,18 +342,7 @@ echo ""
 echo "  Para abrir Obsidian vault:"
     echo "    obsidian $LEMORIA_VAULT_DIR"
     echo ""
-    if $PG_READY; then
-echo "  PostgreSQL ya estaba corriendo en localhost:$DB_PORT — no se tocó."
-    echo "  Para detenerlo:"
-    if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files 2>/dev/null | grep -q postgresql; then
-        echo "    sudo systemctl stop postgresql"
-    else
-        echo "    docker compose down   (o el comando con que lo levantaste)"
-    fi
-else
-echo "  Para detener PostgreSQL:"
-    echo "    docker compose down"
-fi
+print_db_stop_hint "$DB_PROVIDER"
 echo ""
 echo "  Consumo de opencode:"
 if $PANEL_INSTALLED; then
