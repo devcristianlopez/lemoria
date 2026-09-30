@@ -12,7 +12,7 @@
     <a href="https://img.shields.io/github/last-commit/devcristianlopez/lemoria" target="_blank"><img src="https://img.shields.io/github/last-commit/devcristianlopez/lemoria?style=flat-square" alt="Last Commit" /></a>
     <a href="https://img.shields.io/github/repo-size/devcristianlopez/lemoria" target="_blank"><img src="https://img.shields.io/github/repo-size/devcristianlopez/lemoria?style=flat-square" alt="Repo Size" /></a>
     <a href="https://img.shields.io/github/actions/workflow/status/devcristianlopez/lemoria/ci.yml?style=flat-square&logo=githubactions" target="_blank"><img src="https://img.shields.io/github/actions/workflow/status/devcristianlopez/lemoria/ci.yml?style=flat-square&logo=githubactions" alt="CI" /></a>
-    <a href="https://img.shields.io/badge/tests-221-brightgreen?style=flat-square&label=tests" target="_blank"><img src="https://img.shields.io/badge/tests-221-brightgreen?style=flat-square&label=tests" alt="Tests" /></a>
+    <a href="https://img.shields.io/badge/tests-224-brightgreen?style=flat-square&label=tests" target="_blank"><img src="https://img.shields.io/badge/tests-224-brightgreen?style=flat-square&label=tests" alt="Tests" /></a>
   </p>
 </p>
 
@@ -37,7 +37,7 @@ Instálalo **una sola vez** y todos tus proyectos —limpios, separados, sin con
 - 📚 **Obsidian vault** — Sincronización bidireccional opcional: exporta a markdown y restaura la DB desde el vault (memoria privada, guardada fuera de repos git).
 - 📋 **Decisiones registradas** — Cada cambio importante queda documentado como ADR antes de implementar
 - 🔄 **State machine** — Cada paso del flujo se registra en `flow_steps`, permitiendo retomar sesiones tras pérdida de contexto
-- 🧪 **221 tests automatizados** — pytest con SQLite in-memory, CI en GitHub Actions (Python 3.11/3.12/3.13)
+- 🧪 **224 tests automatizados** — pytest con SQLite in-memory, CI en GitHub Actions (Python 3.11/3.12/3.13)
 - 🏷️ **8 enums tipados** — Todos los status con `CheckConstraint` en DB para integridad a nivel de base de datos
 - 📡 **Context7 MCP** — Documentación en tiempo real de librerías y frameworks vía MCP server
 
@@ -414,7 +414,7 @@ lemoria/
 ├── .opencode/
 │   ├── agents/               # Definiciones de los 8 agentes
 │   └── skills/               # 7 skills Lemoria (frontend, backend, database, etc.)
-├── tests/                    # 221 tests (pytest, SQLite in-memory)
+├── tests/                    # 224 tests (pytest, SQLite in-memory)
 │   ├── conftest.py
 │   ├── test_agents.py        # 86 tests — modelos, pin/unpin, telemetría por agente
 │   ├── test_installer.py     # 69 tests — decisiones de installer/lib.sh en un PATH falso
@@ -456,7 +456,7 @@ lemoria/
 | **Skills** | 7 skills modulares (frontend, backend, database, testing, code-review, git-workflow, documentation) |
 | **Documentación en tiempo real** | [Context7 MCP](https://context7.com) |
 | **Vault** | [Obsidian](https://obsidian.md/) (bidireccional) |
-| **Testing** | [pytest](https://pytest.org/) — 221 tests |
+| **Testing** | [pytest](https://pytest.org/) — 224 tests |
 | **Linting** | [Ruff](https://docs.astral.sh/ruff/) |
 | **CI/CD** | [GitHub Actions](https://github.com/features/actions) (matrix 3.11/3.12/3.13) |
 

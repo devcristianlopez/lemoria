@@ -8,6 +8,8 @@ build/
 .venv/
 venv/
 *.db
+.coverage
+htmlcov/
 
 # Obsidian vault — memoria local, nunca versionar
 # VaultService.protect_from_git() agrega esto automaticamente a cualquier

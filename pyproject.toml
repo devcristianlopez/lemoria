@@ -1,8 +1,25 @@
 [project]
 name = "lemoria"
 version = "0.3.0"
-description = "Sistema Operativo de Memoria y Orquestación para Desarrollo con IA"
+description = "Memory OS and SDD orchestrator for AI-assisted software development"
+readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    { name = "Cristian Lopez", email = "devcristianlopez@gmail.com" },
+]
+keywords = ["ai", "opencode", "sdd", "agents", "memory", "obsidian", "cli"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Version Control :: Git",
+]
 dependencies = [
     "sqlalchemy>=2.0",
     # SQLAlchemy 2.1 dropped psycopg2: the postgresql:// URL requires psycopg v3
@@ -25,6 +42,12 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/devcristianlopez/lemoria"
+Repository = "https://github.com/devcristianlopez/lemoria"
+Issues = "https://github.com/devcristianlopez/lemoria/issues"
+Documentation = "https://devcristianlopez.github.io/lemoria/"
 
 [project.scripts]
 lemoria = "lemoria.cli:cli"

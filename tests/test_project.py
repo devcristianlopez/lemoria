@@ -1,6 +1,5 @@
 """Tests for ProjectService."""
 
-import pytest
 from database.models.project import Project
 
 

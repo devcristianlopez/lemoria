@@ -3,8 +3,9 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+from database.models import *  # ensure all models are loaded
 from database.models.base import Base
-from database.models import *  # noqa: F401, F403 — ensure all models are loaded
 
 
 @pytest.fixture
