@@ -13,6 +13,29 @@ Tres ideas explican casi todo lo de esta página:
 
 ---
 
+## Compatibilidad OpenCode v2
+
+La revisión de compatibilidad v2 dejó estos contratos documentados:
+
+- Los agentes usan `permissions` como lista de reglas (`action`, `resource`,
+  `effect`) en lugar del frontmatter legado `permission`.
+- `opencode.jsonc` acepta `commands` y `skills` con la forma v2; el parser de
+  Lemoria mantiene fallbacks para formas legacy para no romper instalaciones
+  existentes.
+- El modelo y esfuerzo se escriben y leen como `model` + `variant` en el
+  frontmatter; cuando OpenCode serializa `model#variant`, Lemoria lo normaliza en
+  el borde de lectura/escritura.
+- El panel de Omarchy resuelve agentes conocidos combinando agentes gestionados,
+  agentes observados por telemetría y built-ins de OpenCode. La precedencia deja
+  las definiciones bundled como último fallback para respetar configuración local
+  y global del usuario.
+
+Validación de la migración: 152 tests pasaron, lint de archivos cambiados pasó y
+el smoke test pasó. El lint completo del repo conserva incidencias de
+import/style preexistentes fuera de esta migración.
+
+---
+
 ## Por qué el `.md` manda
 
 opencode carga los agentes desde `.opencode/agents/*.md`. Si Lemoria guardara el
