@@ -349,11 +349,24 @@ lemoria conv create <project-id> -t "Feature: login"
 lemoria conv add <conv-id> user "descripción"
 lemoria flow start <project-id> "sistema de auth"
 lemoria flow list <project-id>
-lemoria task create <project-id> <prd-id> -t "modelo User"
+lemoria task create <project-id> <prd-id> -t "modelo User" -a implementation-agent
 lemoria task list <project-id>
+lemoria commit sync                         # reconstruye git → task desde trailers Task: <uuid>
+lemoria commit list --project <project-id>  # sha, mensaje, autor y tarea enlazada
+lemoria commit add <sha> --task <task-id>   # registra un commit puntual
 lemoria decision log <project-id> -t "usar JWT" -d "stateless"
 lemoria agent list
 ```
+
+Para que un commit quede enlazado automáticamente, el mensaje debe incluir el
+trailer que usa el github-agent:
+
+```text
+Task: <task-id>
+```
+
+`lemoria commit sync` es idempotente: lo puedes correr después de cada tanda o
+para backfillear historial viejo sin duplicar filas.
 
 ## Panel propio de Omarchy (solo si usás Omarchy)
 

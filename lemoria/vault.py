@@ -229,12 +229,31 @@ project: {project_name}
         return self.write_note(f"projects/{project_name}/tasks.md", content)
 
     def export_commits(self, project_name: str, commits: list[dict]) -> Path:
+        """Write the commit index, linking each commit to its task.
+
+        A bare sha is not traceability -- the reason a commit is recorded is
+        the task it belongs to -- so a commit that reached the table without a
+        link is stated as such rather than left looking complete. Tasks are
+        listed in the project-level tasks note (there is no note per task),
+        so that note is what gets linked, with the title as the display text.
+        """
         project_name = self.sanitize_name(project_name)
         project_link = self.project_wikilink(project_name)
         tasks_link = self.wikilink(self.entity_path(project_name, "tasks"), "Tasks")
         lines = ["# Commits\n", f"**Proyecto**: {project_link}\n\n"]
+        if not commits:
+            lines.append(
+                "_Sin commits registrados._ `lemoria commit sync` importa el historial "
+                "de git; `lemoria commit add <sha>` registra uno a mano."
+            )
         for c in commits:
-            lines.append(f"- `{c['sha'][:8]}` {c['message']} ({c.get('author', '?')})")
+            title = c.get("task_title")
+            link = f" — {self.wikilink(self.entity_path(project_name, 'tasks'), title)}" if title else ""
+            subject = (c.get("message") or "").strip().splitlines()
+            # Bodies hold the `Task:` trailer; one line per commit keeps the
+            # list readable and keeps the trailer out of the prose.
+            summary = subject[0] if subject else "(sin mensaje)"
+            lines.append(f"- `{c['sha'][:8]}` {summary} ({c.get('author') or '?'}){link}")
         lines.append(f"\n---\nVolver a {tasks_link}")
         content = "\n".join(lines)
         return self.write_note(f"projects/{project_name}/commits.md", content)

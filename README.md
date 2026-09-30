@@ -76,6 +76,9 @@ lemoria flow list <project-id>     # PRDs del proyecto
 lemoria flow status <flow-id>      # Estado del state machine (pasos completados/faltantes)
 lemoria flow step <flow-id> <step> # Registrar paso del flujo
 lemoria task list <project-id>     # Tareas del proyecto
+lemoria commit sync                # Importa git log y enlaza commits por trailer Task: <uuid>
+lemoria commit list --project <id> # Commits registrados y su tarea enlazada
+lemoria commit add <sha> --task <task-id>  # Registrar un commit puntual
 lemoria decision list <project-id> # Decisiones registradas
 lemoria spec list <project-id>     # Especificaciones técnicas
 lemoria error list <project-id>    # Errores registrados
@@ -84,6 +87,17 @@ lemoria vault restore <project-id> # Restaurar DB desde vault
 lemoria context set/get <project>  # Contexto jerárquico
 lemoria --help                     # Ayuda completa
 ```
+
+Los commits se enlazan a tareas por convención de mensaje:
+
+```text
+Task: <task-id>
+```
+
+`lemoria commit sync` reconstruye la trazabilidad histórica leyendo ese trailer
+con GitPython; `lemoria commit add <sha> --task <id>` sirve cuando necesitas
+registrar un SHA puntual. El vault exporta esos enlaces en `commits.md`, así que
+puedes navegar PRD → Task → Commit desde Obsidian.
 
 ### 🔒 El vault nunca se sube a git
 
@@ -373,7 +387,8 @@ lemoria/
 │   ├── opencode_telemetry.py # Lectura de solo lectura del opencode.db
 │   ├── omarchy.py            # Record privado + plugin lemoria.usage para Omarchy
 │   ├── flow.py               # Motor SDD + state machine (FlowEngine)
-│   ├── git_service.py        # Servicio de commits/pushes
+│   ├── git_history.py        # Lectura de metadatos desde git (GitPython)
+│   ├── git_service.py        # Servicio de commits/pushes y trazabilidad task→commit
 │   ├── memory.py             # Servicio de memoria (conversaciones)
 │   ├── orchestrator.py       # Registro y delegación de agentes
 │   ├── project.py            # CRUD de proyectos

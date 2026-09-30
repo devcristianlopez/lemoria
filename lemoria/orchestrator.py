@@ -6,6 +6,20 @@ from database.models.context import Context
 from database.models.task import Task
 
 
+class UnknownAgent(LookupError):
+    """An agent reference that matches nothing in the registry.
+
+    Carries the valid names so the caller can list them: the usual mistake is
+    a typo, or a readable name passed where a uuid was expected, and a bare
+    "not found" sends the caller hunting through the table.
+    """
+
+    def __init__(self, ref: str, available: list[str]):
+        self.ref = ref
+        self.available = list(available)
+        super().__init__(ref)
+
+
 class Orchestrator:
     def __init__(self, session: Session):
         self.session = session
@@ -28,6 +42,29 @@ class Orchestrator:
     def get_agent(self, agent_id: str) -> Agent | None:
         return self.session.get(Agent, agent_id)
 
+    def resolve_agent(self, ref: str) -> Agent:
+        """Accept either an agent's readable name or its id.
+
+        `agents.id` is a uuid, so `lemoria task create -a implementation-agent`
+        would otherwise reach Postgres as a foreign key violation -- an
+        IntegrityError traceback for what is really a typo. Names are what
+        humans read out of `.opencode/agents/*.md`, so both are accepted.
+        """
+        needle = (ref or "").strip()
+        agent = self.session.query(Agent).filter(Agent.name == needle).first()
+        if agent is None:
+            agent = self.session.get(Agent, needle)
+        if agent is None:
+            raise UnknownAgent(ref, self.agent_names())
+        return agent
+
+    def agent_names(self, active_only: bool = True) -> list[str]:
+        """Registered names, for error messages and shell completion."""
+        query = self.session.query(Agent.name).order_by(Agent.name)
+        if active_only:
+            query = query.filter(Agent.active.is_(True))
+        return [row[0] for row in query.all()]
+
     def list_agents(self, active_only: bool = True) -> list[Agent]:
         query = self.session.query(Agent)
         if active_only:
@@ -35,7 +72,10 @@ class Orchestrator:
         return query.all()
 
     def delegate(self, agent_id: str, task_id: str, input_data: str | None = None) -> AgentExecution:
-        execution = AgentExecution(agent_id=agent_id, task_id=task_id, input_data=input_data, status="running")
+        """Assign `agent_id` to an execution. Accepts a name or a uuid, like
+        `FlowEngine.create_task`: the same foreign key would reject both."""
+        resolved = self.resolve_agent(agent_id).id
+        execution = AgentExecution(agent_id=resolved, task_id=task_id, input_data=input_data, status="running")
         self.session.add(execution)
         self.session.commit()
         return execution

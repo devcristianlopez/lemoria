@@ -58,7 +58,15 @@ class FlowEngine:
     # ── Tasks ──
 
     def create_task(self, project_id: str, prd_id: str, spec_id: str | None, title: str, agent_id: str | None = None) -> Task:
-        task = Task(project_id=project_id, prd_id=prd_id, spec_id=spec_id, title=title, agent_id=agent_id)
+        """Create a task. `agent_id` accepts an agent's readable name or its uuid.
+
+        Resolution happens here rather than in the CLI so every caller gets
+        it. `agents.id` is the primary key, so a name passed straight through
+        reaches Postgres as a ForeignKeyViolation: a raw IntegrityError
+        traceback for what is really a typo.
+        """
+        resolved = self.orchestrator.resolve_agent(agent_id).id if agent_id else None
+        task = Task(project_id=project_id, prd_id=prd_id, spec_id=spec_id, title=title, agent_id=resolved)
         self.session.add(task)
         self.session.commit()
         return task

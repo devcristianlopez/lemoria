@@ -1,6 +1,11 @@
 """Tests for FlowEngine."""
 
+from pathlib import Path
+
 from database.enums import FlowStepStatus, PRDStatus, TaskStatus
+from lemoria.git_history import CommitMeta
+from lemoria.git_service import GitService
+from lemoria.vault import VaultService
 
 
 class TestFlowEngine:
@@ -113,3 +118,69 @@ class TestDecisions:
         assert d.title == "Use JWT for auth"
         assert d.rationale == "Session-based auth is harder to scale"
         assert d.id is not None
+
+
+class TestGitService:
+    """Test commit traceability registration."""
+
+    def test_record_commit_is_idempotent_by_sha(self, db_session, flow_engine, project, prd):
+        task = flow_engine.create_task(project.id, prd.id, None, "Trace commits")
+        service = GitService(db_session)
+        meta = CommitMeta(
+            sha="abc123",
+            message="Implement traceability",
+            author="Ada <ada@example.com>",
+            branch="main",
+        )
+
+        first = service.record_commit(meta, task_id=task.id)
+        second = service.record_commit(meta, task_id=task.id)
+
+        assert first.created is True
+        assert second.created is False
+        assert db_session.query(first.commit.__class__).count() == 1
+        assert first.commit.task_id == task.id
+
+    def test_sync_history_reports_no_task_and_missing_task(self, db_session, flow_engine, project, prd):
+        task = flow_engine.create_task(project.id, prd.id, None, "Linked task")
+        service = GitService(db_session)
+        history = [
+            CommitMeta(sha="11111111", message=f"Linked\n\nTask: {task.id}", task_ref=task.id),
+            CommitMeta(sha="22222222", message="No trailer"),
+            CommitMeta(sha="33333333", message="Dangling\n\nTask: missing", task_ref="missing"),
+        ]
+
+        report = service.sync_history(history)
+
+        assert report.scanned == 3
+        assert len(report.inserted) == 3
+        assert report.linked == ("11111111",)
+        assert report.without_task == 1
+        assert report.unknown_tasks == (("33333333", "missing"),)
+
+
+class TestCommitVaultExport:
+    """Test commit markdown export."""
+
+    def test_export_commits_links_task_and_states_empty(self, tmp_path: Path):
+        vault = VaultService(tmp_path)
+
+        path = vault.export_commits(
+            "Project X",
+            [
+                {
+                    "sha": "abcdef123456",
+                    "message": "Implement feature\n\nTask: task-id",
+                    "author": "Ada",
+                    "task_id": "task-id",
+                    "task_title": "Build feature",
+                }
+            ],
+        )
+        content = path.read_text(encoding="utf-8")
+
+        assert "`abcdef12` Implement feature" in content
+        assert "[[projects/Project-X/tasks|Build feature]]" in content
+
+        empty = vault.export_commits("Project X", [])
+        assert "Sin commits registrados" in empty.read_text(encoding="utf-8")

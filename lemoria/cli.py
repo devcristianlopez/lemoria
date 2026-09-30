@@ -12,6 +12,7 @@ from database.models.task import Task
 from .agents import AgentSync
 from .config import settings
 from .core import Lemoria
+from .orchestrator import UnknownAgent
 
 
 def _resolve_id(session, model, prefix: str) -> str | None:
@@ -940,16 +941,37 @@ def task():
 @click.argument("prd_id")
 @click.option("--title", "-t", required=True, help="Task title")
 @click.option("--description", "-d", default=None, help="Task description")
-@click.option("--agent-id", "-a", default=None, help="Assign to agent ID")
+@click.option("--agent-id", "-a", default=None, help="Assign to agent name or ID")
 def create(project_id: str, prd_id: str, title: str, description: str | None, agent_id: str | None):
     app = Lemoria()
     pid = _resolve_id(app.session, Project, project_id) or project_id
     prid = _resolve_id(app.session, PRD, prd_id) or prd_id
-    t = app.flow.create_task(pid, prid, None, title, agent_id)
+    try:
+        t = app.flow.create_task(pid, prid, None, title, agent_id)
+    except UnknownAgent as error:
+        _echo_unknown_agent(error)
+        app.close()
+        raise SystemExit(1) from error
     if description:
         t.description = description
         app.session.commit()
     click.echo(f"Task [{t.id}] created: {title}")
+
+
+def _echo_unknown_agent(error: UnknownAgent) -> None:
+    """Explain a bad `-a` in terms of what the user could have typed.
+
+    `agents.id` is a uuid, so the readable names in `.opencode/agents/*.md`
+    are what people actually pass. Listing them turns a raw IntegrityError
+    into a typo someone can fix.
+    """
+    click.echo(f"Error: no agent named '{error.ref}' or with that id.", err=True)
+    if not error.available:
+        click.echo("No agents registered yet: lemoria agent register <name> <role>", err=True)
+        return
+    click.echo("Registered agents:", err=True)
+    for name in error.available:
+        click.echo(f"  {name}", err=True)
 
 
 @task.command("list")
@@ -977,6 +999,156 @@ def status(task_id: str, new_status: str):
         click.echo(f"Task {tid} → {new_status}")
     else:
         click.echo("Task not found.")
+
+
+@cli.group()
+def commit():
+    """Register commits in the traceability chain.
+
+    A commit row exists to answer "which task produced this sha", so the sha
+    is all you have to supply: message, author, branch and timestamp are read
+    out of git, where the sha already points at them.
+    """
+
+
+def _commit_reader(repo_path: Path | None):
+    """Open a repository for reading, or report the failure and exit."""
+    from .git_history import CommitReader, GitHistoryError
+
+    try:
+        return CommitReader.open(repo_path)
+    except GitHistoryError as error:
+        click.echo(f"Error: {error}", err=True)
+        raise SystemExit(1) from error
+
+
+def _task_ref_or_exit(app, ref: str) -> str:
+    """Resolve a task id or prefix, or report the failure and exit."""
+    from .git_service import RefError
+
+    try:
+        return app.git.resolve_task_id(ref)
+    except RefError as error:
+        click.echo(f"Error: {error}", err=True)
+        raise SystemExit(1) from error
+
+
+@commit.command("add")
+@click.argument("sha")
+@click.option("--task", "task_ref", default=None, help="Link the commit to a task (ID or prefix)")
+@click.option("--message", "-m", default=None, help="Override the message read from git")
+@click.option("--author", default=None, help="Override the author read from git")
+@click.option("--branch", default=None, help="Override the branch read from git")
+@click.option("--repo-url", default=None, help="Override the remote URL read from git")
+@click.option("--repo", "repo_path", default=None, type=click.Path(path_type=Path), help="Git repository (default: cwd)")
+def commit_add(
+    sha: str,
+    task_ref: str | None,
+    message: str | None,
+    author: str | None,
+    branch: str | None,
+    repo_url: str | None,
+    repo_path: Path | None,
+) -> None:
+    """Record one commit, reading its metadata from git.
+
+    Idempotent: registering the same sha twice updates the existing row
+    instead of adding a second one. Flags correct what git said; without them
+    nothing is asked for twice.
+    """
+    from .git_history import GitHistoryError
+
+    app = Lemoria()
+    reader = _commit_reader(repo_path)
+    try:
+        meta = reader.read(sha)
+    except GitHistoryError as error:
+        click.echo(f"Error: {error}", err=True)
+        app.close()
+        raise SystemExit(1) from error
+
+    task_id = _task_ref_or_exit(app, task_ref) if task_ref else None
+    meta = meta.with_overrides(message=message, author=author, branch=branch, repo_url=repo_url)
+    result = app.git.record_commit(meta, task_id=task_id)
+
+    if result.created:
+        click.echo(f"Commit [{result.commit.sha[:8]}] recorded: {meta.subject}")
+    else:
+        click.echo(f"Commit [{result.commit.sha[:8]}] already recorded: {meta.subject}")
+        if result.refreshed:
+            click.echo(f"  refreshed from git: {', '.join(result.refreshed)}")
+    if result.task_linked:
+        click.echo(f"  linked to task {task_id}")
+    if result.task_conflict:
+        click.echo(
+            f"  task {task_id} not linked: this commit already belongs to task "
+            f"{result.commit.task_id}",
+            err=True,
+        )
+    app.close()
+
+
+@commit.command("list")
+@click.option("--project", "project_id", default=None, help="Only commits traced to this project")
+@click.option("--task", "task_ref", default=None, help="Only commits linked to this task (ID or prefix)")
+@click.option("--limit", "-n", "limit", default=None, type=click.IntRange(min=1), help="Cap the number of rows")
+def commit_list(project_id: str | None, task_ref: str | None, limit: int | None) -> None:
+    """List recorded commits with the task each one is linked to."""
+    app = Lemoria()
+    pid = None
+    if project_id:
+        pid = _resolve_id(app.session, Project, project_id) or project_id
+    task_id = _task_ref_or_exit(app, task_ref) if task_ref else None
+
+    rows = app.git.list_commits(project_id=pid, task_id=task_id, limit=limit)
+    if not rows:
+        click.echo("No commits recorded. `lemoria commit sync` imports git history.")
+        app.close()
+        return
+
+    for row in rows:
+        commit = row.commit
+        author = (commit.author or "?")[:18]
+        label = f"{commit.task_id[:8]} {row.task_title}" if commit.task_id else "-"
+        click.echo(f"  {commit.sha[:8]}  {commit.message.splitlines()[0][:50]:<50}  {author:<18}  {label}")
+    app.close()
+
+
+@commit.command("sync")
+@click.option("--repo", "repo_path", default=None, type=click.Path(path_type=Path), help="Git repository (default: cwd)")
+@click.option("--limit", "-n", "limit", default=None, type=click.IntRange(min=1), help="Only the newest N commits")
+@click.option("--branch", default=None, help="Branch or revision to walk (default: the checked-out one)")
+@click.option("--dry-run", is_flag=True, default=False, help="Report what would change, write nothing")
+def commit_sync(repo_path: Path | None, limit: int | None, branch: str | None, dry_run: bool) -> None:
+    """Import git history, linking commits to tasks via their `Task:` trailer.
+
+    Idempotent by sha, so this is safe to rerun: it records what is missing
+    and skips what is already there.
+    """
+    from .git_history import GitHistoryError
+
+    app = Lemoria()
+    reader = _commit_reader(repo_path)
+    try:
+        history = reader.history(branch=branch, limit=limit)
+    except (GitHistoryError, ValueError) as error:
+        click.echo(f"Error: {error}", err=True)
+        app.close()
+        raise SystemExit(1) from error
+
+    report = app.git.sync_history(history, dry_run=dry_run)
+    verb = "would record" if dry_run else "recorded"
+    click.echo(f"{verb} {len(report.inserted)} of {report.scanned} commits in {reader.workdir}")
+    click.echo(f"  registered    {len(report.inserted)}")
+    click.echo(f"  skipped       {report.skipped}")
+    click.echo(f"  linked        {len(report.linked)}")
+    if report.refreshed:
+        click.echo(f"  refreshed     {len(report.refreshed)}")
+    click.echo(f"  no-task       {report.without_task}")
+    click.echo(f"  missing-task  {len(report.unknown_tasks)}")
+    for sha, ref in report.unknown_tasks:
+        click.echo(f"  ! {sha} references task {ref}, which is not in the database", err=True)
+    app.close()
 
 
 @cli.group()
@@ -1159,12 +1331,21 @@ def sync(project_id: str):
     ]
     from database.models.commit import Commit
     task_ids = [t.id for t in tasks]
+    task_titles = {t.id: t.title for t in tasks}
     commits_query = app.session.query(Commit)
     if task_ids:
         commits_query = commits_query.filter((Commit.task_id.in_(task_ids)) | (Commit.task_id.is_(None)))
+    else:
+        commits_query = commits_query.filter(Commit.task_id.is_(None))
     commits = commits_query.order_by(Commit.created_at).all()
     commits_data = [
-        {"sha": c.sha, "message": c.message, "author": c.author}
+        {
+            "sha": c.sha,
+            "message": c.message,
+            "author": c.author,
+            "task_id": c.task_id,
+            "task_title": task_titles.get(c.task_id),
+        }
         for c in commits
     ]
 
