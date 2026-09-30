@@ -56,6 +56,10 @@ Panel {
     return Math.max(0, Math.min(1, part / whole))
   }
 
+  function shortModel(modelName) {
+    return modelName ? String(modelName).split("/").pop() : "—"
+  }
+
   Record {
     id: usage
     path: root.recordPath
@@ -199,6 +203,104 @@ Panel {
           }
         }
 
+        PanelSeparator {
+          width: parent.width
+          visible: usage.agents.length > 0
+        }
+
+        // ------------------------------------------------------- per agent
+        //
+        // The reason this panel exists. omarchy.agents has no field for it.
+        Column {
+          width: parent.width
+          spacing: Style.space(6)
+          visible: usage.agents.length > 0
+
+          PanelSectionHeader {
+            width: parent.width
+            text: "Agents"
+          }
+
+          Text {
+            width: parent.width
+            text: usage.agents.length + " known · model is current/configured; obs appears only when history differs."
+            color: root.dim
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+            wrapMode: Text.WordWrap
+          }
+
+          Row {
+            width: parent.width
+            spacing: Style.space(6)
+
+            Text { width: parent.width * 0.31; text: "agent"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+            Text { width: parent.width * 0.27; text: "model"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+            Text { width: parent.width * 0.18; text: "total"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; horizontalAlignment: Text.AlignRight }
+            Text { width: parent.width * 0.13; text: "today"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; horizontalAlignment: Text.AlignRight }
+            Text { width: parent.width * 0.03; text: ""; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; horizontalAlignment: Text.AlignRight }
+          }
+
+          Repeater {
+            model: usage.agents
+
+            delegate: Row {
+              id: row
+              required property var modelData
+              width: column.width
+              spacing: Style.space(6)
+
+              readonly property var entry: modelData
+              readonly property string configuredModel: entry.model ? String(entry.model) : ""
+              readonly property string observedModel: entry.observedModel ? String(entry.observedModel) : ""
+              readonly property bool hasObservedModel: observedModel.length > 0
+              readonly property bool observedDiffers: hasObservedModel && observedModel !== configuredModel
+              readonly property bool active: Number(entry.activeSessions || 0) > 0
+
+              Text {
+                width: row.width * 0.31
+                text: row.entry.agent
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.bodySmall
+                elide: Text.ElideRight
+              }
+              Text {
+                width: row.width * 0.27
+                text: root.shortModel(row.configuredModel)
+                  + (row.observedDiffers ? " · obs " + root.shortModel(row.observedModel) : "")
+                color: row.observedDiffers ? root.foreground : root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.bodySmall
+                elide: Text.ElideRight
+              }
+              Text {
+                width: row.width * 0.18
+                text: root.compact(row.entry.tokens)
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.bodySmall
+                horizontalAlignment: Text.AlignRight
+              }
+              Text {
+                width: row.width * 0.13
+                text: row.entry.todayTokens > 0 ? "+" + root.compact(row.entry.todayTokens) : "—"
+                color: row.entry.todayTokens > 0 ? root.dim : Qt.darker(root.dim, 1.4)
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.bodySmall
+                horizontalAlignment: Text.AlignRight
+              }
+              Rectangle {
+                width: Style.space(7)
+                height: width
+                radius: width / 2
+                color: row.active ? root.foreground : Qt.darker(root.dim, 1.45)
+                anchors.verticalCenter: parent.verticalCenter
+              }
+            }
+          }
+        }
+
         // --------------------------------------------------------- seven days
         Column {
           width: parent.width
@@ -291,162 +393,6 @@ Panel {
             color: root.dim
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
-          }
-        }
-
-        PanelSeparator {
-          width: parent.width
-          visible: usage.agents.length > 0
-        }
-
-        // ------------------------------------------------------- per agent
-        //
-        // The reason this panel exists. omarchy.agents has no field for it.
-        Column {
-          width: parent.width
-          spacing: Style.space(6)
-          visible: usage.agents.length > 0
-
-          PanelSectionHeader {
-            width: parent.width
-            text: "By agent · consolidated"
-          }
-
-          Text {
-            width: parent.width
-            text: "Totals include every model/provider an agent used; model is current/configured. Observed usage is noted separately."
-            color: root.dim
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
-            wrapMode: Text.WordWrap
-          }
-
-          Row {
-            width: parent.width
-            spacing: Style.space(6)
-
-            Text { width: parent.width * 0.42; text: "agent"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-            Text { width: parent.width * 0.24; text: "total"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; horizontalAlignment: Text.AlignRight }
-            Text { width: parent.width * 0.18; text: "today"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; horizontalAlignment: Text.AlignRight }
-            Text { width: parent.width * 0.16; text: "share"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; horizontalAlignment: Text.AlignRight }
-          }
-
-          Repeater {
-            model: usage.agents
-
-            delegate: Column {
-              id: row
-              required property var modelData
-              width: column.width
-              spacing: Style.space(1)
-
-              readonly property var entry: modelData
-              readonly property int share: root.record.totalTokens
-                ? Math.round((entry.tokens / root.record.totalTokens) * 100) : 0
-              readonly property string configuredModel: entry.model ? String(entry.model) : ""
-              readonly property string observedModel: entry.observedModel ? String(entry.observedModel) : ""
-              readonly property bool hasObservedModel: observedModel.length > 0
-              readonly property bool observedDiffers: hasObservedModel && observedModel !== configuredModel
-              readonly property string headlineModel: shortModel(configuredModel)
-              readonly property int modelCount: entry.models ? Object.keys(entry.models).length : 0
-              readonly property int observedTokens: hasObservedModel && entry.models
-                ? Number(entry.models[observedModel] || 0) : 0
-              readonly property int observedShare: entry.tokens && observedTokens
-                ? Math.round((observedTokens / entry.tokens) * 100) : 0
-
-              function shortModel(modelName) {
-                return modelName ? String(modelName).split("/").pop() : "—"
-              }
-
-              function observedSummary() {
-                if (!hasObservedModel || !entry.tokens) return ""
-
-                var pieces = []
-                if (observedShare > 0) pieces.push(observedShare + "%")
-                if (modelCount > 1) pieces.push("+" + (modelCount - 1) + " more")
-                if (pieces.length === 0) return ""
-
-                return "(" + pieces.join(", ") + ")"
-              }
-
-              Row {
-                width: parent.width
-                spacing: Style.space(6)
-
-                Text {
-                  width: row.width * 0.42
-                  text: row.entry.agent
-                  color: root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.body
-                  elide: Text.ElideRight
-                }
-                Text {
-                  width: row.width * 0.24
-                  text: root.compact(row.entry.tokens)
-                  color: root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.body
-                  horizontalAlignment: Text.AlignRight
-                }
-                Text {
-                  width: row.width * 0.18
-                  text: row.entry.todayTokens > 0 ? "+" + root.compact(row.entry.todayTokens) : "—"
-                  color: row.entry.todayTokens > 0 ? root.dim : Qt.darker(root.dim, 1.4)
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.bodySmall
-                  horizontalAlignment: Text.AlignRight
-                }
-                Text {
-                  width: row.width * 0.16
-                  text: row.share + "%"
-                  color: root.dim
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.bodySmall
-                  horizontalAlignment: Text.AlignRight
-                }
-              }
-
-              // Model details, on their own line. The headline is the current
-              // configured/default model. Historical shares come from observed
-              // usage only; if that differs, keep it separate instead of
-              // implying the configured model produced those tokens.
-              Row {
-                width: parent.width
-                spacing: Style.space(6)
-                leftPadding: row.width * 0.42 + Style.space(6)
-
-                Text {
-                  text: row.headlineModel
-                  color: root.dim
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.bodySmall
-                }
-                Text {
-                  visible: !row.observedDiffers && row.observedSummary().length > 0
-                  text: row.observedSummary()
-                  color: Qt.darker(root.dim, 1.3)
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.bodySmall
-                }
-                Text {
-                  visible: row.observedDiffers
-                  text: "obs " + row.shortModel(row.observedModel)
-                    + (row.observedSummary().length > 0 ? " " + row.observedSummary() : "")
-                  color: Qt.darker(root.dim, 1.3)
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.bodySmall
-                }
-                Text {
-                  text: row.entry.sessions + (row.entry.sessions === 1 ? " session" : " sessions")
-                    + " · " + row.entry.prompts + " prompts"
-                  color: Qt.darker(root.dim, 1.5)
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
-                  anchors.verticalCenter: parent.verticalCenter
-                }
-              }
-            }
           }
         }
       }
