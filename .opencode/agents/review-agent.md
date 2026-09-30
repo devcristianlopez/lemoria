@@ -3,9 +3,16 @@ description: >-
   Technical review — reviews code, verifies PRD alignment, detects technical
   debt, and validates traceability. Language-agnostic.
 mode: subagent
-permission:
-  bash: deny
-  edit: deny
+permissions:
+  - action: shell
+    resource: "*"
+    effect: deny
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: subagent
+    resource: "*"
+    effect: deny
 ---
 
 # Review Agent

@@ -143,6 +143,29 @@ class TestParsing:
     def test_nested_permission_is_a_dict_not_flattened(self, agents_dir):
         parsed = parse_agent(agents_dir / "review-agent.md")
         assert parsed.permission == {"bash": "deny", "edit": "allow"}
+        assert parsed.permissions == [
+            {"action": "shell", "resource": "*", "effect": "deny"},
+            {"action": "edit", "resource": "*", "effect": "allow"},
+        ]
+
+    def test_v2_permissions_are_parsed_with_legacy_view(self, tmp_path):
+        agent = tmp_path / "reviewer.md"
+        agent.write_text(
+            "---\nmode: subagent\npermissions:\n"
+            "  - action: shell\n    resource: \"*\"\n    effect: deny\n"
+            "  - action: edit\n    resource: \"*\"\n    effect: deny\n"
+            "---\n\nbody\n",
+            encoding="utf-8",
+        )
+
+        parsed = parse_agent(agent)
+
+        assert parsed.permissions == [
+            {"action": "shell", "resource": "*", "effect": "deny"},
+            {"action": "edit", "resource": "*", "effect": "deny"},
+        ]
+        assert parsed.permission == {"bash": "deny", "edit": "deny"}
+        assert parsed.config["permissions"] == parsed.permissions
 
     def test_role_comes_from_the_body_convention(self, agents_dir):
         assert parse_agent(agents_dir / "review-agent.md").role == "Technical review"
@@ -164,6 +187,18 @@ class TestParsing:
             encoding="utf-8",
         )
         parsed = parse_agent(pinned)
+        assert parsed.model == "opencode/big-pickle"
+        assert parsed.variant == "high"
+
+    def test_v2_model_variant_is_split_for_internal_use(self, tmp_path):
+        pinned = tmp_path / "pinned.md"
+        pinned.write_text(
+            "---\ndescription: d\nmodel: opencode/big-pickle#high\n---\n\nbody\n",
+            encoding="utf-8",
+        )
+
+        parsed = parse_agent(pinned)
+
         assert parsed.model == "opencode/big-pickle"
         assert parsed.variant == "high"
 
@@ -224,7 +259,9 @@ class TestAgentSync:
         definition = syncer.set_model("review-agent", "opencode/big-pickle", "high")
         assert definition.model == "opencode/big-pickle"
         assert definition.variant == "high"
-        assert "model: opencode/big-pickle" in (agents_dir / "review-agent.md").read_text()
+        contents = (agents_dir / "review-agent.md").read_text()
+        assert "model: opencode/big-pickle#high" in contents
+        assert "variant:" not in contents
 
     def test_clearing_model_restores_inheritance(self, agents_dir):
         syncer = AgentSync(None, agents_dir)
@@ -232,6 +269,18 @@ class TestAgentSync:
         cleared = syncer.set_model("review-agent", None, None)
         assert cleared.model is None
         assert cleared.variant is None
+
+    def test_set_effort_preserves_the_pinned_model(self, agents_dir):
+        syncer = AgentSync(None, agents_dir)
+        syncer.set_model("review-agent", "opencode/big-pickle", "low")
+        updated = syncer.set_effort("review-agent", "high")
+        assert updated.model == "opencode/big-pickle"
+        assert updated.variant == "high"
+        assert "model: opencode/big-pickle#high" in (agents_dir / "review-agent.md").read_text()
+
+    def test_set_effort_requires_a_pinned_model(self, agents_dir):
+        with pytest.raises(ValueError, match="pinned model"):
+            AgentSync(None, agents_dir).set_effort("review-agent", "high")
 
     def test_set_model_on_missing_agent_raises(self, agents_dir):
         with pytest.raises(FileNotFoundError):
@@ -515,6 +564,70 @@ class TestOmarchyRecord:
         assert agents["db-agent"]["model"] == "opencode/gpt-5.5"
         assert agents["db-agent"]["modelSource"] == "inherits-default"
 
+    def test_known_agents_prefers_v2_agents_config(self, tmp_path, monkeypatch):
+        from lemoria.omarchy import known_agents
+
+        home = tmp_path / "home"
+        home.mkdir()
+        monkeypatch.setattr(Path, "home", lambda: home)
+        (tmp_path / "opencode.jsonc").write_text(
+            '{"agents":{"db-agent":{"model":"opencode/gpt-5.5#high"}}}', encoding="utf-8"
+        )
+
+        found = known_agents(tmp_path)
+
+        assert found["db-agent"].model == "opencode/gpt-5.5"
+        assert found["db-agent"].variant == "high"
+
+    def test_known_agents_still_accepts_legacy_variant(self, tmp_path, monkeypatch):
+        from lemoria.omarchy import known_agents
+
+        home = tmp_path / "home"
+        home.mkdir()
+        monkeypatch.setattr(Path, "home", lambda: home)
+        (tmp_path / "opencode.jsonc").write_text(
+            '{"agents":{"db-agent":{"model":"opencode/gpt-5.5","variant":"high"}}}',
+            encoding="utf-8",
+        )
+
+        found = known_agents(tmp_path)
+
+        assert found["db-agent"].model == "opencode/gpt-5.5"
+        assert found["db-agent"].variant == "high"
+
+    def test_known_agents_falls_back_to_v1_agent_config(self, tmp_path, monkeypatch):
+        from lemoria.omarchy import known_agents
+
+        home = tmp_path / "home"
+        home.mkdir()
+        monkeypatch.setattr(Path, "home", lambda: home)
+        (tmp_path / "opencode.jsonc").write_text(
+            '{"agent":{"db-agent":{"model":"opencode/gpt-5.5"}}}',
+            encoding="utf-8",
+        )
+
+        assert known_agents(tmp_path)["db-agent"].model == "opencode/gpt-5.5"
+
+    def test_known_agents_keeps_configured_agent_over_bundled_fallback(self, tmp_path, monkeypatch):
+        from lemoria.config import settings
+        from lemoria.omarchy import known_agents
+
+        home = tmp_path / "home"
+        configured_agents = tmp_path / "configured" / "agents"
+        home.mkdir()
+        configured_agents.mkdir(parents=True)
+        monkeypatch.setattr(Path, "home", lambda: home)
+        monkeypatch.setattr(settings, "opencode_agents_dir", configured_agents)
+        (configured_agents / "implementation-agent.md").write_text(
+            "---\nmodel: opencode/gpt-5.5#high\n---\n\n**Role:** Configured implementation\n",
+            encoding="utf-8",
+        )
+
+        found = known_agents(tmp_path)
+
+        assert found["implementation-agent"].model == "opencode/gpt-5.5"
+        assert found["implementation-agent"].variant == "high"
+
     def test_record_keeps_agents_that_have_activity_but_zero_tokens(self, opencode_db):
         from lemoria.opencode_telemetry import AgentUsage
 
@@ -717,10 +830,13 @@ class TestPluginInstall:
         assert "anchors.fill: parent" not in widget_button
         assert 'text: usage.hasUsage ? root.compact(root.record.totalTokens) : "0"' in panel
         assert "model is current/configured" in panel
+        assert 'text: "Agents"' in panel
+        assert 'usage.agents.length + " known' in panel
+        assert 'readonly property bool active: Number(entry.activeSessions || 0) > 0' in panel
         assert "readonly property string observedModel" in panel
         assert "readonly property bool observedDiffers" in panel
-        assert "text: \"obs \" + row.shortModel(row.observedModel)" in panel
-        assert "Historical shares come from observed" in panel
+        assert 'root.shortModel(row.configuredModel)' in panel
+        assert '" · obs " + root.shortModel(row.observedModel)' in panel
         assert "onPressed: function(buttonCode)" in widget_button
         assert "if (buttonCode === Qt.MiddleButton) root.toggle()" in widget_button
         assert "else if (buttonCode === Qt.RightButton)" in widget_button

@@ -3,9 +3,9 @@
 opencode reads agents from ``.opencode/agents/*.md``; Lemoria needs the same
 facts in Postgres so it can export them to the vault, attribute work to them
 and report on them. The markdown file stays the source of truth: this module
-only mirrors it, and the one thing it writes back (``model``/``variant``)
-edits frontmatter in place rather than re-dumping YAML, so comments, key
-order and folded scalars survive untouched.
+only mirrors it, and the one thing it writes back (``model``) edits
+frontmatter in place rather than re-dumping YAML, so comments, key order and
+folded scalars survive untouched.
 """
 
 from __future__ import annotations
@@ -37,14 +37,91 @@ class AgentDefinition:
     model: str | None = None
     variant: str | None = None
     permission: dict = field(default_factory=dict)
+    permissions: list[dict[str, str]] = field(default_factory=list)
 
     @property
     def config(self) -> dict:
-        return {
+        config = {
             "source": "sync",
             "mode": self.mode,
-            "permission": self.permission,
+            "permissions": self.permissions,
         }
+        if self.permission:
+            config["permission"] = self.permission
+        return config
+
+
+_V1_TO_V2_ACTION = {
+    "bash": "shell",
+    "shell": "shell",
+    "edit": "edit",
+    "subtask": "subagent",
+    "task": "subagent",
+    "subagent": "subagent",
+}
+_V2_TO_V1_ACTION = {"shell": "bash", "edit": "edit", "subagent": "subagent"}
+
+
+def _permission_rule(action: str, resource: str, effect: str) -> dict[str, str] | None:
+    mapped_action = _V1_TO_V2_ACTION.get(action)
+    if mapped_action is None or not effect:
+        return None
+    return {"action": mapped_action, "resource": resource or "*", "effect": effect}
+
+
+def _permissions_from_legacy(permission: object) -> list[dict[str, str]]:
+    if not isinstance(permission, dict):
+        return []
+    rules: list[dict[str, str]] = []
+    for action, value in permission.items():
+        if not isinstance(action, str):
+            continue
+        if isinstance(value, str):
+            rule = _permission_rule(action, "*", value)
+            if rule is not None:
+                rules.append(rule)
+            continue
+        if isinstance(value, dict):
+            for resource, effect in value.items():
+                if isinstance(resource, str) and isinstance(effect, str):
+                    rule = _permission_rule(action, resource, effect)
+                    if rule is not None:
+                        rules.append(rule)
+    return rules
+
+
+def _parse_permissions(permissions: object) -> list[dict[str, str]]:
+    if not isinstance(permissions, list):
+        return []
+    rules: list[dict[str, str]] = []
+    for item in permissions:
+        if not isinstance(item, dict):
+            continue
+        action = item.get("action")
+        effect = item.get("effect")
+        resource = item.get("resource", "*")
+        if isinstance(action, str) and isinstance(effect, str) and isinstance(resource, str):
+            rules.append({"action": action, "resource": resource or "*", "effect": effect})
+    return rules
+
+
+def _legacy_permission_from_permissions(permissions: list[dict[str, str]]) -> dict:
+    legacy: dict[str, str | dict[str, str]] = {}
+    for rule in permissions:
+        action = _V2_TO_V1_ACTION.get(rule["action"])
+        if action is None:
+            continue
+        resource = rule["resource"]
+        effect = rule["effect"]
+        if resource == "*":
+            legacy[action] = effect
+            continue
+        current = legacy.get(action)
+        if not isinstance(current, dict):
+            current = {}
+            legacy[action] = current
+        current[resource] = effect
+    return legacy
 
 
 def _split_frontmatter(raw: str) -> tuple[list[str], list[str]]:
@@ -70,6 +147,32 @@ def _parse_role(body: str, fallback: str) -> str:
     if match:
         return match.group("role")
     return fallback
+
+
+def split_model_variant(model: object, variant: object = None) -> tuple[str | None, str | None]:
+    """Return Lemoria's internal (model, variant) from OpenCode frontmatter.
+
+    OpenCode v2 encodes reasoning effort as ``provider/model#variant``. Older
+    files used a separate ``variant`` key, so keep reading that shape as a
+    fallback while normalizing v2 strings for the database and UI.
+    """
+    parsed_model = model.strip() if isinstance(model, str) and model.strip() else None
+    parsed_variant = variant.strip() if isinstance(variant, str) and variant.strip() else None
+    if parsed_model is None:
+        return None, parsed_variant
+    if "#" not in parsed_model:
+        return parsed_model, parsed_variant
+    base_model, encoded_variant = parsed_model.rsplit("#", 1)
+    return base_model or None, encoded_variant or parsed_variant
+
+
+def join_model_variant(model: str | None, variant: str | None = None) -> str | None:
+    """Encode Lemoria's internal model/variant split for OpenCode v2."""
+    if model is None:
+        return None
+    if variant:
+        return f"{model}#{variant}"
+    return model
 
 
 def parse_agent(path: Path) -> AgentDefinition | None:
@@ -100,16 +203,25 @@ def parse_agent(path: Path) -> AgentDefinition | None:
     if not isinstance(description, str) or description.strip() in {"", ">", ">-", "|", "|-"}:
         description = None
 
-    permission = data.get("permission")
+    legacy_permission = data.get("permission")
+    permissions = _parse_permissions(data.get("permissions"))
+    if not permissions:
+        permissions = _permissions_from_legacy(legacy_permission)
+    permission = (
+        legacy_permission if isinstance(legacy_permission, dict)
+        else _legacy_permission_from_permissions(permissions)
+    )
+    model, variant = split_model_variant(data.get("model"), data.get("variant"))
     return AgentDefinition(
         name=name,
         path=path,
         description=description,
         role=_parse_role(body, name),
         mode=data.get("mode"),
-        model=data.get("model") or None,
-        variant=data.get("variant") or None,
-        permission=permission if isinstance(permission, dict) else {},
+        model=model,
+        variant=variant,
+        permission=permission,
+        permissions=permissions,
     )
 
 
@@ -237,11 +349,21 @@ class AgentSync:
             raise FileNotFoundError(f"no agent file at {path}")
 
         raw = path.read_text(encoding="utf-8")
-        raw = set_frontmatter_field(raw, "model", model)
-        raw = set_frontmatter_field(raw, "variant", variant if model else None)
+        raw = set_frontmatter_field(raw, "model", join_model_variant(model, variant))
+        raw = set_frontmatter_field(raw, "variant", None)
         path.write_text(raw, encoding="utf-8")
 
         definition = parse_agent(path)
         if definition is None:
             raise ValueError(f"{path} has unparseable frontmatter after edit")
         return definition
+
+    def set_effort(self, name: str, effort: str | None) -> AgentDefinition:
+        """Set or clear an agent's reasoning effort while preserving its model."""
+        path = self.agents_dir / f"{name}.md"
+        definition = parse_agent(path) if path.is_file() else None
+        if definition is None:
+            raise FileNotFoundError(f"no parseable agent file at {path}")
+        if definition.model is None and effort is not None:
+            raise ValueError("cannot set effort without a pinned model")
+        return self.set_model(name, definition.model, effort)

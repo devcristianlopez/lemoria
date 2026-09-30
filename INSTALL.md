@@ -141,9 +141,7 @@ cp -r .opencode/skills/{frontend,backend,database,testing,code-review,git-workfl
 cat > ~/.config/opencode/opencode.json <<- 'EOF'
 {
   "default_agent": "orchestrator",
-  "skills": {
-    "paths": ["~/.config/opencode/skills"]
-  }
+  "skills": ["~/.config/opencode/skills"]
 }
 EOF
 

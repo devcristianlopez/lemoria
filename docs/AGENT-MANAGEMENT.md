@@ -67,9 +67,13 @@ description: >-
   Technical review — reviews code, verifies PRD alignment, detects technical
   debt, and validates traceability. Language-agnostic.
 mode: subagent
-permission:
-  bash: deny
-  edit: deny
+permissions:
+  - action: shell
+    resource: "*"
+    effect: deny
+  - action: edit
+    resource: "*"
+    effect: deny
 model: anthropic/claude-sonnet-4-5
 variant: high
 ---
@@ -79,7 +83,7 @@ La edición del frontmatter es **quirúrgica**: se reescriben solo las líneas
 afectadas, nunca se re-serializa el YAML. Eso conserva los escalares plegados
 (`>-`), los comentarios y el orden de las claves. La clave nueva se añade al
 final del bloque, a columna 0, porque insertarla "después de la última clave de
-primer nivel" caería dentro del mapping anidado de `permission:` y rompería el
+primer nivel" caería dentro de mappings/listas anidadas como `permissions:` y rompería el
 YAML.
 
 `variant` es el reasoning effort. Solo tiene sentido junto a un `model` fijado:

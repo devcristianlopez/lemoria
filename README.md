@@ -191,7 +191,7 @@ Lemoria usa dos archivos de configuración de OpenCode, cada uno con un propósi
 
 | Archivo | Ubicación | Función | Comentarios |
 |---------|-----------|---------|-------------|
-| `opencode.jsonc` | `~/Projects/lemoria/` (en el repo) | Configuración del proyecto Lemoria: agente default, skills paths, comandos personalizados | ✅ Soporta `//` y `/* */` |
+| `opencode.jsonc` | `~/Projects/lemoria/` (en el repo) | Configuración del proyecto Lemoria: agente default, skills y comandos personalizados | ✅ Soporta `//` y `/* */` |
 | `opencode.json` | `~/.config/opencode/` (global) | Configuración global del usuario: **personalidad de la AI**, idioma de interacción, MCP servers | ❌ JSON puro, sin comentarios |
 
 **¿Cuál es la diferencia?**
@@ -207,9 +207,9 @@ Los agentes y skills de Lemoria están todos en **inglés** (son universales), p
 ```json
 // ~/.config/opencode/opencode.json
 {
-  "agent": {
+  "agents": {
     "plan": {
-      "prompt": "Háblame en español chileno relajado pero correcto. Trátame de 'tú'."
+      "system": "Háblame en español chileno relajado pero correcto. Trátame de 'tú'."
     }
   }
 }

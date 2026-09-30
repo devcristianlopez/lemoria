@@ -3,9 +3,16 @@ description: >-
   Quality assurance — writes and runs unit, integration, and e2e tests; reports
   coverage and failures. Language-agnostic: works with any testing framework.
 mode: subagent
-permission:
-  bash: allow
-  edit: allow
+permissions:
+  - action: shell
+    resource: "*"
+    effect: allow
+  - action: edit
+    resource: "*"
+    effect: allow
+  - action: subagent
+    resource: "*"
+    effect: deny
 ---
 
 # Testing Agent

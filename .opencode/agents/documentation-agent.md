@@ -3,9 +3,16 @@ description: >-
   Technical documentation — maintains docs, syncs memory with Obsidian vault,
   and generates technical notes following Diataxis framework.
 mode: subagent
-permission:
-  bash: allow
-  edit: allow
+permissions:
+  - action: shell
+    resource: "*"
+    effect: allow
+  - action: edit
+    resource: "*"
+    effect: allow
+  - action: subagent
+    resource: "*"
+    effect: deny
 ---
 
 # Documentation Agent

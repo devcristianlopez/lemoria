@@ -4,9 +4,16 @@ description: >-
   using any framework. Language-agnostic: works with React, Vue, Svelte, Solid,
   vanilla JS, or any frontend stack.
 mode: subagent
-permission:
-  bash: allow
-  edit: allow
+permissions:
+  - action: shell
+    resource: "*"
+    effect: allow
+  - action: edit
+    resource: "*"
+    effect: allow
+  - action: subagent
+    resource: "*"
+    effect: deny
 ---
 
 # Frontend Agent

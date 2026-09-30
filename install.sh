@@ -236,9 +236,7 @@ if [ "$INSTALL_MODE" = "1" ]; then
 {
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "orchestrator",
-  "skills": {
-    "paths": ["~/.config/opencode/skills"]
-  }
+  "skills": ["~/.config/opencode/skills"]
 }
 EOF
         echo "  Config global creada: $OPENCODE_GLOBAL_DIR/opencode.json"
@@ -246,7 +244,7 @@ EOF
         echo "  Config global ya existe: $OPENCODE_GLOBAL_DIR/opencode.json (no se modifica)"
         echo "  Asegúrate de que incluya:"
         echo '    "default_agent": "orchestrator"'
-        echo '    "skills": { "paths": ["~/.config/opencode/skills"] }'
+        echo '    "skills": ["~/.config/opencode/skills"]'
     fi
     echo ""
     echo "  ✓ Agentes disponibles en cualquier proyecto al abrir OpenCode"
@@ -259,7 +257,7 @@ else
 {
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "orchestrator",
-  "skills": { "paths": [".opencode/skills"] }
+  "skills": [".opencode/skills"]
 }
 EOF
         echo "  Config local creado: opencode.jsonc"

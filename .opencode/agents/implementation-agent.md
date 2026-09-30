@@ -4,9 +4,16 @@ description: >-
   following PRDs and specs. Language-agnostic: works with Python, TypeScript,
   Go, Java, Rust, or any backend stack.
 mode: subagent
-permission:
-  bash: allow
-  edit: allow
+permissions:
+  - action: shell
+    resource: "*"
+    effect: allow
+  - action: edit
+    resource: "*"
+    effect: allow
+  - action: subagent
+    resource: "*"
+    effect: deny
 ---
 
 # Implementation Agent

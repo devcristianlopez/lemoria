@@ -274,18 +274,20 @@ def status_cmd(as_json: bool):
 @click.argument("name")
 @click.argument("model", required=False)
 @click.option("--variant", "-v", default=None, help="Reasoning effort variant, e.g. high or low")
+@click.option("--effort", "-e", default=None, help="Reasoning effort alias for --variant")
 @click.option("--clear", is_flag=True, default=False, help="Remove the pin and inherit the caller's model")
-def model_cmd(name: str, model: str | None, variant: str | None, clear: bool):
+def model_cmd(name: str, model: str | None, variant: str | None, effort: str | None, clear: bool):
     """Show or set the model an agent runs on.
 
     With no MODEL, prints the current one. Passing MODEL writes it into the
     agent's markdown. Use --clear to remove the pin and restore inheritance
     from the invoking agent.
     """
+    selected_effort = _selected_effort(variant, effort)
     if clear and model:
         raise click.UsageError("--clear and MODEL are mutually exclusive")
     if clear:
-        model, variant = None, None
+        model, selected_effort = None, None
     app = Lemoria()
     syncer = _syncer(app, None)
     path = syncer.agents_dir / f"{name}.md"
@@ -296,7 +298,7 @@ def model_cmd(name: str, model: str | None, variant: str | None, clear: bool):
 
     # `clear` also normalises both to None, so it must not fall through to the
     # read branch below.
-    if model is None and variant is None and not clear:
+    if model is None and selected_effort is None and not clear:
         current = next((d for d in syncer.discover() if d.name == name), None)
         if current is None:
             click.echo(f"Error: cannot parse {path}", err=True)
@@ -310,7 +312,7 @@ def model_cmd(name: str, model: str | None, variant: str | None, clear: bool):
         return
 
     try:
-        definition = syncer.set_model(name, model, variant)
+        definition = syncer.set_model(name, model, selected_effort)
         syncer.sync()
     except (ValueError, FileNotFoundError) as error:
         click.echo(f"Error: {error}", err=True)
@@ -323,6 +325,62 @@ def model_cmd(name: str, model: str | None, variant: str | None, clear: bool):
         click.echo(f"{name}: no model pinned; opencode will inherit the caller's")
     click.echo(f"  updated {definition.path}")
     app.close()
+
+
+def _selected_effort(variant: str | None, effort: str | None) -> str | None:
+    """Resolve the old --variant flag and the user-facing --effort alias."""
+    if variant and effort and variant != effort:
+        raise click.UsageError("--variant and --effort disagree")
+    return effort or variant
+
+
+@agent.command("effort")
+@click.argument("name")
+@click.argument("effort", required=False)
+@click.option("--clear", is_flag=True, default=False, help="Remove effort while keeping the pinned model")
+def effort_cmd(name: str, effort: str | None, clear: bool):
+    """Show, set or clear an agent's reasoning effort.
+
+    Effort is stored as opencode's model variant in the agent markdown
+    frontmatter. The accepted values are whatever the selected provider/model
+    supports; Lemoria does not invent a fixed enum.
+    """
+    if clear and effort:
+        raise click.UsageError("--clear and EFFORT are mutually exclusive")
+    app = Lemoria()
+    syncer = _syncer(app, None)
+    current = next((d for d in syncer.discover() if d.name == name), None)
+    if current is None:
+        click.echo(f"Error: no parseable agent file at {syncer.agents_dir / (name + '.md')}", err=True)
+        app.close()
+        raise SystemExit(1)
+    if effort is None and not clear:
+        click.echo(f"{name}: effort={current.variant or 'default'}")
+        app.close()
+        return
+    try:
+        definition = syncer.set_effort(name, None if clear else effort)
+        syncer.sync()
+    except (ValueError, FileNotFoundError) as error:
+        click.echo(f"Error: {error}", err=True)
+        app.close()
+        raise SystemExit(1)
+    click.echo(f"{name}: model={definition.model or 'inherited'} effort={definition.variant or 'default'}")
+    click.echo(f"  updated {definition.path}")
+    app.close()
+
+
+@cli.command("configure")
+def configure_cmd():
+    """Print the Lemoria/opencode model and effort configuration workflow."""
+    click.echo("Lemoria opencode configuration")
+    click.echo("  list agents       : lemoria agent status")
+    click.echo("  show model        : lemoria agent model <agent>")
+    click.echo("  set model+effort  : lemoria agent model <agent> <provider/model> --effort <effort>")
+    click.echo("  set effort only   : lemoria agent effort <agent> <effort>")
+    click.echo("  clear effort      : lemoria agent effort <agent> --clear")
+    click.echo("  inherit model     : lemoria agent model <agent> --clear")
+    click.echo("Effort values are provider/model-specific; use values supported by opencode.")
 
 
 def _plural(count: int, word: str) -> str:

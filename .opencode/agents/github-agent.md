@@ -3,9 +3,16 @@ description: >-
   GitHub traceability — registers commits and pushes linked to tasks, maintains
   full traceability. Works with git and GitHub CLI.
 mode: subagent
-permission:
-  bash: allow
-  edit: deny
+permissions:
+  - action: shell
+    resource: "*"
+    effect: allow
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: subagent
+    resource: "*"
+    effect: deny
 ---
 
 # GitHub Agent

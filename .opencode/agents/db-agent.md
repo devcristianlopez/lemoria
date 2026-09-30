@@ -4,9 +4,16 @@ description: >-
   queries. Works with relational (PostgreSQL, MySQL) and document (MongoDB)
   databases. ORM-agnostic.
 mode: subagent
-permission:
-  bash: allow
-  edit: allow
+permissions:
+  - action: shell
+    resource: "*"
+    effect: allow
+  - action: edit
+    resource: "*"
+    effect: allow
+  - action: subagent
+    resource: "*"
+    effect: deny
 ---
 
 # Database Agent

@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .agents import AgentSync
+from .agents import AgentSync, split_model_variant
 from .budget import Budget
 from .config import settings
 from .opencode_telemetry import AgentUsage, OpenCodeTelemetry, Telemetry
@@ -130,12 +130,21 @@ def current_default_model(cwd: Path | None = None) -> str | None:
 def known_agents(cwd: Path | None = None) -> dict[str, KnownAgent]:
     """Agents known from markdown and opencode config, without requiring Lemoria DB."""
     found: dict[str, KnownAgent] = {}
+    bundled_agents_dir = Path(__file__).resolve().parents[1] / ".opencode" / "agents"
+    # Bundled definitions are a convenience fallback for Lemoria's own agents.
+    # OpenCode's user/global/project definitions must win when names collide.
     agent_dirs = [
+        bundled_agents_dir,
         Path.home() / ".config" / "opencode" / "agents",
         settings.opencode_agents_dir,
     ]
+    seen_dirs: set[Path] = set()
     for directory in agent_dirs:
-        for definition in AgentSync(None, directory).discover():
+        resolved = directory.expanduser().resolve()
+        if resolved in seen_dirs:
+            continue
+        seen_dirs.add(resolved)
+        for definition in AgentSync(None, resolved).discover():
             found[definition.name] = KnownAgent(
                 name=definition.name,
                 model=definition.model,
@@ -143,7 +152,10 @@ def known_agents(cwd: Path | None = None) -> dict[str, KnownAgent]:
             )
 
     for path in _opencode_config_paths(cwd):
-        agents = _read_config(path).get("agent")
+        config = _read_config(path)
+        agents = config.get("agents")
+        if not isinstance(agents, dict):
+            agents = config.get("agent")
         if not isinstance(agents, dict):
             continue
         for name, config in agents.items():
@@ -151,10 +163,12 @@ def known_agents(cwd: Path | None = None) -> dict[str, KnownAgent]:
                 continue
             model = config.get("model") if isinstance(config, dict) else None
             variant = config.get("variant") if isinstance(config, dict) else None
+            model, variant = split_model_variant(model, variant)
+            previous = found.get(name, KnownAgent(name))
             found[name] = KnownAgent(
                 name=name,
-                model=model if isinstance(model, str) and model else found.get(name, KnownAgent(name)).model,
-                variant=variant if isinstance(variant, str) and variant else found.get(name, KnownAgent(name)).variant,
+                model=model or previous.model,
+                variant=variant or previous.variant,
             )
     return found
 

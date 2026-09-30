@@ -88,6 +88,24 @@ class TestCLI:
         assert "create" in result.output
         assert "add" in result.output
 
+    def test_configure_prints_model_effort_workflow(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configure"])
+        assert result.exit_code == 0
+        assert "lemoria agent model <agent> <provider/model> --effort <effort>" in result.output
+
+    def test_agent_model_accepts_effort_alias(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["agent", "model", "--help"])
+        assert result.exit_code == 0
+        assert "--effort" in result.output
+
+    def test_agent_effort_command_exists(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["agent", "effort", "--help"])
+        assert result.exit_code == 0
+        assert "EFFORT" in result.output
+
 
 class TestCLICommands:
     """Test CLI command behavior with test data."""
