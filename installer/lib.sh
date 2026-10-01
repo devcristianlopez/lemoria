@@ -213,6 +213,74 @@ print_db_stop_hint() {
     esac
 }
 
+
+
+# ----- OpenCode TUI plugin -----
+
+install_opencode_lemoria_menu() {
+    local repo_dir="$1" opencode_dir="$2" agents_dir="${3:-$opencode_dir/agents}"
+    local source_dir="$repo_dir/opencode/plugins/lemoria-menu"
+    local target_dir="$opencode_dir/plugins/lemoria-menu"
+    local cli_json="$opencode_dir/cli.json"
+
+    if [ ! -f "$source_dir/tui.js" ]; then
+        echo "  ! Plugin Lemoria menu no encontrado en $source_dir"
+        return 1
+    fi
+
+    mkdir -p "$target_dir"
+    cp "$source_dir/tui.js" "$target_dir/tui.js"
+
+    # El plugin necesita saber dónde vive el repo de Lemoria y en qué
+    # directorio están los .md de los agentes, para escribir el pin del modelo
+    # en el sitio correcto sin ensuciar el repositorio del usuario.
+    LEMORIA_REPO="$repo_dir" AGENTS_DIR="$agents_dir" TARGET_DIR="$target_dir" python3 - <<'PYCFG'
+import json
+import os
+from pathlib import Path
+
+target = Path(os.environ["TARGET_DIR"])
+target.mkdir(parents=True, exist_ok=True)
+(target / "config.json").write_text(
+    json.dumps(
+        {"repo": os.environ["LEMORIA_REPO"], "agentsDir": os.environ["AGENTS_DIR"]},
+        indent=2,
+    )
+    + "\n"
+)
+
+PYCFG
+
+    CLI_JSON="$cli_json" PLUGIN_PATH="$target_dir" python3 - <<'PYCFG'
+import json
+import os
+from pathlib import Path
+
+path = Path(os.environ["CLI_JSON"])
+plugin = os.environ["PLUGIN_PATH"]
+path.parent.mkdir(parents=True, exist_ok=True)
+
+if path.exists():
+    try:
+        data = json.loads(path.read_text() or "{}")
+    except json.JSONDecodeError:
+        path.with_suffix(path.suffix + ".bak").write_text(path.read_text())
+        data = {}
+else:
+    data = {"$schema": "https://opencode.ai/v2/cli.json"}
+
+plugins = data.get("plugins")
+if not isinstance(plugins, list):
+    plugins = []
+
+# Idempotente: conserva los plugins que ya tenía el usuario.
+plugins = [entry for entry in plugins if entry != plugin]
+plugins.append(plugin)
+data["plugins"] = plugins
+path.write_text(json.dumps(data, indent=2) + "\n")
+PYCFG
+}
+
 # ----- Mensajes de instalación -----
 
 # Explicar cómo conseguir PostgreSQL cuando no hay ninguno escuchando. Vive

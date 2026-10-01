@@ -175,6 +175,7 @@ if [ "$INSTALL_MODE" = "1" ]; then
     mkdir -p "$OPENCODE_GLOBAL_DIR/agents"
     mkdir -p "$OPENCODE_GLOBAL_DIR/skills"
     mkdir -p "$OPENCODE_GLOBAL_DIR/commands"
+    mkdir -p "$OPENCODE_GLOBAL_DIR/plugins"
     for skill_dir in lemoria frontend backend database testing code-review git-workflow documentation; do
         if [ -d ".opencode/skills/$skill_dir" ]; then
             mkdir -p "$OPENCODE_GLOBAL_DIR/skills/$skill_dir"
@@ -189,6 +190,13 @@ if [ "$INSTALL_MODE" = "1" ]; then
     echo "  Agentes copiados a $OPENCODE_GLOBAL_DIR/agents/"
     echo "  Skills copiados a $OPENCODE_GLOBAL_DIR/skills/"
     echo "  Comandos copiados a $OPENCODE_GLOBAL_DIR/commands/"
+
+    if install_opencode_lemoria_menu "$LEMORIA_DIR" "$OPENCODE_GLOBAL_DIR" "$OPENCODE_GLOBAL_DIR/agents"; then
+        echo "  Menú Ctrl+P Lemoria instalado en $OPENCODE_GLOBAL_DIR/plugins/lemoria-menu/"
+        echo "  Plugin habilitado en $OPENCODE_GLOBAL_DIR/cli.json"
+    else
+        echo "  ! No se pudo instalar el menú Ctrl+P de Lemoria"
+    fi
 
     if [ ! -f "$OPENCODE_GLOBAL_DIR/opencode.json" ]; then
         cat > "$OPENCODE_GLOBAL_DIR/opencode.json" <<- 'EOF'
@@ -224,6 +232,12 @@ EOF
     else
         echo "  Config local ya existe: opencode.jsonc (no se modifica)"
         echo '  Asegúrate de que incluya: "default_agent": "orchestrator"'
+    fi
+    if install_opencode_lemoria_menu "$LEMORIA_DIR" "$OPENCODE_GLOBAL_DIR" "$LEMORIA_DIR/.opencode/agents"; then
+        echo "  Menú Ctrl+P Lemoria instalado en $OPENCODE_GLOBAL_DIR/plugins/lemoria-menu/"
+        echo "  Plugin habilitado en $OPENCODE_GLOBAL_DIR/cli.json"
+    else
+        echo "  ! No se pudo instalar el menú Ctrl+P de Lemoria"
     fi
     echo "  Agentes en .opencode/agents/ y comandos en .opencode/commands/"
     echo "  Abre OpenCode desde esta carpeta para usarlos; usa /lemoria en el prompt."

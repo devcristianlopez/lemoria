@@ -11,6 +11,8 @@ whatever fake a test drops in, so `docker`, `uv`, `psql`, `pacman` or
 of a stub. No sudo, no Docker, no network, and nothing outside tmp_path.
 """
 
+import json
+import re
 import shutil
 import subprocess
 import textwrap
@@ -735,6 +737,78 @@ class TestOpenCodeCommandInstallContract:
         assert "usa /lemoria" in text
 
 
+class TestOpenCodeLemoriaMenuPlugin:
+    def test_plugin_source_is_versioned(self):
+        plugin = REPO_ROOT / "opencode" / "plugins" / "lemoria-menu" / "tui.js"
+        assert plugin.exists()
+        text = plugin.read_text()
+        assert 'id: "lemoria.menu"' in text
+        assert "lemoria.agent.set_model" in text
+
+    def test_menu_install_preserves_existing_plugins_and_is_idempotent(self, sandbox):
+        (sandbox.bin / "python3").unlink(missing_ok=True)
+        (sandbox.bin / "python3").symlink_to(shutil.which("python3"))
+        repo = sandbox.workdir
+        source = repo / "opencode" / "plugins" / "lemoria-menu"
+        source.mkdir(parents=True)
+        (source / "tui.js").write_text("export default { id: 'lemoria.menu' }\n")
+        opencode_dir = sandbox.home / ".config" / "opencode"
+        opencode_dir.mkdir(parents=True)
+        (opencode_dir / "cli.json").write_text('{"plugins":["/tmp/other"]}\n')
+
+        body = """
+        install_opencode_lemoria_menu "$LEMORIA_DIR" "$HOME/.config/opencode" "$HOME/.config/opencode/agents"
+        install_opencode_lemoria_menu "$LEMORIA_DIR" "$HOME/.config/opencode" "$HOME/.config/opencode/agents"
+        cat "$HOME/.config/opencode/cli.json"
+        """
+        out = sandbox.run(body)
+
+        assert (opencode_dir / "plugins" / "lemoria-menu" / "tui.js").read_text().startswith("export default")
+        assert out.count(str(opencode_dir / "plugins" / "lemoria-menu")) == 1
+        assert '"/tmp/other"' in out
+
+    def test_menu_config_records_repo_and_agents_dir(self, sandbox):
+        """El plugin necesita saber dónde escribir el pin del modelo."""
+        (sandbox.bin / "python3").unlink(missing_ok=True)
+        (sandbox.bin / "python3").symlink_to(shutil.which("python3"))
+        repo = sandbox.workdir
+        source = repo / "opencode" / "plugins" / "lemoria-menu"
+        source.mkdir(parents=True)
+        (source / "tui.js").write_text("export default { id: 'lemoria.menu' }\n")
+
+        sandbox.run(
+            'install_opencode_lemoria_menu "$LEMORIA_DIR" "$HOME/.config/opencode" "$HOME/.config/opencode/agents"'
+        )
+
+        config = json.loads(
+            (sandbox.home / ".config/opencode/plugins/lemoria-menu/config.json").read_text()
+        )
+        assert config["repo"] == str(repo)
+        assert config["agentsDir"] == str(sandbox.home / ".config/opencode/agents")
+
+    def test_plugin_reads_its_own_config_instead_of_hardcoded_paths(self):
+        """Nada de ~/Projects/lemoria: el repo puede estar donde sea."""
+        text = (REPO_ROOT / "opencode" / "plugins" / "lemoria-menu" / "tui.js").read_text()
+        assert 'join(HOME, "Projects", "lemoria")' not in text
+        assert "config.json" in text
+        assert "LEMORIA_OPENCODE_AGENTS_DIR" in text
+
+    def test_plugin_does_not_pin_models_inside_the_repo(self):
+        """El pin lo escribe el CLI en un solo directorio: el git del usuario queda limpio."""
+        text = (REPO_ROOT / "opencode" / "plugins" / "lemoria-menu" / "tui.js").read_text()
+        assert "mirrorGlobalAgentPin" not in text
+        assert "writeModelToAgentFile" not in text
+        # Solo el slash command /lemoria y el cli.json se editan a mano.
+        assert len(re.findall(r"writeFileSyncSafe\(", text)) == 3  # 1 definición + 2 usos
+        assert len(re.findall(r"writeFileSync\(", text)) == 1  # dentro del helper
+
+    def test_install_script_enables_the_ctrl_p_menu(self):
+        text = INSTALLER.read_text()
+        assert 'install_opencode_lemoria_menu "$LEMORIA_DIR" "$OPENCODE_GLOBAL_DIR" "$OPENCODE_GLOBAL_DIR/agents"' in text
+        assert 'install_opencode_lemoria_menu "$LEMORIA_DIR" "$OPENCODE_GLOBAL_DIR" "$LEMORIA_DIR/.opencode/agents"' in text
+        assert "Plugin habilitado" in text
+
+
 class TestLibraryContract:
     """The extraction itself has to hold up.
 
@@ -752,6 +826,7 @@ class TestLibraryContract:
         "print_db_stop_hint",
         "print_postgres_setup_guide",
         "provide_postgres",
+        "install_opencode_lemoria_menu",
         "resolve_db_port",
         "uv_install_hint",
     )

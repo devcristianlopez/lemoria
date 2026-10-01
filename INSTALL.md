@@ -66,7 +66,7 @@ Elige **1) Global**.
 | 3 | Verifica las credenciales contra el PostgreSQL que ya responde, o lo levanta con Docker si no hay ninguno. Si no hay ninguna de las dos, se detiene con la guía de instalación |
 | 4 | Instala `lemoria` como comando global (`uv` → venv propio → `pip`) |
 | 5 | Inicializa la base de datos |
-| 6 | Copia agentes y skills a `~/.config/opencode/`, con `default_agent: orchestrator` |
+| 6 | Copia agentes, skills, slash commands y el plugin del menú Ctrl+P a `~/.config/opencode/`; preserva plugins existentes en `cli.json` |
 | 7 | Configura Context7 MCP (documentación en tiempo real para librerías) |
 | 8 | Detecta tu entorno: registra los agentes, ofrece el panel de Omarchy y avisa si no hay opencode |
 | 9 | Resumen con lo que quedó instalado |
@@ -294,6 +294,51 @@ Tú: "quiero un endpoint POST /login con JWT"
 → Todo queda registrado con trazabilidad
 ```
 
+## Menú Ctrl+P de Lemoria
+
+El instalador copia un plugin del TUI a
+`~/.config/opencode/plugins/lemoria-menu/` y lo registra en `cli.json`.
+Con eso, **Ctrl+P** abre la paleta de comandos con un grupo **Lemoria**. El
+grupo nunca se cuela en *Suggested*: se busca por nombre.
+
+| Entrada | Qué hace |
+|---|---|
+| `Lemoria` | Recordatorio de usar `/lemoria <solicitud>` en el prompt |
+| `Lemoria: agentes` | Estado de los agentes (`lemoria agent status`) |
+| `Lemoria: modelo` | Fija modelo y esfuerzo: agente → modelo → esfuerzo |
+| `Lemoria: limpiar modelo` | Quita el pin y el agente vuelve a heredar |
+| `Lemoria: limpiar esfuerzo` | Quita solo el esfuerzo |
+| `Lemoria: sync` | Sincroniza los `.md` de agentes con la DB y recarga |
+| `Lemoria: desinstalar` | Desinstalar desde acá |
+
+**No se escribe nada a mano.** `Lemoria: modelo` encadena tres diálogos de
+selección —agente, modelo, esfuerzo— y el resto también elige de una lista.
+Solo se navega y se confirma.
+
+Lo que hace por detrás `Lemoria: modelo`:
+
+- Escribe el pin con `lemoria agent model` en el directorio de agentes que dejó
+  configurado el instalador (`config.json`, junto al plugin). Tus repos
+  propios no se ensucian.
+- Recarga OpenCode y refleja el modelo en la sesión que estás viendo, así el
+  texto al lado del prompt actualiza en el momento.
+- Solo ofrece los modelos que OpenCode reporta como **habilitados** para tu
+  cuenta, y las opciones de esfuerzo salen de las **variantes reales** de ese
+  modelo. No hay una lista fija escrita en el plugin.
+
+Para quitar Lemoria, `Lemoria: desinstalar` en el mismo menú. Elegís entre
+dejar solo las integraciones de OpenCode o borrar también CLI, DB local y
+vault; el plugin se desregistra de `cli.json` solo. La parte de Omarchy se va
+con `lemoria omarchy uninstall`, que el propio menú dispara. Después hay que
+**reiniciar OpenCode**.
+
+Si el menú no aparece, verificá que el plugin siga en la lista `plugins` de
+`~/.config/opencode/cli.json`:
+
+```bash
+cat ~/.config/opencode/cli.json
+```
+
 ## Instalación paso a paso (sin el script)
 
 Reproduce exactamente lo que hace `install.sh`, en el mismo orden de decisión.
@@ -332,11 +377,21 @@ export PATH="$PATH:$HOME/.local/bin"
 lemoria init
 
 # 6. Copiar agentes, skills y slash commands a global
-mkdir -p ~/.config/opencode/{agents,commands,skills/lemoria}
+mkdir -p ~/.config/opencode/{agents,commands,plugins/lemoria-menu,skills/lemoria}
 cp .opencode/agents/*.md ~/.config/opencode/agents/
 cp .opencode/commands/*.md ~/.config/opencode/commands/
 cp .opencode/skills/lemoria/SKILL.md ~/.config/opencode/skills/lemoria/
 cp -r .opencode/skills/{frontend,backend,database,testing,code-review,git-workflow,documentation} ~/.config/opencode/skills/
+cp opencode/plugins/lemoria-menu/tui.js ~/.config/opencode/plugins/lemoria-menu/
+python3 - <<'PYCFG'
+import json, pathlib
+path = pathlib.Path.home() / ".config/opencode/cli.json"
+plugin = str(pathlib.Path.home() / ".config/opencode/plugins/lemoria-menu")
+data = json.loads(path.read_text()) if path.exists() else {"$schema": "https://opencode.ai/v2/cli.json"}
+plugins = data.get("plugins") if isinstance(data.get("plugins"), list) else []
+data["plugins"] = [entry for entry in plugins if entry != plugin] + [plugin]
+path.write_text(json.dumps(data, indent=2) + "\n")
+PYCFG
 
 # 7. Crear config global
 cat > ~/.config/opencode/opencode.json <<- 'EOF'

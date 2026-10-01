@@ -212,6 +212,10 @@ Los agentes, skills y comandos se copian tanto a nivel proyecto (`.opencode/`) c
 
 Nota: en configuración JSON/JSONC de OpenCode v2 la clave correcta es `commands` en plural. La clave/directorio singular `command` es legacy y no se usa para nuevas instalaciones.
 
+### Menú Ctrl+P de Lemoria
+
+Además del slash command, el instalador deja un plugin del TUI que agrega un grupo **Lemoria** a la paleta de comandos de **Ctrl+P**: estado de los agentes, fijar o limpiar modelo y esfuerzo, `sync` y desinstalación. Todo se elige con diálogos de selección —no hay que escribir nada— y solo se ofrecen los modelos que OpenCode habilita para tu cuenta. Los detalles están en [INSTALL.md](INSTALL.md#menú-ctrlp-de-lemoria).
+
 ### Configuración: `opencode.json` vs `opencode.jsonc`
 
 Lemoria usa dos archivos de configuración de OpenCode, cada uno con un propósito distinto:
