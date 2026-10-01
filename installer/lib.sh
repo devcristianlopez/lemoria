@@ -279,9 +279,11 @@ print_postgres_setup_guide() {
     echo "       a nadie. Lemoria NO lo recomienda: usá la vía A, que no pide ese"
     echo "       privilegio. Si aun así lo hacés, es porque aceptaste el riesgo:"
     echo "         sudo usermod -aG docker \$USER"
-    echo "         newgrp docker   # o cerrá sesión y volvé a entrar"
+    echo "         newgrp docker   # en ESA MISMA terminal, antes de reintentar ./install.sh"
+    echo "       # alternativa: cerrá sesión y volvé a entrar"
     echo ""
-    echo "  Volvé a correr ./install.sh cuando algo responda en localhost:${DB_PORT}."
+    echo "  Después de 'newgrp docker' (o de reiniciar sesión), volvé a correr ./install.sh"
+    echo "  cuando algo responda en localhost:${DB_PORT}."
 }
 
 # Nombres de paquete para el mismo requisito según la familia de distribución.

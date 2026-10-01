@@ -249,8 +249,20 @@ Si aun así lo hacés, es porque aceptaste el riesgo:
 
 ```bash
 sudo usermod -aG docker $USER
-newgrp docker          # o cerrá sesión y volvé a entrar
+newgrp docker          # en esta misma terminal, antes de reintentar ./install.sh
+# alternativa: cerrá sesión y volvé a entrar
 ```
+
+Después de `newgrp docker`, verificá que el socket responda y recién ahí reintentá:
+
+```bash
+docker info
+./install.sh
+```
+
+Si saltás ese paso, tu terminal sigue con los grupos antiguos: el instalador verá
+Docker instalado pero sin permiso para hablar con `/var/run/docker.sock`, y el
+panel/servicios que dependen de la instalación pueden quedar a medio conectar.
 
 ## Cómo crear un proyecto
 
@@ -266,7 +278,13 @@ git init
 opencode
 ```
 
-Los agentes globales están disponibles inmediatamente. El orquestador responde a cualquier feature request:
+Los agentes globales están disponibles inmediatamente. También queda disponible el slash command `/lemoria` en OpenCode (no depende de Ctrl+P):
+
+```text
+/lemoria quiero un endpoint POST /login con JWT
+```
+
+El orquestador responde a cualquier feature request:
 
 ```
 Tú: "quiero un endpoint POST /login con JWT"
@@ -313,9 +331,10 @@ export PATH="$PATH:$HOME/.local/bin"
 # 5. Inicializar DB
 lemoria init
 
-# 6. Copiar agentes y skills a global
-mkdir -p ~/.config/opencode/{agents,skills/lemoria}
+# 6. Copiar agentes, skills y slash commands a global
+mkdir -p ~/.config/opencode/{agents,commands,skills/lemoria}
 cp .opencode/agents/*.md ~/.config/opencode/agents/
+cp .opencode/commands/*.md ~/.config/opencode/commands/
 cp .opencode/skills/lemoria/SKILL.md ~/.config/opencode/skills/lemoria/
 cp -r .opencode/skills/{frontend,backend,database,testing,code-review,git-workflow,documentation} ~/.config/opencode/skills/
 
@@ -336,7 +355,7 @@ rm -rf lemoria  # opcional
 ```
 
 No uses `pip install -e ".[dev]"` contra el intérprete del sistema como paso 4:
-en Arch eso falla. El `pip` del venv de la línea 309 sí sirve, porque no es el
+en Arch eso falla. El `pip` del venv del bloque alternativo sí sirve, porque no es el
 del sistema. Si elegiste nativo en el paso 3, no necesitás el `docker` de este
 repo en ningún momento.
 

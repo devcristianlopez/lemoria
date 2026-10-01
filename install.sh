@@ -174,6 +174,7 @@ if [ "$INSTALL_MODE" = "1" ]; then
 
     mkdir -p "$OPENCODE_GLOBAL_DIR/agents"
     mkdir -p "$OPENCODE_GLOBAL_DIR/skills"
+    mkdir -p "$OPENCODE_GLOBAL_DIR/commands"
     for skill_dir in lemoria frontend backend database testing code-review git-workflow documentation; do
         if [ -d ".opencode/skills/$skill_dir" ]; then
             mkdir -p "$OPENCODE_GLOBAL_DIR/skills/$skill_dir"
@@ -182,8 +183,12 @@ if [ "$INSTALL_MODE" = "1" ]; then
     done
 
     cp .opencode/agents/*.md "$OPENCODE_GLOBAL_DIR/agents/"
+    if compgen -G ".opencode/commands/*.md" >/dev/null; then
+        cp .opencode/commands/*.md "$OPENCODE_GLOBAL_DIR/commands/"
+    fi
     echo "  Agentes copiados a $OPENCODE_GLOBAL_DIR/agents/"
     echo "  Skills copiados a $OPENCODE_GLOBAL_DIR/skills/"
+    echo "  Comandos copiados a $OPENCODE_GLOBAL_DIR/commands/"
 
     if [ ! -f "$OPENCODE_GLOBAL_DIR/opencode.json" ]; then
         cat > "$OPENCODE_GLOBAL_DIR/opencode.json" <<- 'EOF'
@@ -201,7 +206,8 @@ EOF
         echo '    "skills": ["~/.config/opencode/skills"]'
     fi
     echo ""
-    echo "  ✓ Agentes disponibles en cualquier proyecto al abrir OpenCode"
+    echo "  ✓ Agentes y comandos disponibles en cualquier proyecto al abrir OpenCode"
+    echo "  Usa /lemoria desde el prompt de OpenCode para iniciar el flujo SDD."
 else
     echo "[6/9] Instalación en modo PROYECTO..."
     # Los .md ya estan en .opencode/agents del repo; lo que falta es el config
@@ -219,8 +225,8 @@ EOF
         echo "  Config local ya existe: opencode.jsonc (no se modifica)"
         echo '  Asegúrate de que incluya: "default_agent": "orchestrator"'
     fi
-    echo "  Agentes en .opencode/agents/ (solo dentro de este proyecto)"
-    echo "  Abre OpenCode desde esta carpeta para usarlos"
+    echo "  Agentes en .opencode/agents/ y comandos en .opencode/commands/"
+    echo "  Abre OpenCode desde esta carpeta para usarlos; usa /lemoria en el prompt."
 fi
 
 # ----- Context7 (documentation MCP) -----

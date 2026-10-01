@@ -106,6 +106,60 @@ class TestCLI:
         assert result.exit_code == 0
         assert "EFFORT" in result.output
 
+    def test_omarchy_install_fails_clearly_when_omarchy_cli_missing(self, monkeypatch):
+        import shutil
+
+        _stub_omarchy_install_side_effects(monkeypatch)
+        monkeypatch.setattr(shutil, "which", lambda name: None if name == "omarchy" else "/usr/bin/systemctl")
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["omarchy", "install"])
+
+        assert result.exit_code != 0
+        assert "omarchy CLI not found in PATH" in result.output
+        assert "omarchy plugin enable lemoria.usage --after omarchy.agents" in result.output
+
+    def test_omarchy_install_surfaces_plugin_enable_failure(self, monkeypatch):
+        import shutil
+        import subprocess
+
+        _stub_omarchy_install_side_effects(monkeypatch)
+        monkeypatch.setattr(shutil, "which", lambda name: f"/usr/bin/{name}")
+        monkeypatch.setattr(
+            subprocess,
+            "run",
+            lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 1, stdout="", stderr="disabled by policy"),
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["omarchy", "install"])
+
+        assert result.exit_code != 0
+        assert "Could not enable lemoria.usage automatically" in result.output
+        assert "disabled by policy" in result.output
+
+
+def _stub_omarchy_install_side_effects(monkeypatch):
+    from lemoria import budget, omarchy
+    from lemoria import opencode_telemetry as telemetry
+
+    monkeypatch.setattr(omarchy, "remove_legacy_agents_record", lambda: False)
+    monkeypatch.setattr(omarchy, "install_plugin", lambda: "/tmp/plugin")
+    monkeypatch.setattr(omarchy, "install_codex_stabilizer", lambda: ("/tmp/service", "/tmp/codex"))
+    monkeypatch.setattr(omarchy, "install_timer", lambda interval: ("/tmp/lemoria.service", "/tmp/lemoria.timer"))
+    monkeypatch.setattr(omarchy, "build_record", lambda *args, **kwargs: {"ok": True})
+    monkeypatch.setattr(omarchy, "write_record", lambda record: "/tmp/record.json")
+    monkeypatch.setattr(omarchy, "stabilize_codex_record", lambda: (False, "unchanged"))
+    monkeypatch.setattr(omarchy, "known_agents", list)
+    monkeypatch.setattr(omarchy, "current_default_model", lambda: None)
+    monkeypatch.setattr(budget.Budget, "load", staticmethod(dict))
+
+    class FakeTelemetry:
+        def read(self):
+            return {}
+
+    monkeypatch.setattr(telemetry, "OpenCodeTelemetry", FakeTelemetry)
+
 
 class TestCLICommands:
     """Test CLI command behavior with test data."""

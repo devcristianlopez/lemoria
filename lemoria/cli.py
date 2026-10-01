@@ -675,16 +675,28 @@ def omarchy_install(interval: str, enable: bool):
     import shutil as _shutil
     import subprocess
 
-    if _shutil.which("omarchy"):
-        result = subprocess.run(
-            ["omarchy", "plugin", "enable", "lemoria.usage", "--after", "omarchy.agents"],
-            check=False, capture_output=True, text=True,
+    if not _shutil.which("omarchy"):
+        raise click.ClickException(
+            "omarchy CLI not found in PATH, so lemoria.usage was installed but not enabled. "
+            "Open a shell where omarchy is available and run: "
+            "omarchy plugin enable lemoria.usage --after omarchy.agents"
         )
-        if result.returncode == 0:
-            click.echo("Enabled lemoria.usage in the Omarchy bar")
-        else:
-            click.echo("Could not enable lemoria.usage automatically; run:", err=True)
-            click.echo("    omarchy plugin enable lemoria.usage --after omarchy.agents", err=True)
+
+    result = subprocess.run(
+        ["omarchy", "plugin", "enable", "lemoria.usage", "--after", "omarchy.agents"],
+        check=False, capture_output=True, text=True,
+    )
+    if result.returncode == 0:
+        click.echo("Enabled lemoria.usage in the Omarchy bar")
+    else:
+        detail = (result.stderr or result.stdout or "").strip()
+        message = (
+            "Could not enable lemoria.usage automatically. Run:\n"
+            "    omarchy plugin enable lemoria.usage --after omarchy.agents"
+        )
+        if detail:
+            message += f"\n\nomarchy output:\n{detail}"
+        raise click.ClickException(message)
 
     if not _shutil.which("systemctl"):
         click.echo("\nsystemctl not found; enable the timer manually.", err=True)

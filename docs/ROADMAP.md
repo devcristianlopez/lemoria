@@ -36,7 +36,7 @@
 
 ## Fase 4.5 — Ingeniería de Calidad (completada)
 - [x] 8 enums tipados con CheckConstraints en 7 modelos (integridad a nivel DB)
-- [x] 224 tests automatizados (pytest, SQLite in-memory)
+- [x] 228 tests automatizados (pytest, SQLite in-memory)
 - [x] CI en GitHub Actions (matrix Python 3.11/3.12/3.13, PostgreSQL, ruff, Codecov)
 - [x] FlowStep state machine (flow step CLI + orquestador resumible)
 - [x] CLI completo: spec, error, context commands

@@ -713,11 +713,26 @@ class TestPostgresSetupGuide:
         out = sandbox.run("DB_PORT=5432; DOCKER_BINARIO=false; print_postgres_setup_guide")
         assert "usermod -aG docker" in out
         assert "equivalente a root" in out
+        assert "newgrp docker" in out
+        assert "antes de reintentar ./install.sh" in out
 
     def test_the_guide_names_the_port_it_checked(self, sandbox):
         fake_distro(sandbox, "pacman")
         out = sandbox.run("DB_PORT=5544; DOCKER_BINARIO=false; print_postgres_setup_guide")
         assert "5544" in out
+
+
+class TestOpenCodeCommandInstallContract:
+    def test_global_install_copies_slash_commands(self):
+        text = INSTALLER.read_text()
+        assert 'mkdir -p "$OPENCODE_GLOBAL_DIR/commands"' in text
+        assert 'cp .opencode/commands/*.md "$OPENCODE_GLOBAL_DIR/commands/"' in text
+        assert "Usa /lemoria" in text
+
+    def test_project_summary_mentions_slash_command_location(self):
+        text = INSTALLER.read_text()
+        assert "comandos en .opencode/commands/" in text
+        assert "usa /lemoria" in text
 
 
 class TestLibraryContract:
