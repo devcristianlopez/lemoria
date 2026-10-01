@@ -721,9 +721,9 @@
       </div>
       <dl class="hero-stats">
         <div><dt>8</dt><dd data-i18n="hero.stat.agents">Agentes</dd></div>
-        <div><dt>15</dt><dd data-i18n="hero.stat.sdd">Pasos SDD</dd></div>
-        <div><dt>41</dt><dd data-i18n="hero.stat.tests">Tests</dd></div>
-        <div><dt>8</dt><dd data-i18n="hero.stat.enums">Enums</dd></div>
+        <div><dt>13</dt><dd data-i18n="hero.stat.sdd">Pasos SDD</dd></div>
+        <div><dt>234</dt><dd data-i18n="hero.stat.tests">Tests</dd></div>
+        <div><dt>7</dt><dd data-i18n="hero.stat.enums">Skills</dd></div>
       </dl>
     </div>
   </section>
@@ -745,7 +745,7 @@
         <div class="feat-card fade-in">
           <div class="num">[02]</div>
           <h3 data-i18n="feat.02.title">Trazabilidad total</h3>
-          <p data-i18n="feat.02.desc">Cada task tiene un ID único. Commits con <code>task-XXX</code>. Todo conectado al PRD original.</p>
+          <p data-i18n="feat.02.desc">Cada tarea tiene un ID único y cada commit queda enlazado con <code>Task: &lt;uuid&gt;</code>. Todo vuelve al PRD original.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[03]</div>
@@ -755,12 +755,12 @@
         <div class="feat-card fade-in">
           <div class="num">[04]</div>
           <h3 data-i18n="feat.04.title">PostgreSQL fuente de verdad</h3>
-          <p data-i18n="feat.04.desc">Todo se persiste en PostgreSQL 16 con SQLAlchemy. La base de datos es el único fuente de verdad.</p>
+          <p data-i18n="feat.04.desc">Todo se persiste en PostgreSQL 16 con SQLAlchemy. La base de datos es la única fuente de verdad.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[05]</div>
           <h3 data-i18n="feat.05.title">Conventional Commits</h3>
-          <p data-i18n="feat.05.desc">Commits con formato <code>tipo(scope): descripción [task-XXX]</code>. Trazabilidad automática código ↔ requerimientos.</p>
+          <p data-i18n="feat.05.desc">Commits convencionales con trailer <code>Task: &lt;uuid&gt;</code>. Trazabilidad automática código ↔ requerimientos.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[06]</div>
@@ -770,7 +770,7 @@
         <div class="feat-card fade-in">
           <div class="num">[07]</div>
           <h3 data-i18n="feat.07.title">State Machine Resumible</h3>
-          <p data-i18n="feat.07.desc">Cada paso del flujo se persiste en <code>flow_steps</code>. Si el contexto del LLM se pierde, se retoma desde donde quedó.</p>
+          <p data-i18n="feat.07.desc">Si una sesión se corta o el contexto se pierde, el flujo queda guardado y puede retomarse sin partir de cero.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[08]</div>
@@ -779,12 +779,12 @@
         </div>
         <div class="feat-card fade-in">
           <div class="num">[09]</div>
-          <h3 data-i18n="feat.09.title">Enums + CheckConstraints</h3>
-          <p data-i18n="feat.09.desc">8 enums tipados con restricciones a nivel DB. Sin strings mágicos.</p>
+          <h3 data-i18n="feat.09.title">Datos consistentes</h3>
+          <p data-i18n="feat.09.desc">Estados y relaciones validados en la base de datos para evitar registros ambiguos o rotos.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[10]</div>
-          <h3 data-i18n="feat.10.title">109 Tests + CI Automático</h3>
+          <h3 data-i18n="feat.10.title">234 Tests + CI Automático</h3>
           <p data-i18n="feat.10.desc">Suite con pytest en SQLite in-memory + CI en GitHub Actions con matrix Python 3.11/3.12/3.13.</p>
         </div>
         <div class="feat-card fade-in">
@@ -800,7 +800,7 @@
         <div class="feat-card fade-in">
           <div class="num">[13]</div>
           <h3 data-i18n="feat.13.title">Telemetría de opencode</h3>
-          <p data-i18n="feat.13.desc">Lee <code>opencode.db</code> en modo read-only: sesiones, tokens y costo por agente. <code>lemoria usage</code> te da el total histórico, el desglose por modelo y por subagente.</p>
+          <p data-i18n="feat.13.desc">Resume sesiones, tokens y costo por agente sin bloquear OpenCode. <code>lemoria usage</code> muestra total histórico, modelos y subagentes.</p>
         </div>
         <div class="feat-card fade-in">
           <div class="num">[14]</div>
@@ -810,7 +810,7 @@
         <div class="feat-card fade-in">
           <div class="num">[15]</div>
           <h3 data-i18n="feat.15.title">Modelos por agente</h3>
-          <p data-i18n="feat.15.desc">Fija modelo y reasoning effort por subagente. Por defecto heredan el de quien los invoca, y se cambian cuando quieras.</p>
+          <p data-i18n="feat.15.desc">Fija modelo y esfuerzo por agente desde CLI o desde el menú Ctrl+P de OpenCode. Sin editar archivos a mano.</p>
         </div>
       </div>
     </div>
@@ -853,7 +853,7 @@
         <div class="agent-card fade-in">
           <div class="name-row"><span class="tag">github-agent</span><h3 data-i18n="agents.github.title">GitHub</h3></div>
           <div class="role" data-i18n="agents.github.role">Trazabilidad</div>
-          <p data-i18n="agents.github.desc">Mantiene trazabilidad con GitHub: issues, PRs, milestones. Solo lectura.</p>
+          <p data-i18n="agents.github.desc">Mantiene trazabilidad con GitHub: commits, pushes, PRs e issues conectados al trabajo.</p>
         </div>
         <div class="agent-card fade-in">
           <div class="name-row"><span class="tag">review-agent</span><h3 data-i18n="agents.review.title">Review</h3></div>
@@ -875,7 +875,7 @@
       <div class="section-header">
         <div class="cmd"><code>$ lemoria flow</code> <span class="flag">--help</span></div>
         <h2>Spec Driven Development</h2>
-        <p data-i18n="sdd.desc">15 pasos desde la idea hasta la memoria actualizada. Cada paso queda registrado en PostgreSQL.</p>
+        <p data-i18n="sdd.desc">Flujo completo desde la idea hasta la memoria actualizada. Cada etapa queda registrada y se puede auditar.</p>
       </div>
       <div class="flow-grid">
         <div class="flow-step fade-in"><span class="step-num">1</span><span class="step-label" data-i18n="sdd.step.01.label">Discovery</span><span class="step-desc" data-i18n="sdd.step.01.desc">Preguntas esenciales</span></div>
@@ -890,7 +890,7 @@
         <div class="flow-step fade-in"><span class="step-num">10</span><span class="step-label" data-i18n="sdd.step.10.label">Push</span><span class="step-desc" data-i18n="sdd.step.10.desc">Subida a GitHub</span></div>
         <div class="flow-step fade-in"><span class="step-num">11</span><span class="step-label" data-i18n="sdd.step.11.label">Documentation</span><span class="step-desc" data-i18n="sdd.step.11.desc">Documentación generada</span></div>
         <div class="flow-step fade-in"><span class="step-num">12</span><span class="step-label" data-i18n="sdd.step.12.label">Memory Update</span><span class="step-desc" data-i18n="sdd.step.12.desc">Actualizar memoria</span></div>
-        <div class="flow-step fade-in"><span class="step-num">13</span><span class="step-label" data-i18n="sdd.step.13.label">State Machine</span><span class="step-desc" data-i18n="sdd.step.13.desc">flow_steps en DB</span></div>
+        <div class="flow-step fade-in"><span class="step-num">13</span><span class="step-label" data-i18n="sdd.step.13.label">State Machine</span><span class="step-desc" data-i18n="sdd.step.13.desc">Estado persistente</span></div>
       </div>
     </div>
   </section>
@@ -901,7 +901,7 @@
       <div class="section-header">
         <div class="cmd"><code>$ lemoria usage</code> <span class="flag">--json</span></div>
         <h2 data-i18n="tele.title">Tu consumo, de verdad</h2>
-        <p data-i18n="tele.desc">Lemoria lee <code>opencode.db</code> en modo read-only y convierte el consumo disperso en una sola lectura: cuánto llevas, en qué modelos y qué agente lo gastó.</p>
+        <p data-i18n="tele.desc">Lemoria consolida sesiones, tokens y costo en una sola lectura: cuánto llevas, qué modelos usaste y qué agente generó el consumo.</p>
       </div>
 
       <div class="term-frame install-term fade-in">
@@ -942,7 +942,7 @@
           <span class="num">ro</span>
           <div class="content">
             <h3 data-i18n="tele.ro.title">Nunca bloquea a opencode</h3>
-            <p data-i18n="tele.ro.desc">Conexión read-only y cada agregado pushed a SQL. Lemoria lee miles de sesiones sin dejar un archivo de bloqueo ni frenar una sesión en curso.</p>
+            <p data-i18n="tele.ro.desc">Lectura segura y agregados eficientes: Lemoria procesa miles de sesiones sin bloquear ni frenar una sesión activa.</p>
           </div>
         </li>
       </ul>
@@ -955,7 +955,7 @@
       <div class="section-header">
         <div class="cmd"><code>$ ./install.sh</code></div>
         <h2 data-i18n="install.title">Listo en 3 pasos</h2>
-        <p data-i18n="install.desc">Clona, corre el instalador y abre OpenCode. El script resuelve la base de datos y el paquete de Python por vos.</p>
+        <p data-i18n="install.desc">Clona, corre el instalador y abre OpenCode. El detalle fino vive en INSTALL.md; la landing va al grano.</p>
       </div>
       <ul class="start-list">
         <li class="fade-in">
@@ -969,14 +969,14 @@
           <span class="num">step/2</span>
           <div class="content">
             <h3 data-i18n="install.step2.title">Corre el instalador</h3>
-            <p><code>./install.sh</code> <span data-i18n="install.step2.desc">— revisa tu máquina, resuelve PostgreSQL e instala el paquete con uv → venv → pip.</span></p>
+            <p><code>./install.sh</code> <span data-i18n="install.step2.desc">— instala Lemoria, configura agentes y deja listo OpenCode.</span></p>
           </div>
         </li>
         <li class="fade-in">
           <span class="num">step/3</span>
           <div class="content">
             <h3 data-i18n="install.step3.title">Crea tu primer proyecto</h3>
-            <p><code>lemoria project create <span class="arg">"Mi proyecto"</span></code> <span data-i18n="install.step3.desc">— después abrí OpenCode y delegá con @orchestrator.</span></p>
+            <p><code>lemoria project create <span class="arg">"Mi proyecto"</span></code> <span data-i18n="install.step3.desc">— después abre OpenCode y usa /lemoria o el menú Ctrl+P.</span></p>
           </div>
         </li>
       </ul>
@@ -999,71 +999,6 @@
         </div>
       </div>
 
-      <div class="req-head fade-in">
-        <div class="cmd"><code>$ ./install.sh</code> <span class="flag">[1/9] Verificando requisitos</span></div>
-        <h3 data-i18n="install.req.title">Lo que revisa antes de instalar</h3>
-        <p data-i18n="install.req.desc">El instalador no adivina: mira tu máquina y elige el camino más limpio que funcione. Esto es lo que decide.</p>
-      </div>
-
-      <div class="req-grid">
-        <div class="req-card fade-in">
-          <h3 data-i18n="install.pg.title">PostgreSQL</h3>
-          <p data-i18n="install.pg.desc">Tiene que responder algo en <code>localhost:5432</code>. Si tu servidor ya está corriendo, el instalador lo respeta y no lo toca: solo verifica que las credenciales de <code>.env</code> sirvan.</p>
-          <ul class="req-opt">
-            <li>
-              <span class="tag ok" data-i18n="install.pg.a.tag">A · recomendado</span>
-              <ul class="cmds">
-                <li><span class="ps1">$</span><span class="cmd">sudo pacman -S postgresql</span> <span class="arg"># Arch / Omarchy</span></li>
-                <li><span class="ps1">$</span><span class="cmd">sudo systemctl enable --now postgresql</span></li>
-                <li><span class="ps1">$</span><span class="cmd">sudo -u postgres psql -c <span class="arg">"CREATE USER lemoria WITH PASSWORD 'lemoria';"</span></span></li>
-                <li><span class="ps1">$</span><span class="cmd">sudo -u postgres createdb -O lemoria lemoria</span></li>
-              </ul>
-              <p class="hint" data-i18n="install.pg.a.hint">Debian/Ubuntu: <code>sudo apt install postgresql</code> · Fedora: <code>sudo dnf install postgresql</code> · macOS: <code>brew install postgresql</code></p>
-            </li>
-            <li>
-              <span class="tag alt" data-i18n="install.pg.b.tag">B · alternativa</span>
-              <ul class="cmds">
-                <li><span class="ps1">$</span><span class="cmd">sudo pacman -S docker docker-compose</span></li>
-                <li><span class="ps1">$</span><span class="cmd">sudo systemctl enable --now docker</span></li>
-                <li><span class="ps1">$</span><span class="cmd">docker compose up -d</span> <span class="arg" data-i18n="install.pg.b.auto">(lo levanta el instalador)</span></li>
-              </ul>
-              <div class="req-warn">
-                <b data-i18n="install.pg.b.warn">Sobre <code>sudo usermod -aG docker $USER</code>:</b>
-                <span data-i18n="install.pg.b.warn2">el grupo docker equivale a root <b>sin contraseña</b>. Tener acceso al socket del daemon permite montar <code>/</code>, editar <code>/etc/shadow</code> y correr contenedores privilegiados. Lemoria no lo recomienda: usá la vía A, que no pide ese privilegio.</span>
-              </div>
-            </li>
-          </ul>
-        </div>
-
-        <div class="req-card fade-in">
-          <h3 data-i18n="install.py.title">El paquete de Python</h3>
-          <p data-i18n="install.py.desc">Se prueban en orden y cada uno es más invasivo que el anterior. Solo se cae al siguiente si el anterior falló.</p>
-          <p class="req-chain"><code>uv</code> → <code>venv</code> → <code>pip</code></p>
-          <ul class="req-opt">
-            <li>
-              <span class="tag ok" data-i18n="install.py.1.tag">1 · uv</span>
-              <ul class="cmds">
-                <li><span class="ps1">$</span><span class="cmd">sudo pacman -S uv</span> <span class="arg"># Arch / Omarchy</span></li>
-                <li><span class="ps1">$</span><span class="cmd">uv tool install --editable <span class="arg">".[dev]"</span></span></li>
-              </ul>
-              <p class="hint" data-i18n="install.py.1.hint">Fuera de Arch, <code>uv</code> no está en los repos: se instala desde su propia documentación. No pide sudo ni toca el intérprete del sistema.</p>
-            </li>
-            <li>
-              <span class="tag alt" data-i18n="install.py.2.tag">2 · venv propio</span>
-              <ul class="cmds">
-                <li><span class="ps1">$</span><span class="cmd">python3 -m venv ~/.local/share/lemoria/venv</span></li>
-              </ul>
-            </li>
-            <li>
-              <span class="tag alt" data-i18n="install.py.3.tag">3 · pip (último recurso)</span>
-              <div class="req-warn">
-                <b data-i18n="install.py.3.warn">Por qué <code>pip install -e .</code> falla en Arch + Python 3.14:</b>
-                <span data-i18n="install.py.3.warn2">Arch separa <code>pip</code> del intérprete — <code>python3 -m pip</code> responde <code>No module named pip</code> — y PEP 668 marca el intérprete del sistema como <code>EXTERNALLY-MANAGED</code>. Romper eso con <code>--break-system-packages</code> desactiva la protección y puede arrastrar a otras herramientas.</span>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -1099,47 +1034,47 @@
         'hero.stat.agents': 'Agentes',
         'hero.stat.sdd': 'Pasos SDD',
         'hero.stat.tests': 'Tests',
-        'hero.stat.enums': 'Enums',
+        'hero.stat.enums': 'Skills',
         'feat.title': 'Características',
         'feat.desc': 'Cada decisión, cada línea de código, cada conversación — todo queda registrado y trazable.',
         'feat.01.title': 'Spec Driven Development',
         'feat.01.desc': 'Flujo completo: discovery → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory.',
         'feat.02.title': 'Trazabilidad total',
-        'feat.02.desc': 'Cada task tiene un ID único. Commits con <code>task-XXX</code>. Todo conectado al PRD original.',
+        'feat.02.desc': 'Cada tarea tiene un ID único y cada commit queda enlazado con <code>Task: &lt;uuid&gt;</code>. Todo vuelve al PRD original.',
         'feat.03.title': '8 Agentes OpenCode',
         'feat.03.desc': 'Orquestador + implementation + frontend + DB + testing + GitHub + review + documentation. Cada uno con contexto limitado.',
         'feat.04.title': 'PostgreSQL fuente de verdad',
-        'feat.04.desc': 'Todo se persiste en PostgreSQL 16 con SQLAlchemy. La base de datos es el único fuente de verdad.',
+        'feat.04.desc': 'Todo se persiste en PostgreSQL 16 con SQLAlchemy. La base de datos es la única fuente de verdad.',
         'feat.05.title': 'Conventional Commits',
-        'feat.05.desc': 'Commits con formato <code>tipo(scope): descripción [task-XXX]</code>. Trazabilidad automática código ↔ requerimientos.',
+        'feat.05.desc': 'Commits convencionales con trailer <code>Task: &lt;uuid&gt;</code>. Trazabilidad automática código ↔ requerimientos.',
         'feat.06.title': 'Architecture Decision Records',
         'feat.06.desc': 'Cada decisión técnica se registra con contexto, opciones consideradas y justificación.',
         'feat.07.title': 'State Machine Resumible',
-        'feat.07.desc': 'Cada paso del flujo se persiste en <code>flow_steps</code>. Si el contexto del LLM se pierde, se retoma desde donde quedó.',
+        'feat.07.desc': 'Si una sesión se corta o el contexto se pierde, el flujo queda guardado y puede retomarse sin partir de cero.',
         'feat.08.title': 'Vault Bidireccional',
         'feat.08.desc': 'Exporta DB a markdown con wikilinks y restaura DB desde notas. Sin pérdida de datos.',
-        'feat.09.title': 'Enums + CheckConstraints',
-        'feat.09.desc': '8 enums tipados con restricciones a nivel DB. Sin strings mágicos.',
-        'feat.10.title': '109 Tests + CI Automático',
+        'feat.09.title': 'Datos consistentes',
+        'feat.09.desc': 'Estados y relaciones validados en la base de datos para evitar registros ambiguos o rotos.',
+        'feat.10.title': '234 Tests + CI Automático',
         'feat.10.desc': 'Suite con pytest en SQLite in-memory + CI en GitHub Actions con matrix Python 3.11/3.12/3.13.',
         'feat.11.title': '7 Skills Modulares',
         'feat.11.desc': 'Skills especializadas: frontend, backend, database, testing, code-review, git-workflow, documentation.',
         'feat.12.title': 'Context7 MCP',
         'feat.12.desc': 'Documentación en tiempo real de librerías y frameworks vía MCP server.',
         'feat.13.title': 'Telemetría de opencode',
-        'feat.13.desc': 'Lee opencode.db en modo read-only: sesiones, tokens y costo por agente. `lemoria usage` te da el total histórico, el desglose por modelo y por subagente.',
+        'feat.13.desc': '`lemoria usage` resume sesiones, tokens y costo por agente sin bloquear OpenCode.',
         'feat.14.title': 'Panel de Omarchy',
         'feat.14.desc': 'Instala un plugin propio de Omarchy: total histórico siempre visible, presupuesto mensual y tabla por agente con modelo. No toca /usr/share/omarchy.',
         'feat.15.title': 'Modelos por agente',
-        'feat.15.desc': 'Fija modelo y reasoning effort por subagente. Por defecto heredan el de quien los invoca, y se cambian cuando quieras.',
+        'feat.15.desc': 'Fija modelo y esfuerzo por agente desde CLI o desde el menú Ctrl+P de OpenCode. Sin editar archivos a mano.',
         'tele.title': 'Tu consumo, de verdad',
-        'tele.desc': 'Lemoria lee `opencode.db` en modo read-only y convierte el consumo disperso en una sola lectura: cuánto llevas, en qué modelos y qué agente lo gastó.',
+        'tele.desc': 'Lemoria consolida sesiones, tokens y costo en una sola lectura: cuánto llevas, qué modelos usaste y qué agente generó el consumo.',
         'tele.panel.title': 'En Omarchy, en el panel',
         'tele.panel.desc': 'Si usas Omarchy, Lemoria instala `lemoria.usage`: total en la barra, hoy, 7 días, presupuesto mensual y tabla por agente con modelo dominante.',
         'tele.gap.title': 'Lo que faltaba en el panel nativo',
         'tele.gap.desc': 'El panel nativo de Omarchy no tiene esos campos. El plugin propio lee las claves extras del mismo record; quienes no usan Omarchy siguen teniendo el CLI.',
         'tele.ro.title': 'Nunca bloquea a opencode',
-        'tele.ro.desc': 'Conexión read-only y cada agregado pushed a SQL. Lemoria lee miles de sesiones sin dejar un archivo de bloqueo ni frenar una sesión en curso.',
+        'tele.ro.desc': 'Lectura segura y agregados eficientes: Lemoria procesa miles de sesiones sin bloquear ni frenar una sesión activa.',
         'agents.title': 'Los 8 agentes',
         'agents.desc': 'Cada agente tiene un rol específico, permisos ajustados y recibe solo el contexto que necesita.',
         'agents.orchestrator.title': 'Orquestador',
@@ -1159,14 +1094,14 @@
         'agents.testing.desc': 'Escribe tests unitarios y de integración con pytest. Verifica cobertura.',
         'agents.github.title': 'GitHub',
         'agents.github.role': 'Trazabilidad',
-        'agents.github.desc': 'Mantiene trazabilidad con GitHub: issues, PRs, milestones. Solo lectura.',
+        'agents.github.desc': 'Mantiene trazabilidad con GitHub: commits, pushes, PRs e issues conectados al trabajo.',
         'agents.review.title': 'Review',
         'agents.review.role': 'Revisión técnica',
         'agents.review.desc': 'Revisa código, arquitectura y decisiones técnicas. Solo observa y reporta.',
         'agents.docs.title': 'Documentación',
         'agents.docs.role': 'Documentación',
         'agents.docs.desc': 'Genera y mantiene documentación en Obsidian vault, READMEs y markdown.',
-        'sdd.desc': '15 pasos desde la idea hasta la memoria actualizada. Cada paso queda registrado en PostgreSQL.',
+        'sdd.desc': 'Flujo completo desde la idea hasta la memoria actualizada. Cada etapa queda registrada y se puede auditar.',
         'sdd.step.01.label': 'Discovery',
         'sdd.step.01.desc': 'Preguntas esenciales',
         'sdd.step.02.label': 'Spec',
@@ -1192,35 +1127,17 @@
         'sdd.step.12.label': 'Memory Update',
         'sdd.step.12.desc': 'Actualizar memoria',
         'sdd.step.13.label': 'State Machine',
-        'sdd.step.13.desc': 'flow_steps en DB',
+        'sdd.step.13.desc': 'Estado persistente',
         'install.title': 'Listo en 3 pasos',
-        'install.desc': 'Clona, corre el instalador y abre OpenCode. El script resuelve la base de datos y el paquete de Python por vos.',
+        'install.desc': 'Clona, corre el instalador y abre OpenCode. El detalle fino vive en INSTALL.md; la landing va al grano.',
         'install.step1.title': 'Clona el repositorio',
         'install.step2.title': 'Corre el instalador',
-        'install.step2.desc': '— revisa tu máquina, resuelve PostgreSQL e instala el paquete con uv → venv → pip.',
+        'install.step2.desc': '— instala Lemoria, configura agentes y deja listo OpenCode.',
         'install.step3.title': 'Crea tu primer proyecto',
-        'install.step3.desc': '— después abrí OpenCode y delegá con @orchestrator.',
+        'install.step3.desc': '— después abre OpenCode y usa /lemoria o el menú Ctrl+P.',
         'install.term.uv': '(primario)',
         'install.term.pg': '(ya respondía — no se tocó)',
         'install.term.done': '✓ Lemoria instalado vía:',
-        'install.req.title': 'Lo que revisa antes de instalar',
-        'install.req.desc': 'El instalador no adivina: mira tu máquina y elige el camino más limpio que funcione. Esto es lo que decide.',
-        'install.pg.title': 'PostgreSQL',
-        'install.pg.desc': 'Tiene que responder algo en <code>localhost:5432</code>. Si tu servidor ya está corriendo, el instalador lo respeta y no lo toca: solo verifica que las credenciales de <code>.env</code> sirvan.',
-        'install.pg.a.tag': 'A · recomendado',
-        'install.pg.a.hint': 'Debian/Ubuntu: <code>sudo apt install postgresql</code> · Fedora: <code>sudo dnf install postgresql</code> · macOS: <code>brew install postgresql</code>',
-        'install.pg.b.tag': 'B · alternativa',
-        'install.pg.b.auto': '(lo levanta el instalador)',
-        'install.pg.b.warn': 'Sobre <code>sudo usermod -aG docker $USER</code>:',
-        'install.pg.b.warn2': 'el grupo docker equivale a root <b>sin contraseña</b>. Tener acceso al socket del daemon permite montar <code>/</code>, editar <code>/etc/shadow</code> y correr contenedores privilegiados. Lemoria no lo recomienda: usá la vía A, que no pide ese privilegio.',
-        'install.py.title': 'El paquete de Python',
-        'install.py.desc': 'Se prueban en orden y cada uno es más invasivo que el anterior. Solo se cae al siguiente si el anterior falló.',
-        'install.py.1.tag': '1 · uv',
-        'install.py.1.hint': 'Fuera de Arch, <code>uv</code> no está en los repos: se instala desde su propia documentación. No pide sudo ni toca el intérprete del sistema.',
-        'install.py.2.tag': '2 · venv propio',
-        'install.py.3.tag': '3 · pip (último recurso)',
-        'install.py.3.warn': 'Por qué <code>pip install -e .</code> falla en Arch + Python 3.14:',
-        'install.py.3.warn2': 'Arch separa <code>pip</code> del intérprete — <code>python3 -m pip</code> responde <code>No module named pip</code> — y PEP 668 marca el intérprete del sistema como <code>EXTERNALLY-MANAGED</code>. Romper eso con <code>--break-system-packages</code> desactiva la protección y puede arrastrar a otras herramientas.',
         'footer.license': '— MIT License',
       },
       en: {
@@ -1238,47 +1155,47 @@
         'hero.stat.agents': 'Agents',
         'hero.stat.sdd': 'SDD Steps',
         'hero.stat.tests': 'Tests',
-        'hero.stat.enums': 'Enums',
+        'hero.stat.enums': 'Skills',
         'feat.title': 'Features',
         'feat.desc': 'Every decision, every line of code, every conversation — all logged and traceable.',
         'feat.01.title': 'Spec Driven Development',
         'feat.01.desc': 'Full flow: discovery → spec → PRD → tasks → architecture → implementation → testing → review → commit → push → documentation → memory.',
         'feat.02.title': 'Full Traceability',
-        'feat.02.desc': 'Every task has a unique ID. Commits use <code>task-XXX</code>. Everything linked to the original PRD.',
+        'feat.02.desc': 'Every task has a unique ID and every commit is linked with <code>Task: &lt;uuid&gt;</code>. Everything points back to the original PRD.',
         'feat.03.title': '8 OpenCode Agents',
         'feat.03.desc': 'Orchestrator + implementation + frontend + DB + testing + GitHub + review + documentation. Each with limited context.',
         'feat.04.title': 'PostgreSQL Source of Truth',
         'feat.04.desc': 'Everything persisted in PostgreSQL 16 with SQLAlchemy. The database is the single source of truth.',
         'feat.05.title': 'Conventional Commits',
-        'feat.05.desc': 'Commits formatted as <code>type(scope): description [task-XXX]</code>. Automatic code ↔ requirements traceability.',
+        'feat.05.desc': 'Conventional commits with a <code>Task: &lt;uuid&gt;</code> trailer. Automatic code ↔ requirements traceability.',
         'feat.06.title': 'Architecture Decision Records',
         'feat.06.desc': 'Every technical decision recorded with context, options considered, and rationale.',
         'feat.07.title': 'Resumable State Machine',
-        'feat.07.desc': 'Every flow step persisted in <code>flow_steps</code>. If LLM context is lost, resume from where it left off.',
+        'feat.07.desc': 'If a session is interrupted or context is lost, the flow is saved and can resume without starting over.',
         'feat.08.title': 'Bidirectional Vault',
         'feat.08.desc': 'Export DB to markdown with wikilinks and restore DB from notes. No data loss.',
-        'feat.09.title': 'Enums + CheckConstraints',
-        'feat.09.desc': '8 typed enums with DB-level constraints. No magic strings.',
-        'feat.10.title': '109 Tests + Automated CI',
+        'feat.09.title': 'Consistent data',
+        'feat.09.desc': 'Database-validated states and relationships keep records unambiguous and intact.',
+        'feat.10.title': '234 Tests + Automated CI',
         'feat.10.desc': 'Test suite with pytest on SQLite in-memory + CI on GitHub Actions with Python 3.11/3.12/3.13 matrix.',
         'feat.11.title': '7 Modular Skills',
         'feat.11.desc': 'Specialized skills: frontend, backend, database, testing, code-review, git-workflow, documentation.',
         'feat.12.title': 'Context7 MCP',
         'feat.12.desc': 'Real-time documentation for libraries and frameworks via MCP server.',
         'feat.13.title': 'opencode Telemetry',
-        'feat.13.desc': 'Reads opencode.db read-only: sessions, tokens and cost per agent. `lemoria usage` gives you the all-time total, the per-model and per-subagent breakdown.',
+        'feat.13.desc': '`lemoria usage` summarizes sessions, tokens and cost per agent without blocking OpenCode.',
         'feat.14.title': 'Omarchy Panel',
         'feat.14.desc': 'Installs a dedicated Omarchy plugin: all-time total always visible, monthly token budget, and a per-agent table with the model. Never touches /usr/share/omarchy.',
         'feat.15.title': 'Per-agent Models',
-        'feat.15.desc': 'Pin a model and reasoning effort per subagent. By default they inherit the caller\'s model, and you change it whenever you want.',
+        'feat.15.desc': 'Pin model and reasoning effort per agent from the CLI or the OpenCode Ctrl+P menu. No manual file edits.',
         'tele.title': 'Your usage, for real',
-        'tele.desc': 'Lemoria reads `opencode.db` read-only and turns scattered usage into a single read: how much you have spent, on which models, and which agent spent it.',
+        'tele.desc': 'Lemoria consolidates sessions, tokens and cost into one view: how much you used, which models ran, and which agent generated the usage.',
         'tele.panel.title': 'On Omarchy, on the panel',
         'tele.panel.desc': 'If you use Omarchy, Lemoria installs `lemoria.usage`: total in the bar, today, 7 days, monthly budget, and a per-agent table with dominant model.',
         'tele.gap.title': 'What the native panel was missing',
         'tele.gap.desc': 'Omarchy\'s native panel has no fields for those. Lemoria\'s plugin reads extra keys from the same record; non-Omarchy users keep the CLI.',
         'tele.ro.title': 'Never blocks opencode',
-        'tele.ro.desc': 'Read-only connection and every aggregate pushed down to SQL. Lemoria reads thousands of sessions without leaving a lock file or stalling a session in progress.',
+        'tele.ro.desc': 'Safe reads and efficient aggregates: Lemoria processes thousands of sessions without locking or slowing active work.',
         'agents.title': 'The 8 Agents',
         'agents.desc': 'Each agent has a specific role, limited permissions, and receives only the context it needs.',
         'agents.orchestrator.title': 'Orchestrator',
@@ -1298,14 +1215,14 @@
         'agents.testing.desc': 'Writes unit and integration tests with pytest. Verifies coverage.',
         'agents.github.title': 'GitHub',
         'agents.github.role': 'Traceability',
-        'agents.github.desc': 'Maintains GitHub traceability: issues, PRs, milestones. Read-only.',
+        'agents.github.desc': 'Maintains GitHub traceability: commits, pushes, PRs and issues connected to the work.',
         'agents.review.title': 'Review',
         'agents.review.role': 'Code Review',
         'agents.review.desc': 'Reviews code, architecture, and technical decisions. Observes and reports only.',
         'agents.docs.title': 'Documentation',
         'agents.docs.role': 'Documentation',
         'agents.docs.desc': 'Generates and maintains documentation in Obsidian vault, READMEs, and markdown files.',
-        'sdd.desc': '15 steps from idea to updated memory. Every step is recorded in PostgreSQL.',
+        'sdd.desc': 'A full flow from idea to updated memory. Every stage is recorded and auditable.',
         'sdd.step.01.label': 'Discovery',
         'sdd.step.01.desc': 'Essential questions',
         'sdd.step.02.label': 'Spec',
@@ -1331,35 +1248,17 @@
         'sdd.step.12.label': 'Memory Update',
         'sdd.step.12.desc': 'Update memory',
         'sdd.step.13.label': 'State Machine',
-        'sdd.step.13.desc': 'flow_steps in DB',
+        'sdd.step.13.desc': 'Persistent state',
         'install.title': 'Ready in 3 steps',
-        'install.desc': 'Clone, run the installer, and open OpenCode. The script handles the database and the Python package for you.',
+        'install.desc': 'Clone, run the installer, and open OpenCode. Details live in INSTALL.md; the landing stays focused.',
         'install.step1.title': 'Clone the repository',
         'install.step2.title': 'Run the installer',
-        'install.step2.desc': '— it inspects your machine, resolves PostgreSQL, and installs the package with uv → venv → pip.',
+        'install.step2.desc': '— installs Lemoria, configures agents, and leaves OpenCode ready.',
         'install.step3.title': 'Create your first project',
-        'install.step3.desc': '— then open OpenCode and delegate with @orchestrator.',
+        'install.step3.desc': '— then open OpenCode and use /lemoria or the Ctrl+P menu.',
         'install.term.uv': '(primary)',
         'install.term.pg': '(already answering — left alone)',
         'install.term.done': '✓ Lemoria installed via:',
-        'install.req.title': 'What it checks before installing',
-        'install.req.desc': 'The installer does not guess: it looks at your machine and picks the cleanest path that works. This is what it decides.',
-        'install.pg.title': 'PostgreSQL',
-        'install.pg.desc': 'Something has to answer on <code>localhost:5432</code>. If your server is already running, the installer respects it and leaves it alone: it only verifies that the <code>.env</code> credentials work.',
-        'install.pg.a.tag': 'A · recommended',
-        'install.pg.a.hint': 'Debian/Ubuntu: <code>sudo apt install postgresql</code> · Fedora: <code>sudo dnf install postgresql</code> · macOS: <code>brew install postgresql</code>',
-        'install.pg.b.tag': 'B · alternative',
-        'install.pg.b.auto': '(the installer brings it up)',
-        'install.pg.b.warn': 'About <code>sudo usermod -aG docker $USER</code>:',
-        'install.pg.b.warn2': 'the docker group is equivalent to root <b>without a password</b>. Access to the daemon socket lets you mount <code>/</code>, edit <code>/etc/shadow</code>, and run privileged containers. Lemoria does not recommend it: use path A, which asks for no such privilege.',
-        'install.py.title': 'The Python package',
-        'install.py.desc': 'They are tried in order, and each one is more invasive than the last. The next is only reached when the previous one failed.',
-        'install.py.1.tag': '1 · uv',
-        'install.py.1.hint': 'Outside Arch, <code>uv</code> is not in the repos: install it from its own documentation. It asks for no sudo and does not touch the system interpreter.',
-        'install.py.2.tag': '2 · own venv',
-        'install.py.3.tag': '3 · pip (last resort)',
-        'install.py.3.warn': 'Why <code>pip install -e .</code> fails on Arch + Python 3.14:',
-        'install.py.3.warn2': 'Arch separates <code>pip</code> from the interpreter — <code>python3 -m pip</code> answers <code>No module named pip</code> — and PEP 668 marks the system interpreter as <code>EXTERNALLY-MANAGED</code>. Breaking that with <code>--break-system-packages</code> disables the protection and can take other tools down with it.',
         'footer.license': '— MIT License',
       }
     };
