@@ -1,0 +1,34 @@
+name: Solicitud de feature
+description: Propone una nueva funcionalidad o una mejora para Lemoria.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por proponer una mejora. Antes de continuar, revisa que no exista un issue similar abierto.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema o necesidad
+      description: ¿Qué problema intenta resolver esta propuesta? Describe el caso de uso.
+      placeholder: Actualmente, cuando ... no es posible ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Propuesta de solución
+      description: Describe la solución que imaginas, incluyendo comandos, flags o comportamiento esperado.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: ¿Qué otras opciones evaluaste y por qué no las elegiste?
+    validations:
+      required: false

@@ -1,0 +1,104 @@
+name: Reporte de bug
+description: Reporta un comportamiento inesperado o un fallo en Lemoria.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por tomarte el tiempo de reportar. Antes de continuar:
+
+        - Revisa que no exista un issue similar abierto.
+        - Si encontraste una vulnerabilidad de seguridad, **no la reportes aquí**: sigue las instrucciones de [SECURITY.md](https://github.com/devcristianlopez/lemoria/blob/main/SECURITY.md).
+        - Elimina credenciales, rutas privadas y datos sensibles de los logs.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción del problema
+      description: ¿Qué ocurrió? Incluye el comando ejecutado y el resultado observado.
+      placeholder: Al ejecutar `lemoria ...` el comando termina con ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducir
+      description: Lista los pasos mínimos y deterministas para reproducir el problema.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamiento esperado
+      description: ¿Qué debería haber ocurrido?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamiento actual
+      description: ¿Qué ocurrió realmente? Incluye el mensaje de error si aplica.
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Sistema operativo
+      placeholder: "Ubuntu 24.04, macOS 15.1, Windows 11..."
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Versión de Python
+      description: Ejecuta `python --version`.
+      placeholder: "3.12.4"
+    validations:
+      required: true
+
+  - type: input
+    id: docker-version
+    attributes:
+      label: Versión de Docker
+      description: Ejecuta `docker --version`. Déjalo vacío si no usas Docker.
+      placeholder: "Docker 27.3.1"
+    validations:
+      required: false
+
+  - type: input
+    id: lemoria-version
+    attributes:
+      label: Versión de Lemoria
+      description: Ejecuta `lemoria --version` o indica el commit si usas el repositorio.
+      placeholder: "0.1.0 / commit abc1234"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs relevantes
+      description: Pega solo el fragmento relevante. Elimina tokens, rutas privadas y datos sensibles.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: Busqué issues existentes y no encontré uno que describa este problema.
+          required: true
+        - label: Eliminé credenciales y datos sensibles de los logs compartidos.
+          required: true
